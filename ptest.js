@@ -59,11 +59,14 @@ ws.onopen = function (e) {
 	    switch(msg.type){
 
 	      case 'broadcast':
-	        if(msg.meta=='clientList'&&msg.data.indexOf('client')>-1 ) init();
+	        // if(msg.meta=='clientList'&&msg.data.indexOf('client')>-1 && page.status!='success' ) init();
 
 
 	        break
 
+	      case 'client_close':
+	      	console.log('client close')
+	      	break
 	      case 'snapshot':
 	      	hideCursor()
 	      	var prevPos = page.scrollPosition
@@ -95,7 +98,7 @@ ws.onopen = function (e) {
 		          ws._send( msg )
 	          }
 	      	  var isAsync = cmd in ASYNC_COMMAND;
-	      	  if( isAsync ) ASYNC_COMMAND[cmd] = cb;
+	      	  if( msg.__id && isAsync ) ASYNC_COMMAND[cmd] = cb;
 
 	          try{
 	            msg.result = eval( msg.data )
@@ -154,7 +157,7 @@ page.onConsoleMessage=function(msg){
 	ws._send( {type:'console_message', data:msg} )
 }
 
-var renderRun = true
+var renderRun = 0
 var renderCount = 0
 function renderPage(){
 	var prevPos = page.scrollPosition
@@ -163,14 +166,14 @@ function renderPage(){
 	page.scrollPosition = prevPos
 }
 function renderLoop(){
-	setTimeout(function(){
+	renderRun = setTimeout(function(){
 		// page.clipRect = {
 		//   top: page.scrollPosition.top,
 		//   left: page.scrollPosition.left,
 		//   width: page.viewportSize.width,
 		//   height: page.viewportSize.height
 		// }
-		if(renderRun) renderPage()
+		renderPage()
 		renderLoop()
 	}, 100)
 }
@@ -204,11 +207,17 @@ function createCursor(){
 
 page.onLoadFinished = function(status) {	// success
 
+	page.status = status
+
 	asyncCB('page.open', status)
 	asyncCB('page.reload', status)
 
 	createCursor()
+
+	clearTimeout(renderRun)
+	renderRun = 0
 	renderLoop()
+
 	page.evaluate(function(){
 		window.addEventListener('mousemove', function(evt){
 			_phantom.setDot(evt.pageX,evt.pageY)
@@ -229,3 +238,4 @@ function init(){
 	if(page.clearMemoryCache) page.clearMemoryCache();
 	page.open(url+ '?'+ Math.random())
 }
+init()

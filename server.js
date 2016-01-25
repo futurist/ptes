@@ -61,6 +61,9 @@ var TEST_TITLE = ''
 var ImageName = ''
 var PlayCount = 0
 var RECORDING = false
+var Options = {
+	syncReload	: false,
+}
 
 function snapShot(name){
 	toPhantom({ type:'snapshot', data:'data/'+name })
@@ -116,7 +119,8 @@ var WS_CALLBACK = {}
 wss.on('connection', function connection(ws) {
 
   ws.on('close', function incoming(code, message) {
-    console.log("WS close: ", code, message)
+    console.log("WS close:", ws.name, code, message)
+    if(ws.name=='client') toPhantom({ type:'client_close', meta:'server', data:'' } );
   })
 
   ws.on('message', function incoming(message) {
@@ -128,6 +132,8 @@ wss.on('connection', function connection(ws) {
       case 'connection':
         ws.name = msg.name
         broadcast({ meta:'clientList', data:clientList() })
+	    if(ws.name=='client') reloadPhantom()
+
         break
 
       // command from client.html or phantom
@@ -303,25 +309,34 @@ function broadcast(data) {
 
 
 // Phantom
+var phantom
+phantom = spawn("phantomjs", ['--config', 'phantom.config', "ptest.js"], {pwd:__dirname, stdio: "pipe" });
 
-var ls = spawn("phantomjs", ['--config', 'phantom.config', "ptest.js"], {pwd:__dirname, stdio: "pipe" });
-
-ls.stdout.setEncoding("utf8");
-ls.stderr.setEncoding("utf8");
-ls.stdout.on("data",function (data) {
+phantom.stdout.setEncoding("utf8");
+phantom.stderr.setEncoding("utf8");
+phantom.stdout.on("data",function (data) {
 	console.log('stdout', data);
 })
-ls.stderr.on("data",function (data) {
+phantom.stderr.on("data",function (data) {
 	console.log('stderr', data);
 })
-ls.on("close", function (code) {
+phantom.on("close", function (code) {
 	console.log('close', code)
 })
-ls.on("error", function (code) {
+phantom.on("error", function (code) {
 	console.log('error', code);
 })
+console.log('spawn phantom', phantom.pid)
 
+function reloadPhantom(){
+	if(Options.syncReload){
+		toPhantom({ type:'command', meta:'server', data:'page.reload()' } );
+	}
+}
 
+function stopPhantom(){
+	if( phantom && phantom.connected ) phantom.kill()
+}
 
 // init part
 

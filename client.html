@@ -17,12 +17,52 @@
   user-select: none;
 }
 
+#phantom{
+  position: relative;
+}
+#clipArea{
+  position: absolute;
+  z-index: 99999;
+  border: 1px dashed #c00;
+  display: none;
+  pointer-events: none;
+}
+.clipBar{
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  /*background: red;*/
+  cursor: pointer;
+}
+.clipBar0{
+  top:0;
+  height: 10px;
+}
+.clipBar1{
+  right:0;
+  width: 10px;
+}
+.clipBar2{
+  bottom:0;
+  height: 10px;
+}
+.clipBar3{
+  left:0;
+  width: 10px;
+}
+
 </style>
 </head>
 <body>
 
 <div id="phantom">
   <div class="imgCon" onselectstart="return false;" ondragstart="return false;" contenteditable=false><img onselectstart="return false;" ondragstart="return false;" contenteditable=false class="screenshot" /></div>
+  <div id="clipArea">
+    <div class="clipBar clipBar0"></div>
+    <div class="clipBar clipBar1"></div>
+    <div class="clipBar clipBar2"></div>
+    <div class="clipBar clipBar3"></div>
+  </div>
 </div>
 <div id="console"></div>
 
@@ -37,9 +77,30 @@ Copyright @ Michael Yang
 License MIT
 */
 
-var RECORDING = false
-var PLAYING = false
+var RECORDING = 'STAGE_RECORDING', PLAYING = 'STAGE_PLAYING', CLIPPING = 'STAGE_CLIPPING'
+var stage = null
 
+var PageClip = {}
+var clipDrag = m_drag({});
+var startClip = clipDrag('clip', function(e, data, root){
+  if(stage!=CLIPPING) return;
+  PageClip.top = data.oy
+  PageClip.left = data.ox
+  PageClip.width = -data.dx
+  PageClip.height = -data.dy
+  applyPageClip()
+
+}, function(e,data){
+  if(stage!=CLIPPING) return;
+  console.log(PageClip)
+  ws._send({ type:'page_clip', data:PageClip })
+  stage = null
+})
+function applyPageClip(){
+  $('#clipArea').show().css({ top:PageClip.top+'px', left:PageClip.left+'px', width:PageClip.width+'px', height:PageClip.height+'px' })
+}
+
+$('#phantom').on('mousedown', startClip)
 
 ws= new WebSocket('ws://'+ window.location.hostname +':1280');
 ws.onopen = function (e) {
@@ -51,6 +112,11 @@ ws.onopen = function (e) {
 
         case 'broadcast':
 
+          break
+        case 'page_clip':
+          PageClip = msg.data
+          applyPageClip()
+          
           break
         case 'command':
           try{
@@ -138,30 +204,29 @@ function registerEvent(){
     })
     Mousetrap.bind('ctrl+p', function(e){
       e.preventDefault()
-      if(RECORDING) return;
-      if( !PLAYING ){
+      if( stage==null ){
         sc(' playBack.play() ')
-        PLAYING = true
-      } else {
+        stage = PLAYING
+      } else if(stage == PLAYING) {
         sc(' playBack.pause() ')
-        PLAYING = false
+        stage = null
       }
     })
-    Mousetrap.bind('ctrl+shift+r', function(e){
-
+    Mousetrap.bind('ctrl+a', function(e){
+      e.preventDefault()
+      stage = CLIPPING
     })
     Mousetrap.bind('ctrl+r', function(e){
       e.preventDefault()
-      if(PLAYING) return;
-      if( !RECORDING ){
+      if( stage == null ){
         var title=window.prompt('which title')
         document.title = 'recording...'+title
         sc(' startRec("'+ title +'") ')
-        RECORDING = true
-      }else{
+        stage = RECORDING
+      }else if(stage == RECORDING) {
         document.title = 'ptest'
-        sc(' stopRec() ')        
-        RECORDING = false
+        sc(' stopRec() ')
+        stage = null
       }
     })
 
@@ -186,7 +251,7 @@ function registerEvent(){
     'dblclick',
   ]
   eventList.forEach(function(v){
-    document.addEventListener(v, function(e){
+    $('#phantom').on(v, function(e){
       var evtData = { type:e.type, pageX:e.pageX-window.scrollX, pageY:e.pageY-window.scrollY, which:e.which }
       // var a=util._extend({}, e)
       // var evtData=util._exclude(a, {view:1,target:1,toElement:1,srcElement:1,path:1})

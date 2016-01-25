@@ -57,6 +57,7 @@ console.log('server started at %s:%s', HTTP_HOST, HTTP_PORT )
 
 var EventCache = []
 var ViewportCache = []
+var PageClip = {}
 var TEST_TITLE = ''
 var ImageName = ''
 var PlayCount = 0
@@ -84,7 +85,7 @@ function startRec(title){
 	}
 	TEST_TITLE = title
 	RECORDING = true
-	EventCache = [ { time:Date.now(), msg: arrayLast(ViewportCache) } ]
+	EventCache = [ { time:Date.now(), msg: arrayLast(ViewportCache) }, { time:Date.now(), msg:{type:'page_clip', data:PageClip} } ]
 	// ViewportCache = [  ]
 }
 function stopRec(){
@@ -92,7 +93,7 @@ function stopRec(){
 	var name = +new Date()
 	ImageName = name
 	snapShot(name+'.png')
-	fs.writeFileSync('data/'+ name +'.json', JSON.stringify({ image:name, event: EventCache }) )
+	fs.writeFileSync('data/'+ name +'.json', JSON.stringify({ image:name, clip:PageClip, event: EventCache }) )
 }
 function init(){
 	if(process.argv.length<3) return;
@@ -102,15 +103,16 @@ function init(){
 		try{
 			data = JSON.parse(data)
 			if(typeof data!='object' || !data) throw Error();
-			ViewportCache = data.viewport
 			EventCache = data.event
+			ViewportCache = [EventCache[0].msg]
+			PageClip = data.clip
 			ImageName = data.image
 		}catch(e){
 			console_message('userdata parse error')
 		}
 	})
 }
-
+init()
 
 // create WS Server
 var WebSocketServer = require('ws').Server
@@ -127,12 +129,28 @@ wss.on('connection', function connection(ws) {
     // console.log('received: %s', message)
     var msg; try{ msg=JSON.parse(message) }catch(e){ msg=message }
     if(typeof msg!=='object') return;
+
+    var relay = function(){
+    	if( ws.name==='client' ){
+        	RECORDING && EventCache.push( { time:Date.now(), msg:_util._extend({}, msg) } )		// , viewport: arrayLast(ViewportCache)
+        	toPhantom(msg)
+        } else {
+        	toClient(msg)
+        }
+    }
+
     switch(msg.type){
 
       case 'connection':
         ws.name = msg.name
         broadcast({ meta:'clientList', data:clientList() })
-	    if(ws.name=='client') reloadPhantom()
+	    if(ws.name=='client'){
+	    	if(Options.syncReload) reloadPhantom();
+	    	playBack.play()
+	    }
+	    if(ws.name=='phantom'){
+
+	    }
 
         break
 
@@ -149,6 +167,7 @@ wss.on('connection', function connection(ws) {
           ws._send( msg )
           return
         }
+        break
 
       // get callback from ws._call
 	  case 'command_result':
@@ -158,18 +177,21 @@ wss.on('connection', function connection(ws) {
 			cb && cb(msg)
 			return
 		}
+		break
 
 	  case 'window_resize':
 	  case 'window_scroll':
       	ViewportCache.push(msg)
+      	relay()
+      	break
+
+      case 'page_clip':
+      	PageClip = msg.data
+      	relay()
+      	break
 
       default:
-        if( ws.name==='client' ){
-        	RECORDING && EventCache.push( { time:Date.now(), msg:_util._extend({}, msg) } )		// , viewport: arrayLast(ViewportCache)
-        	toPhantom(msg)
-        } else {
-        	toClient(msg)
-        }
+      	relay()
         break
 
     }
@@ -241,7 +263,7 @@ class EventPlayBack{
 					setTimeout( () => {
 						// client_console(e.time, e.msg.type, e.msg.data)
 						toPhantom(e.msg)
-						if( /scroll|resize/.test(e.msg.type) ) toClient(e.msg);
+						if( /page_clip|scroll|resize/.test(e.msg.type) ) toClient(e.msg);
 						else e.viewport && toClient(e.viewport);
 						prev = e
 						resolve(true)
@@ -329,16 +351,13 @@ phantom.on("error", function (code) {
 console.log('spawn phantom', phantom.pid)
 
 function reloadPhantom(){
-	if(Options.syncReload){
-		toPhantom({ type:'command', meta:'server', data:'page.reload()' } );
-	}
+	toPhantom({ type:'command', meta:'server', data:'page.reload()' } );
 }
 
 function stopPhantom(){
 	if( phantom && phantom.connected ) phantom.kill()
 }
 
-// init part
 
-init()
+
 

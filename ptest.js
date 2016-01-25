@@ -19,6 +19,7 @@ function assertError (msg, stack){
 	phantom.exit(1)
 }
 
+var pageClip = {}
 var WHICH_MOUSE_BUTTON = {"0":"", "1":"left", "2":"middle", "3":"right"}
 var ASYNC_COMMAND = {
 	'page.reload':null,
@@ -31,6 +32,7 @@ var asyncCB = function(cmd) {
 		ASYNC_COMMAND[cmd] = null
 	}
 }
+
 
 page.zoomFactor = 1;
 //page.clipRect = { top: 10, left: 0, width: 640, height: 490 };
@@ -67,11 +69,26 @@ ws.onopen = function (e) {
 	      case 'client_close':
 	      	console.log('client close')
 	      	break
+
+	      case 'page_clip':
+	      	pageClip = msg.data
+	      	
+	      	break
 	      case 'snapshot':
 	      	hideCursor()
 	      	var prevPos = page.scrollPosition
 	      	page.scrollPosition = {   top: 0 ,   left: 0 }
+			page.clipRect = {
+			  top: pageClip.top|| page.scrollPosition.top,
+			  left: pageClip.left|| page.scrollPosition.left,
+			  width: pageClip.width|| page.viewportSize.width,
+			  height: pageClip.height|| page.viewportSize.height,
+			}
+
 	      	page.render(msg.data)
+
+	      	page.clipRect = {}
+
 	      	page.scrollPosition = prevPos
 	      	
 	      	showCursor()
@@ -167,12 +184,6 @@ function renderPage(){
 }
 function renderLoop(){
 	renderRun = setTimeout(function(){
-		// page.clipRect = {
-		//   top: page.scrollPosition.top,
-		//   left: page.scrollPosition.left,
-		//   width: page.viewportSize.width,
-		//   height: page.viewportSize.height
-		// }
 		renderPage()
 		renderLoop()
 	}, 100)

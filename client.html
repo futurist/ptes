@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html>
 <head>
+<meta charset="utf-8" />
+<link rel="icon" href="data:;base64,iVBORw0KGgo=" />
 <title>ptest client</title>
 <style type="text/css">
 *{
@@ -25,6 +27,7 @@
 <div id="console"></div>
 
 <script type="text/javascript" src="./js/jquery.min.js"></script>
+<script type="text/javascript" src="./js/mousetrap.js"></script>
 <script type="text/javascript" src="./node_modules/util_debounce_throttle/dist/util_debounce_throttle.js"></script>
 <script type="text/javascript" src="./node_modules/mithril/mithril.min.js"></script>
 <script type="text/javascript">
@@ -32,6 +35,11 @@
 Copyright @ Michael Yang 
 License MIT
 */
+
+var RECORDING = false
+var PLAYING = false
+
+
 ws= new WebSocket('ws://'+ window.location.hostname +':1280');
 ws.onopen = function (e) {
   ws.onmessage = function (message) {
@@ -41,6 +49,17 @@ ws.onopen = function (e) {
       switch(msg.type){
 
         case 'broadcast':
+
+          break
+        case 'command':
+          try{
+            msg.result = eval( msg.data )
+          }catch(e){
+            msg.result = e.stack
+          }
+          delete msg.data
+          msg.type = 'command_result'
+          ws._send( msg )
 
           break
         case 'console_error':
@@ -86,33 +105,62 @@ ws.onopen = function (e) {
 }
 
 var WS_CALLBACK = {}
-ws._send = function(msg){
-  if(ws.readyState!=1) return
+ws._send = function(msg, cb){
+  if(ws.readyState!=1) return;
+  if(typeof cb=='function'){
+    msg.__id = '_'+Date.now()+Math.random()
+    WS_CALLBACK[msg.__id] = cb
+  }
   ws.send( typeof msg=='string' ? msg : JSON.stringify(msg) )
 }
 ws._send_debounce = util_debounce_throttle._debounce( ws._send, 30)
 ws._send_throttle = util_debounce_throttle._throttle( ws._send, 30, true )
 ws._send_throttle2 = util_debounce_throttle._throttle( ws._send, 30, false )
 
-ws._call = function(msg, cb) {
-  msg.__id = '_'+Date.now()+Math.random()
-  WS_CALLBACK[msg.__id] = cb
-  ws._send(msg)
-}
-
 
 function sc(str){
-  ws._call({type:'command', meta:'server', data:str}, function(msg){
-    console.log(msg.result)
+  ws._send({type:'command', meta:'server', data:str}, function(msg){
+    if(msg.result!==undefined) console.log(msg.result)
   })
 }
 function cc(str){
-  ws._call({type:'command', meta:'', data:str}, function(msg){
-    console.log(msg.result)
+  ws._send({type:'command', meta:'', data:str}, function(msg){
+    if(msg.result!==undefined) console.log(msg.result)
   })
 }
 
 function registerEvent(){
+
+    Mousetrap.bind('ctrl+s', function(e){
+      e.preventDefault()
+      console.log(e)
+    })
+    Mousetrap.bind('ctrl+p', function(e){
+      e.preventDefault()
+      if(RECORDING) return;
+      if( !PLAYING ){
+        sc(' playBack.play() ')
+        PLAYING = true
+      } else {
+        sc(' playBack.pause() ')
+        PLAYING = false
+      }
+    })
+    Mousetrap.bind('ctrl+r', function(e){
+      e.preventDefault()
+      if(PLAYING) return;
+      if( !RECORDING ){
+        var title=window.prompt('which title')
+        document.title = 'recording...'+title
+        sc(' startRec("'+ title +'") ')
+        RECORDING = true
+      }else{
+        document.title = 'ptest'
+        sc(' stopRec() ')        
+        RECORDING = false
+      }
+    })
+
     $(window).on('resize', function(e){
       var data = { scrollX:window.scrollX, scrollY:window.scrollY, width:$(window).width(), height:$(window).height()}
       ws._send_debounce({ type:'window_resize', data:data })
@@ -145,7 +193,11 @@ function registerEvent(){
     })
   })
 }
-registerEvent()
+
+$(function(){
+  registerEvent()
+  document.body.focus()
+})
 
 </script>
 </body>

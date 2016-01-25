@@ -20,6 +20,17 @@ function assertError (msg, stack){
 }
 
 var WHICH_MOUSE_BUTTON = {"0":"", "1":"left", "2":"middle", "3":"right"}
+var ASYNC_COMMAND = {
+	'page.reload':null,
+	'page.go':null,
+}
+var asyncCB = function(cmd) {
+	var args = [].slice.call( arguments, 1 );
+	if(typeof ASYNC_COMMAND[cmd]=='function'){
+		ASYNC_COMMAND[cmd].apply(null, args)
+		ASYNC_COMMAND[cmd] = null
+	}
+}
 
 page.zoomFactor = 1;
 //page.clipRect = { top: 10, left: 0, width: 640, height: 490 };
@@ -76,14 +87,25 @@ ws.onopen = function (e) {
 
 	      // command from client.html
 	      case 'command':
+	          var cmd = msg.data.trim().split('(').shift()
+	          var cb=function(result){
+	          	  if(arguments.length) msg.result = result	
+		          delete msg.data
+		          msg.type = 'command_result'
+		          ws._send( msg )
+	          }
+	      	  var isAsync = cmd in ASYNC_COMMAND;
+	      	  if( isAsync ) ASYNC_COMMAND[cmd] = cb;
+
 	          try{
 	            msg.result = eval( msg.data )
 	          }catch(e){
 	            msg.result = e.stack
 	          }
-	          delete msg.data
-	          msg.type = 'command_result'
-	          ws._send( msg )
+
+	          if( !isAsync ) {
+	          	cb()
+	          }
 
 	      	break
 
@@ -115,16 +137,14 @@ ws.onopen = function (e) {
 	ws._send({type:'connection', meta:'server', name:'phantom'})
 }
 var WS_CALLBACK = {}
-ws._send = function(msg){
-	if(ws.readyState!=1) return
+ws._send = function(msg, cb){
+	if(ws.readyState!=1) return;
+	if(typeof cb=='function'){
+		msg.__id = '_'+Date.now()+Math.random()
+		WS_CALLBACK[msg.__id] = cb
+	}
 	ws.send( typeof msg=='string' ? msg : JSON.stringify(msg) )
 }
-ws._call = function(msg, cb) {
-  msg.__id = '_'+Date.now()+Math.random()
-  WS_CALLBACK[msg.__id] = cb
-  ws._send(msg)
-}
-
 
 
 page.onError=function(msg, stack){
@@ -182,23 +202,30 @@ function createCursor(){
 	})
 }
 
+page.onLoadFinished = function(status) {	// success
+
+	asyncCB('page.open', status)
+	asyncCB('page.reload', status)
+
+	createCursor()
+	renderLoop()
+	page.evaluate(function(){
+		window.addEventListener('mousemove', function(evt){
+			_phantom.setDot(evt.pageX,evt.pageY)
+		})
+		window.addEventListener('mouseup', function(evt){
+		})
+		window.addEventListener('mousedown', function(evt){
+			// console.log(evt.type, Date.now())
+			_phantom.setDot(evt.pageX,evt.pageY)
+		})
+	})
+}
+
+
 function init(){
 	var url = 'http://1111hui.com/github/m_drag/index.html'
 	// url = 'http://bing.com'
 	if(page.clearMemoryCache) page.clearMemoryCache();
-	page.open(url+ '?'+ Math.random(), function(status){	// success
-		createCursor()
-		renderLoop()
-		page.evaluate(function(){
-			window.addEventListener('mousemove', function(evt){
-				_phantom.setDot(evt.pageX,evt.pageY)
-			})
-			window.addEventListener('mouseup', function(evt){
-			})
-			window.addEventListener('mousedown', function(evt){
-				// console.log(evt.type, Date.now())
-				_phantom.setDot(evt.pageX,evt.pageY)
-			})
-		})
-	})
+	page.open(url+ '?'+ Math.random())
 }

@@ -34,7 +34,7 @@ function arrayLast(arr){
 
 // create Http Server
 var HttpServer = http.createServer(function(req,res){
-	console.log( (new Date).toLocaleString(), req.method, req.url )
+	// console.log( (new Date).toLocaleString(), req.method, req.url )
 
 	var filePath = req.url
 	filePath = '.' + (ROUTE[filePath] || filePath)
@@ -57,6 +57,7 @@ console.log('server started at %s:%s', HTTP_HOST, HTTP_PORT )
 
 var EventCache = []
 var ViewportCache = []
+var TEST_TITLE = ''
 var ImageName = ''
 var PlayCount = 0
 var RECORDING = false
@@ -74,20 +75,21 @@ function showDiff(a,b){
 	})
 }
 
-function startRec(){
+function startRec(title){
 	if(playBack.status!=STOPPED){
 		return console_message('cannot record when in playback')
 	}
+	TEST_TITLE = title
 	RECORDING = true
-	ViewportCache = []
-	EventCache = []
+	EventCache = [ { time:Date.now(), msg: arrayLast(ViewportCache) } ]
+	// ViewportCache = [  ]
 }
 function stopRec(){
 	RECORDING = false
 	var name = +new Date()
 	ImageName = name
 	snapShot(name+'.png')
-	fs.writeFileSync('data/'+ name +'.json', JSON.stringify({ image:name, viewport:ViewportCache, event: EventCache }) )
+	fs.writeFileSync('data/'+ name +'.json', JSON.stringify({ image:name, event: EventCache }) )
 }
 function init(){
 	if(process.argv.length<3) return;
@@ -110,7 +112,7 @@ function init(){
 // create WS Server
 var WebSocketServer = require('ws').Server
 var wss = new WebSocketServer({ port: WS_PORT })
-
+var WS_CALLBACK = {}
 wss.on('connection', function connection(ws) {
 
   ws.on('close', function incoming(code, message) {
@@ -142,13 +144,22 @@ wss.on('connection', function connection(ws) {
           return
         }
 
+      // get callback from ws._call
+	  case 'command_result':
+		if(msg.__id && msg.meta=='server'){
+			var cb = WS_CALLBACK[msg.__id]
+			delete WS_CALLBACK[msg.__id]
+			cb && cb(msg)
+			return
+		}
+
 	  case 'window_resize':
 	  case 'window_scroll':
       	ViewportCache.push(msg)
 
       default:
         if( ws.name==='client' ){
-        	RECORDING && EventCache.push( { time:Date.now(), msg:_util._extend({}, msg), viewport: arrayLast(ViewportCache) } )
+        	RECORDING && EventCache.push( { time:Date.now(), msg:_util._extend({}, msg) } )		// , viewport: arrayLast(ViewportCache)
         	toPhantom(msg)
         } else {
         	toClient(msg)
@@ -158,8 +169,12 @@ wss.on('connection', function connection(ws) {
     }
   })
 
-  ws._send = function(msg){
-    if(ws.readyState!=1) return
+  ws._send = function(msg, cb) {
+    if(ws.readyState!=1) return;
+	if(typeof cb=='function'){
+		msg.__id = '_'+Date.now()+Math.random()
+		WS_CALLBACK[msg.__id] = cb
+	}
     ws.send( typeof msg=='string' ? msg : JSON.stringify(msg) )
   }
 
@@ -186,6 +201,13 @@ class EventPlayBack{
 		client_console('begin playback, total time:', last.time-prev.time, '(ms)' )
 		self.status = RUNNING
 		co(function *(){
+			// refresh phantom page before play
+			yield new Promise(function(ok, error){
+				toPhantom({ type:'command', meta:'server', data:'page.reload()' }, function(msg){
+					if(msg.result=='success') ok();
+					else error();
+				})
+			})
 			for(let i=0, n=EventCache.length; i<n; i++){
 				if(self.status===STOPPING) {
 					self.cancel()
@@ -214,7 +236,7 @@ class EventPlayBack{
 						// client_console(e.time, e.msg.type, e.msg.data)
 						toPhantom(e.msg)
 						if( /scroll|resize/.test(e.msg.type) ) toClient(e.msg);
-						else toClient(e.viewport);
+						else e.viewport && toClient(e.viewport);
 						prev = e
 						resolve(true)
 					}, inter )
@@ -258,13 +280,13 @@ function clientList(){
 function findClient(name){
   return wss.clients.find((v,i)=>v.name==name)
 }
-function toClient(msg){
+function toClient(msg, cb){
   var client = findClient('client')
-  if(client) client._send(msg)
+  if(client) client._send(msg, cb)
 }
-function toPhantom(msg){
+function toPhantom(msg, cb){
   var phantom = findClient('phantom')
-  if(phantom) phantom._send(msg)
+  if(phantom) phantom._send(msg, cb)
 }
 function client_console(){
 	var msg = ''

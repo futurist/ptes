@@ -116,7 +116,7 @@ ws.onopen = function (e) {
         case 'page_clip':
           PageClip = msg.data
           applyPageClip()
-          
+
           break
         case 'command':
           try{
@@ -268,6 +268,9 @@ $(function(){
   document.body.focus()
 })
 
+window.onunload = function(){
+  $.ajax({ type:'GET', url: window.location.protocol+ '//'+ window.location.host + '/reload', async:false })
+}
 
 </script>
 </body>

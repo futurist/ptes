@@ -36,6 +36,11 @@ function arrayLast(arr){
 var HttpServer = http.createServer(function(req,res){
 	// console.log( (new Date).toLocaleString(), req.method, req.url )
 
+	if(req.url=='/reload'){
+		if(Options.syncReload) reloadPhantom();
+		return res.end()
+	}
+
 	var filePath = req.url
 	filePath = '.' + (ROUTE[filePath] || filePath)
 
@@ -63,7 +68,8 @@ var ImageName = ''
 var PlayCount = 0
 var RECORDING = false
 var Options = {
-	syncReload	: false,
+	syncReload	: true,
+	playBackOnInit	: true,
 }
 
 function snapShot(name){
@@ -145,8 +151,7 @@ wss.on('connection', function connection(ws) {
         ws.name = msg.name
         broadcast({ meta:'clientList', data:clientList() })
 	    if(ws.name=='client'){
-	    	if(Options.syncReload) reloadPhantom();
-	    	playBack.play()
+	    	if(Options.playBackOnInit) playBack.play()
 	    }
 	    if(ws.name=='phantom'){
 

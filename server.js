@@ -5,6 +5,7 @@ License MIT
 'use strict'
 
 var fs=require("fs")
+var mkdirp=require("mkdirp")
 var http=require("http")
 var path=require("path")
 var process=require("process")
@@ -17,7 +18,13 @@ var HTTP_HOST = '0.0.0.0'
 var HTTP_PORT = 8080
 var WS_PORT = 1280
 
-var DATA_DIR = 'data/'
+var DATA_DIR = 'test/data/'
+mkdirp(DATA_DIR, function(err){
+	if(err) return console.log(err);
+	copyFileSync('js/ptest-runner.js', 'test/ptest-runner.js')
+	copyFileSync('./phantom.config', 'test/data/phantom.config')
+	copyFileSync('js/ptest-phantom.js', 'test/data/ptest-phantom.js')
+})
 
 var ROUTE = {
 	'/'		: 	'/client.html',
@@ -29,6 +36,10 @@ var MIME = {
 	'.png'	:	'image/png',
 }
 
+function copyFileSync (srcFile, destFile, encoding) {
+  var content = fs.readFileSync(srcFile, encoding||'utf8');
+  fs.writeFileSync(destFile, content, encoding||'utf8');
+}
 // helper function
 function arrayLast(arr){
 	if(arr.length) return arr[arr.length-1]
@@ -92,7 +103,7 @@ function startRec(title){
 	if(playBack.status!=STOPPED){
 		return client_console('cannot record when in playback')
 	}
-	Config.unsaved = title
+	Config.unsaved = { name:title, span:Date.now() }
 	RECORDING = true
 	EventCache = [ { time:Date.now(), msg: arrayLast(ViewportCache) }, { time:Date.now(), msg:{type:'page_clip', data:PageClip} } ]
 	// ViewportCache = [  ]
@@ -103,9 +114,17 @@ function stopRec(){
 	ImageName = name
 	snapShot(name+'.png')
 	fs.writeFileSync(DATA_DIR+ name +'.json', JSON.stringify({ image:name, clip:PageClip, event: EventCache }) )
-	var title = Config.unsaved
-	Config.data[title] = name
+	
+	// object path
+	// var Config = {unsaved:{name:'a;b'}}
+	var p, a = ['data'].concat(Config.unsaved.name.split(';')), b=Config
+	Config.unsaved.name = name
+	Config.unsaved.span = Date.now() - Config.unsaved.span
+
+	if(a.length==1) b[a.shift()] = Config.unsaved
+	else while( p=a.shift() ) b[p]=(b[p]||{}), a.length>1? b=b[p] : b=b[p][a.shift()]=Config.unsaved;
 	delete Config.unsaved
+ 
 	fs.writeFileSync(DATA_DIR +'ptest.json', JSON.stringify(Config) )
 }
 function init(){

@@ -29,7 +29,10 @@ function init(){
 	if( sys.args.length==1 ) return console.error('bad param'), phantom.exit(1);
 	URL = sys.args[1] || 'http://1111hui.com/github/m_drag/index.html'
 	ImageName = sys.args[2]
-	
+	if (!fs.exists( ImageName+'.json' )){
+		console.error('json not exists')
+		return phantom.exit(1)
+	}
 	var content = fs.read( ImageName+'.json' )
 	try{
 		Data = JSON.parse( content )

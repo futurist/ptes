@@ -125,7 +125,7 @@ function stopRec(){
 	else while( p=a.shift() ) b[p]=(b[p]||{}), a.length>1? b=b[p] : b=b[p][a.shift()]=Config.unsaved;
 	delete Config.unsaved
  
-	fs.writeFileSync(DATA_DIR +'ptest.json', JSON.stringify(Config) )
+	fs.writeFileSync(DATA_DIR +'ptest.json', JSON.stringify(Config,null,2) )
 }
 function init(){
 	try{

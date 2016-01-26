@@ -107,7 +107,8 @@ ws.onopen = function (e) {
   ws.onmessage = function (message) {
 
       var msg; try{ msg=JSON.parse(message.data) }catch(e){ msg=message.data }
-
+      if(typeof msg!='object'||!msg) return;
+      
       switch(msg.type){
 
         case 'broadcast':
@@ -129,11 +130,11 @@ ws.onopen = function (e) {
           ws._send( msg )
 
           break
-        case 'console_error':
+        case 'client_error':
           console.error( msg.data.msg, JSON.stringify(msg.data.stack) )
 
           break
-        case 'console_message':
+        case 'client_console':
           console.log( msg.data )
 
           break

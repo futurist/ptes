@@ -18,8 +18,8 @@ function assertError (msg, stack){
 	console.log(msg, '\n'+ stack.map(function(v){ return 'Line '+ v.line+' '+ (v.function?'['+v.function+'] ':'') +v.file }).join('\n') )
 	phantom.exit(1)
 }
-
-var pageClip = {}
+var PageClip = {}
+var URL = ''
 var WHICH_MOUSE_BUTTON = {"0":"", "1":"left", "2":"middle", "3":"right"}
 var ASYNC_COMMAND = {
 	'page.reload':null,
@@ -57,6 +57,7 @@ ws.onopen = function (e) {
 	ws.onmessage = function (message) {
 
 	    var msg; try{ msg=JSON.parse(message.data) }catch(e){ msg=message.data }
+      	if(typeof msg!='object'||!msg) return;
 
 	    switch(msg.type){
 
@@ -71,18 +72,18 @@ ws.onopen = function (e) {
 	      	break
 
 	      case 'page_clip':
-	      	pageClip = msg.data
+	      	PageClip = msg.data
 	      	
 	      	break
 	      case 'snapshot':
 	      	hideCursor()
 	      	var prevPos = page.scrollPosition
 	      	page.scrollPosition = {   top: 0 ,   left: 0 }
-			page.clipRect = {
-			  top: pageClip.top|| page.scrollPosition.top,
-			  left: pageClip.left|| page.scrollPosition.left,
-			  width: pageClip.width|| page.viewportSize.width,
-			  height: pageClip.height|| page.viewportSize.height,
+			if( Object.keys(PageClip).length ) page.clipRect = {
+			  top: PageClip.top|| page.scrollPosition.top,
+			  left: PageClip.left|| page.scrollPosition.left,
+			  width: PageClip.width|| page.viewportSize.width,
+			  height: PageClip.height|| page.viewportSize.height,
 			}
 
 	      	page.render(msg.data)
@@ -168,10 +169,10 @@ ws._send = function(msg, cb){
 
 
 page.onError=function(msg, stack){
-	ws._send( {type:'console_error', data:{msg:msg,stack:stack} } )
+	ws._send( {type:'client_error', data:{msg:msg,stack:stack} } )
 }
 page.onConsoleMessage=function(msg){
-	ws._send( {type:'console_message', data:msg} )
+	ws._send( {type:'client_console', data:msg} )
 }
 
 var renderRun = 0
@@ -244,9 +245,10 @@ page.onLoadFinished = function(status) {	// success
 
 
 function init(){
-	var url = 'http://1111hui.com/github/m_drag/index.html'
-	// url = 'http://bing.com'
+	if(sys.args.length==1) return;
+	URL = sys.args[1]
+	// URL = 'http://bing.com'
 	if(page.clearMemoryCache) page.clearMemoryCache();
-	page.open(url+ '?'+ Math.random())
+	page.open(URL+ '?'+ Math.random())
 }
 init()

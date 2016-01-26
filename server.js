@@ -17,6 +17,8 @@ var HTTP_HOST = '0.0.0.0'
 var HTTP_PORT = 8080
 var WS_PORT = 1280
 
+var DATA_DIR = 'data/'
+
 var ROUTE = {
 	'/'		: 	'/client.html',
 }
@@ -60,10 +62,11 @@ HttpServer.listen(HTTP_PORT, HTTP_HOST)
 
 console.log('server started at %s:%s', HTTP_HOST, HTTP_PORT )
 
+var URL = 'http://1111hui.com/github/m_drag/index.html'
 var EventCache = []
 var ViewportCache = []
 var PageClip = {}
-var TEST_TITLE = ''
+var Config = { url:URL, data:{} }
 var ImageName = ''
 var PlayCount = 0
 var RECORDING = false
@@ -73,13 +76,13 @@ var Options = {
 }
 
 function snapShot(name){
-	toPhantom({ type:'snapshot', data:'data/'+name })
+	toPhantom({ type:'snapshot', data:DATA_DIR+name })
 }
 function showDiff(a,b){
 	imageDiff({
-	  actualImage: 'data/'+ (a||'a.png'),
-	  expectedImage: 'data/'+ (b||'b.png'),
-	  diffImage: 'data/diff_'+b,
+	  actualImage: DATA_DIR+ (a||'a.png'),
+	  expectedImage: DATA_DIR+ (b||'b.png'),
+	  diffImage: DATA_DIR+ 'diff_'+b,
 	}, function (err, imagesAreSame) {
 	  console.log(err, imagesAreSame)
 	})
@@ -87,9 +90,9 @@ function showDiff(a,b){
 
 function startRec(title){
 	if(playBack.status!=STOPPED){
-		return console_message('cannot record when in playback')
+		return client_console('cannot record when in playback')
 	}
-	TEST_TITLE = title
+	Config.unsaved = title
 	RECORDING = true
 	EventCache = [ { time:Date.now(), msg: arrayLast(ViewportCache) }, { time:Date.now(), msg:{type:'page_clip', data:PageClip} } ]
 	// ViewportCache = [  ]
@@ -99,12 +102,23 @@ function stopRec(){
 	var name = +new Date()
 	ImageName = name
 	snapShot(name+'.png')
-	fs.writeFileSync('data/'+ name +'.json', JSON.stringify({ image:name, clip:PageClip, event: EventCache }) )
+	fs.writeFileSync(DATA_DIR+ name +'.json', JSON.stringify({ image:name, clip:PageClip, event: EventCache }) )
+	var title = Config.unsaved
+	Config.data[title] = name
+	delete Config.unsaved
+	fs.writeFileSync(DATA_DIR +'ptest.json', JSON.stringify(Config) )
 }
 function init(){
+	try{
+		Config = JSON.parse( fs.readFileSync(DATA_DIR+ 'ptest.json', 'utf8') )
+	}catch(e){
+		return
+	}
+	console.log(Config)
+
 	if(process.argv.length<3) return;
 	var name = process.argv[2]
-	fs.readFile('data/'+ name +'.json', 'utf8', (err, data) => {
+	fs.readFile(DATA_DIR+ name +'.json', 'utf8', (err, data) => {
 		if(err) return;
 		try{
 			data = JSON.parse(data)
@@ -114,7 +128,7 @@ function init(){
 			PageClip = data.clip
 			ImageName = data.image
 		}catch(e){
-			console_message('userdata parse error')
+			client_console('userdata parse error')
 		}
 	})
 }
@@ -126,8 +140,21 @@ var wss = new WebSocketServer({ port: WS_PORT })
 var WS_CALLBACK = {}
 wss.on('connection', function connection(ws) {
 
+    ws._send = function(msg, cb) {
+    if(ws.readyState!=1) return;
+	if(typeof cb=='function'){
+		msg.__id = '_'+Date.now()+Math.random()
+		WS_CALLBACK[msg.__id] = cb
+	}
+    ws.send( typeof msg=='string' ? msg : JSON.stringify(msg) )
+  }
+
+  var heartbeat = setInterval(function(){ ws.send('') }, 10000)
+  ws._send( {type:'ws', msg:'connected to socket 8080'} )
+
   ws.on('close', function incoming(code, message) {
     console.log("WS close:", ws.name, code, message)
+    clearInterval(heartbeat)
     if(ws.name=='client') toPhantom({ type:'client_close', meta:'server', data:'' } );
   })
 
@@ -171,7 +198,10 @@ wss.on('connection', function connection(ws) {
           msg.type = 'command_result'
           ws._send( msg )
           return
+        } else {
+	        relay()
         }
+
         break
 
       // get callback from ws._call
@@ -181,7 +211,10 @@ wss.on('connection', function connection(ws) {
 			delete WS_CALLBACK[msg.__id]
 			cb && cb(msg)
 			return
+		} else {
+			relay()
 		}
+
 		break
 
 	  case 'window_resize':
@@ -202,17 +235,6 @@ wss.on('connection', function connection(ws) {
     }
   })
 
-  ws._send = function(msg, cb) {
-    if(ws.readyState!=1) return;
-	if(typeof cb=='function'){
-		msg.__id = '_'+Date.now()+Math.random()
-		WS_CALLBACK[msg.__id] = cb
-	}
-    ws.send( typeof msg=='string' ? msg : JSON.stringify(msg) )
-  }
-
-  ws._send( {type:'ws', msg:'connected to socket 8080'} )
-
 })
 
 var STOPPED = 0, STOPPING = 1, PAUSING = 2, PAUSED = 4, RUNNING = 8
@@ -225,7 +247,7 @@ class EventPlayBack{
 
 	play(){
 		var self = this
-		if( RECORDING ) return console_message('cannot play when recording');
+		if( RECORDING ) return client_console('cannot play when recording');
 		if(self.status === RUNNING) return;
 		if(self.status === PAUSED) return self.resume();
 		if(EventCache.length<3)return;
@@ -324,7 +346,7 @@ function toPhantom(msg, cb){
 function client_console(){
 	var msg = ''
 	for(let i=0; i<arguments.length; i++) msg+=arguments[i]+' ';
-  	toClient( {type:'console_message', data: (new Date).toLocaleString() + ' [server] '+ msg} )
+  	toClient( {type:'client_console', data: (new Date).toLocaleString() + ' [server] '+ msg} )
 }
 
 function broadcast(data) {
@@ -337,7 +359,7 @@ function broadcast(data) {
 
 // Phantom
 var phantom
-phantom = spawn("phantomjs", ['--config', 'phantom.config', "ptest.js"], {pwd:__dirname, stdio: "pipe" });
+phantom = spawn("phantomjs", ['--config', 'phantom.config', "ptest.js", URL], {pwd:__dirname, stdio: "pipe" });
 
 phantom.stdout.setEncoding("utf8");
 phantom.stderr.setEncoding("utf8");

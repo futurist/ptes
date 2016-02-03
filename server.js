@@ -127,31 +127,8 @@ function stopRec(){
  
 	fs.writeFileSync(DATA_DIR +'ptest.json', JSON.stringify(Config,null,2) )
 }
-function init(){
-	try{
-		Config = JSON.parse( fs.readFileSync(DATA_DIR+ 'ptest.json', 'utf8') )
-	}catch(e){
-		return
-	}
-	console.log(Config)
 
-	if(process.argv.length<3) return;
-	var name = process.argv[2]
-	fs.readFile(DATA_DIR+ name +'.json', 'utf8', (err, data) => {
-		if(err) return;
-		try{
-			data = JSON.parse(data)
-			if(typeof data!='object' || !data) throw Error();
-			EventCache = data.event
-			ViewportCache = [EventCache[0].msg]
-			PageClip = data.clip
-			ImageName = data.image
-		}catch(e){
-			client_console('userdata parse error')
-		}
-	})
-}
-init()
+
 
 // create WS Server
 var WebSocketServer = require('ws').Server
@@ -378,23 +355,26 @@ function broadcast(data) {
 
 // Phantom
 var phantom
-phantom = spawn("phantomjs", ['--config', 'phantom.config', "ptest.js", URL], {pwd:__dirname, stdio: "pipe" });
 
-phantom.stdout.setEncoding("utf8");
-phantom.stderr.setEncoding("utf8");
-phantom.stdout.on("data",function (data) {
-	console.log('stdout', data);
-})
-phantom.stderr.on("data",function (data) {
-	console.log('stderr', data);
-})
-phantom.on("close", function (code) {
-	console.log('close', code)
-})
-phantom.on("error", function (code) {
-	console.log('error', code);
-})
-console.log('spawn phantom', phantom.pid)
+function startPhantom(){
+    phantom = spawn("phantomjs", ['--config', 'phantom.config', "ptest.js", URL], {pwd:__dirname, stdio: "pipe" });
+
+    phantom.stdout.setEncoding("utf8");
+    phantom.stderr.setEncoding("utf8");
+    phantom.stdout.on("data",function (data) {
+    	console.log('stdout', data);
+    })
+    phantom.stderr.on("data",function (data) {
+    	console.log('stderr', data);
+    })
+    phantom.on("close", function (code) {
+    	console.log('close', code)
+    })
+    phantom.on("error", function (code) {
+    	console.log('error', code);
+    })
+    console.log('spawn phantom', phantom.pid)
+}
 
 function reloadPhantom(){
 	toPhantom({ type:'command', meta:'server', data:'page.reload()' } );
@@ -405,5 +385,42 @@ function stopPhantom(){
 }
 
 
+
+
+function init(){
+    var content = ''
+    try{
+        content = fs.readFileSync(DATA_DIR+ 'ptest.json', 'utf8')
+        Config = JSON.parse( content )
+    }catch(e){
+        if(e.code!=='ENOENT'){
+            console.log(e, 'error parse ptest.json')
+            return
+        }
+    }
+
+    if(process.argv.length<3){
+        console.log('Usage: node server url [configfile.json] ')
+        return
+    }
+    URL = process.argv[2]
+    var name = process.argv[3]
+    if(name) fs.readFile(DATA_DIR+ name +'.json', 'utf8', (err, data) => {
+        if(err) return;
+        try{
+            data = JSON.parse(data)
+            if(typeof data!='object' || !data) throw Error();
+            EventCache = data.event
+            ViewportCache = [EventCache[0].msg]
+            PageClip = data.clip
+            ImageName = data.image
+            startPhantom()
+        }catch(e){
+            client_console('userdata parse error')
+        }
+    });
+    else startPhantom()
+}
+init()
 
 

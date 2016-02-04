@@ -1,5 +1,5 @@
-/* 
-Copyright @ Michael Yang 
+/*
+Copyright @ Michael Yang
 License MIT
 */
 
@@ -73,7 +73,7 @@ ws.onopen = function (e) {
 
 	      case 'page_clip':
 	      	PageClip = msg.data
-	      	
+
 	      	break
 	      case 'snapshot':
 	      	hideCursor()
@@ -91,9 +91,9 @@ ws.onopen = function (e) {
 	      	page.clipRect = {}
 
 	      	page.scrollPosition = prevPos
-	      	
+
 	      	showCursor()
-	      	
+
 	      	break
 	      case 'window_resize':
 	      case 'window_scroll':
@@ -110,7 +110,7 @@ ws.onopen = function (e) {
 	      case 'command':
 	          var cmd = msg.data.trim().split('(').shift()
 	          var cb=function(result){
-	          	  if(arguments.length) msg.result = result	
+	          	  if(arguments.length) msg.result = result
 		          delete msg.data
 		          msg.type = 'command_result'
 		          ws._send( msg )
@@ -145,10 +145,11 @@ ws.onopen = function (e) {
 	      	e.type = e.type.replace('dbl', 'double')
 	      	if( /click|down|up/.test(e.type) ) page.sendEvent('mousemove', e.pageX, e.pageY, WHICH_MOUSE_BUTTON[e.which] );
 	      	page.sendEvent(e.type, e.pageX, e.pageY, WHICH_MOUSE_BUTTON[e.which] )
+	      	setCursorPos(e.pageX, e.pageY)
 
 	      	break
 	      default:
-	        
+
 	        break
 	    }
 	}
@@ -190,6 +191,11 @@ function renderLoop(){
 	}, 100)
 }
 
+function setCursorPos(x, y){
+	page.evaluate(function(x, y){
+		window._phantom.setDot(x, y)
+	}, x, y)
+}
 function hideCursor(){
 	page.evaluate(function(){
 		window._phantom.dot.style.display = 'none'
@@ -204,15 +210,15 @@ function showCursor(){
 function createCursor(){
 	page.evaluate(function(){
 		window._phantom.dot = (function(){
-			var dot = document.createElement("div"); 
+			var dot = document.createElement("div");
 			dot.style.cssText = 'pointer-events:none; border-radius:100px; background:rgba(255,0,0,0.8); width:10px; height:10px; position:absolute; z-index:9999999999;'
-			dot.style.zIndex=Math.pow(2,53); 
+			dot.style.zIndex=Math.pow(2,53);
 			document.body.appendChild(dot);
 			return dot
 		})()
-		window._phantom.setDot = function (x,y){ 
-			window._phantom.dot.style.left = x-5 + "px"; 
-			window._phantom.dot.style.top = y-5 + "px"; 
+		window._phantom.setDot = function (x,y){
+			window._phantom.dot.style.left = x-5 + "px";
+			window._phantom.dot.style.top = y-5 + "px";
 		}
 	})
 }
@@ -232,13 +238,13 @@ page.onLoadFinished = function(status) {	// success
 
 	page.evaluate(function(){
 		window.addEventListener('mousemove', function(evt){
-			_phantom.setDot(evt.pageX,evt.pageY)
+			// _phantom.setDot(evt.pageX,evt.pageY)
 		})
 		window.addEventListener('mouseup', function(evt){
 		})
 		window.addEventListener('mousedown', function(evt){
 			// console.log(evt.type, Date.now())
-			_phantom.setDot(evt.pageX,evt.pageY)
+			// _phantom.setDot(evt.pageX,evt.pageY)
 		})
 	})
 }

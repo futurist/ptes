@@ -394,19 +394,22 @@ function init(){
         Config = JSON.parse( content )
     }catch(e){
         if(e.code!=='ENOENT'){
-            console.log(e, 'error parse ptest.json')
-            return
+            console.log(e, 'error parse ptest.json...')
+            return process.exit()
         }
     }
 
     if(process.argv.length<3){
         console.log('Usage: node server url [configfile.json] ')
-        return
+        return process.exit()
     }
     URL = process.argv[2]
     var name = process.argv[3]
     if(name) fs.readFile(DATA_DIR+ name +'.json', 'utf8', (err, data) => {
-        if(err) return;
+        if(err){
+            console.log('invalid json format', DATA_DIR+ name +'.json' )
+            return process.exit();
+        }
         try{
             data = JSON.parse(data)
             if(typeof data!='object' || !data) throw Error();

@@ -4,6 +4,7 @@ License MIT
 */
 'use strict'
 
+var DEBUG_MODE = true
 var fs=require("fs")
 var mkdirp=require("mkdirp")
 var http=require("http")
@@ -73,11 +74,11 @@ HttpServer.listen(HTTP_PORT, HTTP_HOST)
 
 console.log('server started at %s:%s', HTTP_HOST, HTTP_PORT )
 
-var URL = 'http://1111hui.com/github/m_drag/index.html'
+var DEFAULT_URL = 'http://1111hui.com/nlp/tree.html'
 var EventCache = []
 var ViewportCache = []
 var PageClip = {}
-var Config = { url:URL, data:{} }
+var Config = { url:DEFAULT_URL, data:{} }
 var ImageName = ''
 var PlayCount = 0
 var RECORDING = false
@@ -147,6 +148,7 @@ wss.on('connection', function connection(ws) {
 
   var heartbeat = setInterval(function(){ ws.send('') }, 10000)
   ws._send( {type:'ws', msg:'connected to socket 8080'} )
+  console.log('protocolVersion', ws.protocolVersion)
 
   ws.on('close', function incoming(code, message) {
     console.log("WS close:", ws.name, code, message)
@@ -356,8 +358,8 @@ function broadcast(data) {
 // Phantom
 var phantom
 
-function startPhantom(){
-    phantom = spawn("phantomjs", ['--config', 'phantom.config', "ptest.js", URL], {pwd:__dirname, stdio: "pipe" });
+function startPhantom(url){
+    phantom = spawn("phantomjs", ['--config', 'phantom.config', "ptest.js", url], {pwd:__dirname, stdio: "pipe" });
 
     phantom.stdout.setEncoding("utf8");
     phantom.stderr.setEncoding("utf8");
@@ -399,11 +401,11 @@ function init(){
         }
     }
 
-    if(process.argv.length<3){
+    if(process.argv.length<3 && !DEBUG_MODE){
         console.log('Usage: node server url [configfile.json] ')
         return process.exit()
     }
-    URL = process.argv[2]
+    var URL = process.argv[2] || DEFAULT_URL
     var name = process.argv[3]
     if(name) fs.readFile(DATA_DIR+ name +'.json', 'utf8', (err, data) => {
         if(err){
@@ -422,7 +424,7 @@ function init(){
             client_console('userdata parse error')
         }
     });
-    else startPhantom()
+    else startPhantom(URL)
 }
 init()
 

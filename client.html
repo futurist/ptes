@@ -72,13 +72,20 @@
 <script type="text/javascript" src="./node_modules/util_debounce_throttle/dist/util_debounce_throttle.js"></script>
 <script type="text/javascript" src="./node_modules/mithril/mithril.min.js"></script>
 <script type="text/javascript">
-/* 
-Copyright @ Michael Yang 
+/*
+Copyright @ Michael Yang
 License MIT
 */
 
 var RECORDING = 'STAGE_RECORDING', PLAYING = 'STAGE_PLAYING', CLIPPING = 'STAGE_CLIPPING'
 var stage = null
+var MODIFIER = {
+  shift:  0x02000000,
+  ctrl:   0x04000000,
+  alt:    0x08000000,
+  meta:   0x10000000,
+  keypad: 0x20000000
+}
 
 var PageClip = {}
 var clipDrag = m_drag({});
@@ -161,7 +168,7 @@ ws.onopen = function (e) {
           break
 
         default:
-          
+
           break
       }
 
@@ -246,21 +253,26 @@ function registerEvent(){
 
 
   var eventList = [
-    'mousedown', 
+    'mousedown',
     'mouseup',
     'mousemove',
-    'click',
-    'dblclick',
+    // 'click',
+    // 'dblclick',
   ]
   eventList.forEach(function(v){
     $('#phantom').on(v, function(e){
-      var evtData = { type:e.type, pageX:e.pageX-window.scrollX, pageY:e.pageY-window.scrollY, which:e.which }
-      // var a=util._extend({}, e)
-      // var evtData=util._exclude(a, {view:1,target:1,toElement:1,srcElement:1,path:1})
-      // evtData.scrollX = window.scrollX
-      // evtData.scrollY = window.scrollY
-      if(evtData.type=='mousemove') ws._send_throttle({ type:'event_mouse', data:evtData })
-      else ws._send({ type:'event_mouse', data:evtData })
+
+      var modifier = 0
+      if(e.shiftKey) modifier |= MODIFIER.shift
+      if(e.altKey) modifier |= MODIFIER.alt
+      if(e.ctrlKey) modifier |= MODIFIER.ctrl
+      if(e.metaKey) modifier |= MODIFIER.meta
+      var evtData = { type:e.type, pageX:e.pageX-window.scrollX, pageY:e.pageY-window.scrollY, which:e.which, modifier:modifier }
+
+      // if(evtData.type=='mousemove') ws._send_throttle({ type:'event_mouse', data:evtData })
+      // else ws._send({ type:'event_mouse', data:evtData })
+        
+      ws._send({ type:'event_mouse', data:evtData })
     })
   })
 }

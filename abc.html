@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title></title>
+<style type="text/css">
+html,body{
+    height: 100%;
+}
+</style>
+</head>
+<body>
+<pre id="test" style="height:100%; background:#ccc; overflow:scroll"></pre>
+<script type="text/javascript">
+var test = document.getElementById("test");
+window.onmousedown = function  (e) {
+    test.innerHTML += e.type+"\n"
+}
+window.onmouseup = function  (e) {
+    test.innerHTML += e.type+"\n"
+}
+window.onclick = function  (e) {
+    test.innerHTML += e.type+"\n"
+}
+</script>
+</body>
+</html>

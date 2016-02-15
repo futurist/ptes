@@ -49,10 +49,11 @@ page.customHeaders = {
 
 console.log('phantom started')
 
-var WS_EventCache = []
+
 var ws = new WebSocket('ws://localhost:1280')
 ws.onopen = function (e) {
   console.log('phantom connected to ws')
+  ws.EventCache = []
 
   ws.onmessage = function (message) {
     var msg
@@ -67,6 +68,7 @@ ws.onopen = function (e) {
 
       case 'client_close':
         console.log('client close')
+        renderCount = 0
         break
 
       case 'page_clip':
@@ -148,12 +150,12 @@ ws.onopen = function (e) {
         if (/down|up/.test(e.type)){
           var ce = _clone(e)
           ce.time = Date.now()
-          WS_EventCache.push(ce)
-          if(WS_EventCache.length>3) WS_EventCache.shift()
-          if(WS_EventCache.length===3 && WS_EventCache[2].time-WS_EventCache[0].time>DBLCLICK_INTERVAL) WS_EventCache.splice(0, 3)
-          if(WS_EventCache.length===3 && WS_EventCache[0].type==='mousedown' && WS_EventCache[1].type==='mouseup'){
+          ws.EventCache.push(ce)
+          if(ws.EventCache.length>3) ws.EventCache.shift()
+          if(ws.EventCache.length===3 && ws.EventCache[2].time-ws.EventCache[0].time>DBLCLICK_INTERVAL) ws.EventCache.splice(0, 3)
+          if(ws.EventCache.length===3 && ws.EventCache[0].type==='mousedown' && ws.EventCache[1].type==='mouseup'){
             e.type = 'mousedoubleclick'
-            WS_EventCache.splice(0, 3)
+            ws.EventCache.splice(0, 3)
           }
         }
 

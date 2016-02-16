@@ -113,22 +113,31 @@ function stopRec(){
 	RECORDING = false
 	var name = +new Date()
 	ImageName = name
-	snapShot(name+'.png')
-	fs.writeFileSync(DATA_DIR+ name +'.json', JSON.stringify({ image:name, clip:PageClip, event: EventCache }) )
-	
-	// object path
-	// var Config = {unsaved:{name:'a;b'}}
-	var p, a = ['data'].concat(Config.unsaved.name.split(';')), b=Config
-	Config.unsaved.name = name
-	Config.unsaved.span = Date.now() - Config.unsaved.span
-
+ 
+    var testPath = Config.unsaved.name
+    try{
+        mkdirp.sync( DATA_DIR + testPath )
+    }catch(e){
+        throw e
+    }
+    snapKeyFrame( path.join(testPath, String(+new Date()) ) )
+	var objPath = ['data'].concat(testPath.split('/'))
+    Config.unsaved.name = name
+    Config.unsaved.span = Date.now() - Config.unsaved.span
+    // object path
+    // var Config = {unsaved:{name:'a;b'}}
+	var p, a = objPath, b=Config
 	if(a.length==1) b[a.shift()] = Config.unsaved
 	else while( p=a.shift() ) b[p]=(b[p]||{}), a.length>1? b=b[p] : b=b[p][a.shift()]=Config.unsaved;
 	delete Config.unsaved
  
-	fs.writeFileSync(DATA_DIR +'ptest.json', JSON.stringify(Config,null,2) )
+    fs.writeFileSync(DATA_DIR + name + '.json', JSON.stringify({ image:name, clip:PageClip, event: EventCache }) )
+    fs.writeFileSync(DATA_DIR + 'ptest.json', JSON.stringify(Config,null,2) )
 }
-
+function snapKeyFrame(name){
+    snapShot(name+'.png')
+    EventCache.push( { time:Date.now(), msg:_util._extend({}, { type:'snapshot', data:name }) } )
+}
 
 
 // create WS Server

@@ -78,6 +78,8 @@ License MIT
 */
 
 var RECORDING = 'STAGE_RECORDING', PLAYING = 'STAGE_PLAYING', CLIPPING = 'STAGE_CLIPPING'
+var INVALID_NAME = '<>:"\\|?*'     // '<>:"/\\|?*'
+var INVALID_NAME_REGEXP = new RegExp('['+INVALID_NAME.replace('\\','\\\\')+']','g')
 var stage = null
 var MODIFIER = {
   shift:  0x02000000,
@@ -227,8 +229,13 @@ function registerEvent(){
     })
     Mousetrap.bind('ctrl+r', function(e){
       e.preventDefault()
+      var title
       if( stage == null ){
-        var title= lastTitle = window.prompt('which title', lastTitle)
+        while(1) {
+          title= lastTitle = window.prompt('which title', lastTitle)
+          if( INVALID_NAME_REGEXP.test(title) ) alert('path name cannot contain '+ INVALID_NAME)
+          else break
+        }
         document.title = 'recording...'+title
         sc(' startRec("'+ title +'") ')
         stage = RECORDING

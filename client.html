@@ -213,26 +213,32 @@ function registerEvent(){
       e.preventDefault()
       console.log(e)
     })
-    Mousetrap.bind('ctrl+p', function(e){
-      e.preventDefault()
-      if( stage==null ){
-        sc(' playBack.play() ')
-        stage = PLAYING
-      } else if(stage == PLAYING) {
-        sc(' playBack.pause() ')
-        stage = null
-      }
-    })
+    // Mousetrap.bind('ctrl+p', function(e){
+    //   e.preventDefault()
+    //   if( stage==null ){
+    //     sc(' playBack.play() ')
+    //     stage = PLAYING
+    //   } else if(stage == PLAYING) {
+    //     sc(' playBack.pause() ')
+    //     stage = null
+    //   }
+    // })
     Mousetrap.bind('ctrl+a', function(e){
       e.preventDefault()
       stage = CLIPPING
+    })
+    Mousetrap.bind('f4', function(e){
+      if(!lastTitle) return
+      e.preventDefault()
+      sc(' snapKeyFrame("'+ lastTitle +'") ')
     })
     Mousetrap.bind('ctrl+r', function(e){
       e.preventDefault()
       var title
       if( stage == null ){
         while(1) {
-          title= lastTitle = window.prompt('which title', lastTitle)
+          title= lastTitle = window.prompt('which title', lastTitle)||''
+          if(!title) return
           if( INVALID_NAME_REGEXP.test(title) ) alert('path name cannot contain '+ INVALID_NAME)
           else break
         }
@@ -243,6 +249,7 @@ function registerEvent(){
         document.title = 'ptest'
         sc(' stopRec() ')
         stage = null
+        lastTitle = ''
       }
     })
 

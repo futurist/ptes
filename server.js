@@ -114,27 +114,29 @@ function stopRec(){
 	var name = +new Date()
 	ImageName = name
  
+    // var Config = {unsaved:{name:'a;b'}}
     var testPath = Config.unsaved.name
     try{
         mkdirp.sync( DATA_DIR + testPath )
     }catch(e){
         throw e
     }
-    snapKeyFrame( path.join(testPath, String(+new Date()) ) )
+    snapKeyFrame(testPath)
 	var objPath = ['data'].concat(testPath.split('/'))
     Config.unsaved.name = name
     Config.unsaved.span = Date.now() - Config.unsaved.span
+
     // object path
-    // var Config = {unsaved:{name:'a;b'}}
 	var p, a = objPath, b=Config
 	if(a.length==1) b[a.shift()] = Config.unsaved
 	else while( p=a.shift() ) b[p]=(b[p]||{}), a.length>1? b=b[p] : b=b[p][a.shift()]=Config.unsaved;
 	delete Config.unsaved
  
-    fs.writeFileSync(DATA_DIR + name + '.json', JSON.stringify({ image:name, clip:PageClip, event: EventCache }) )
+    fs.writeFileSync(DATA_DIR + name + '.json', JSON.stringify({ testPath:testPath, clip:PageClip, event: EventCache }) )
     fs.writeFileSync(DATA_DIR + 'ptest.json', JSON.stringify(Config,null,2) )
 }
-function snapKeyFrame(name){
+function snapKeyFrame(testPath){
+    var name = path.join(testPath, String(+new Date()) )
     snapShot(name+'.png')
     EventCache.push( { time:Date.now(), msg:_util._extend({}, { type:'snapshot', data:name }) } )
 }
@@ -244,6 +246,7 @@ wss.on('connection', function connection(ws) {
 
 })
 
+// *** EventPlayBack will be rewritten, don't use at this time
 var STOPPED = 0, STOPPING = 1, PAUSING = 2, PAUSED = 4, RUNNING = 8
 class EventPlayBack{
 	constructor(){
@@ -253,75 +256,7 @@ class EventPlayBack{
 	}
 
 	play(){
-		var self = this
-		if( RECORDING ) return client_console('cannot play when recording');
-		if(self.status === RUNNING) return;
-		if(self.status === PAUSED) return self.resume();
-		if(EventCache.length<3)return;
-		let prev = EventCache[0]
-		let last = arrayLast(EventCache)
-		client_console('begin playback, total time:', last.time-prev.time, '(ms)' )
-		self.status = RUNNING
-		co(function *(){
-			// refresh phantom page before play
-			yield new Promise(function(ok, error){
-				toPhantom({ type:'command', meta:'server', data:'page.reload()' }, function(msg){
-					if(msg.result=='success') ok();
-					else error();
-				})
-			})
-			for(let i=0, n=EventCache.length; i<n; i++){
-				if(self.status===STOPPING) {
-					self.cancel()
-					self.status = STOPPED
-					throw 'stopped'
-				}
-				if(self.status===PAUSING) {
-					yield new Promise( (resolve, reject) => {
-						self.status = PAUSED
-						self.resume = () => {
-							self.status = RUNNING
-							self.resume = () => {}
-							resolve()
-						}
-						self.cancel = () => {
-							self.status = STOPPED
-							self.cancel = () => {}
-							reject('canceled')
-						}
-					})
-				}
-				let e=EventCache[i]
-				let inter = e.time-prev.time
-				let result = yield new Promise( (resolve, reject) => {
-					setTimeout( () => {
-						// client_console(e.time, e.msg.type, e.msg.data)
-						toPhantom(e.msg)
-						if( /page_clip|scroll|resize/.test(e.msg.type) ) toClient(e.msg);
-						else e.viewport && toClient(e.viewport);
-						prev = e
-						resolve(true)
-					}, inter )
-				})
-			}
-			return 'playback complete'
-		}).then( (ret) => {
-			self.status = STOPPED
-			client_console(ret)
-
-			if(!ImageName) return
-			// show image diff with original
-			PlayCount++
-			var name = ImageName+'_'+PlayCount+'.png'
-			snapShot(name)
-			setTimeout(function(){
-				showDiff( ImageName+'.png', name )
-			},1000)
-
-		}, (err) => {
-			self.status = STOPPED
-			client_console('playback incomplete:', err)
-		})
+		
 	}
 
 	pause(){

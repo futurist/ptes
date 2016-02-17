@@ -303,7 +303,7 @@ function broadcast(data) {
 var phantom
 
 function startPhantom(url){
-    phantom = spawn("phantomjs", ['--config', 'phantom.config', "ptest.js", url], {pwd:__dirname, stdio: "pipe" });
+    phantom = spawn("phantomjs", ['--config', 'phantom.config', "ptest.js", url], {cwd:__dirname, stdio: "pipe" });
 
     phantom.stdout.setEncoding("utf8");
     phantom.stderr.setEncoding("utf8");
@@ -313,8 +313,8 @@ function startPhantom(url){
     phantom.stderr.on("data",function (data) {
     	console.log('stderr', data);
     })
-    phantom.on("close", function (code) {
-    	console.log('close', code)
+    phantom.on("exit", function (code) {
+    	console.log('exit', code)
     })
     phantom.on("error", function (code) {
     	console.log('error', code);

@@ -23,21 +23,36 @@ page.customHeaders = {
 	"Connection": "keep-alive",
 }
 
+var commands = {}
+function sendCommand(type, data){
+	var id = +new Date()+Math.random()+'_'
+	var cmd = { id:id, type:type, data:data }
+	commands.id = cmd
+	sys.stdout.writeLine( '>'+JSON.stringify(cmd) )
+}
+function logError(){
+	var args = [].slice.call(arguments)
+	sys.stderr.write(args.join(' '))
+}
 phantom.onError = function  () {}
 function init(){
 	// fill all vars from args & json file
-	if( sys.args.length==1 ) return console.error('bad param'), phantom.exit(1);
+	if( sys.args.length<3 ){
+		logError('bad param')
+		phantom.exit(1)
+		return
+	}
 	URL = sys.args[1] || 'http://1111hui.com/github/m_drag/index.html'
 	ImageName = sys.args[2]
 	if (!fs.exists( ImageName+'.json' )){
-		console.error('json not exists')
+		logError('json not exists')
 		return phantom.exit(1)
 	}
 	var content = fs.read( ImageName+'.json' )
 	try{
 		Data = JSON.parse( content )
 	}catch(e){
-		console.error('bad json')
+		logError('bad json')
 		return phantom.exit(1)
 	}
 
@@ -51,7 +66,7 @@ init()
 
 page.onLoadFinished=function(status){
 	if(status!=='success'){
-		console.error('page open failed')
+		logError('page open failed')
 		return phantom.exit(1)
 	}
 	p=0
@@ -60,7 +75,6 @@ page.onLoadFinished=function(status){
 }
 function testStep(){
 	if(p>=EventCache.length){
-		processMsg({type:'snapshot', data: ImageName+'_'+RunCount+'.png' })
 		// console.log('finished')
 		return phantom.exit(0)
 	}
@@ -77,7 +91,7 @@ function testStep(){
 function processMsg(msg){
 
 	if(typeof msg!='object'||!msg){
-		console.error('bad msg')
+		logError('bad msg', ImageName, msg, p, JSON.stringify(EventCache[p]))
 		phantom.exit(1)
 	}
 
@@ -97,7 +111,8 @@ function processMsg(msg){
 		  height: PageClip.height|| page.viewportSize.height,
 		}
 
-	  	page.render(msg.data)
+	  	page.render(msg.data+'_test.png')
+	  	sendCommand('compareImage', msg.data)
 
 	  	page.clipRect = {}
 

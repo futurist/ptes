@@ -1,8 +1,10 @@
 var process = require('process')
 var assert = require('assert')
+var os = require('os')
 var fs = require('fs')
 var path = require('path')
-var exec = require('child_process').exec
+var split2 = require('split2')
+var spawn = require('child_process').spawn
 var imageDiff=require("image-diff")
 var ptest = require('./data/ptest.json')
 
@@ -36,6 +38,7 @@ function _color(str, code){
 }
 
 var _output = []
+var _activeTests = []
 var _level = 0
 var _beforeEach = null
 var _afterEach = null
@@ -78,6 +81,8 @@ function it(msg, func){
 		this._slow = val
 	}
 	var callback = function(err){
+		var idx = _activeTests.indexOf(_this)
+		if(idx>-1) _activeTests.splice(idx, 1)
 		_afterEach && _afterEach.call(_this)
 		if(err){
 			_stat.status = 'fail'
@@ -91,9 +96,16 @@ function it(msg, func){
 	_output.push(_stat)
 	_report(true)
 	var _this = new func(callback)
+	_activeTests.push(_this)
 }
-process.on('SIGINT', function(code){ _report(true) })
-process.on('exit', function(code){ _report(code) })
+function clearTest(){ 
+	_activeTests.forEach(function(v){
+		_afterEach && _afterEach.call(v)
+	})
+	_activeTests = []
+}
+process.on('SIGINT', function(){clearTest(), _report(true)})
+process.on('exit', function(code){clearTest(), _report(code)})
 
 
 
@@ -101,6 +113,18 @@ process.on('exit', function(code){ _report(code) })
 var DATA_DIR = 'data/'
 function getPath(file){
 	return path.join(__dirname, DATA_DIR, file)
+}
+function compareImage(imageID, done){
+  var a = imageID+'.png'
+  var b = imageID+'_test.png'
+  var diff = imageID+'_diff.png'
+  imageDiff({
+    actualImage: getPath(a),
+    expectedImage: getPath(b),
+    diffImage: getPath(diff),
+    }, function (err, imagesAreSame) {
+    err||!imagesAreSame ? done('failed compare ' + b) : done()
+  })
 }
 
 afterEach(function(){
@@ -129,17 +153,35 @@ describe('ptest for '+ptest.url, function () {
 		      	})
 		      })
 
-		      this.phantom = exec(cmd, {cwd:path.join(__dirname, DATA_DIR)}, function(err, stdout, stderr){
-		        // console.log(path.join(__dirname, DATA_DIR), err, stdout, stderr)
-		        if(err) return done(err);
-		        imageDiff({
-				  actualImage: getPath(a),
-				  expectedImage: getPath(b),
-				  diffImage: getPath('diff_'+b),
-				}, function (err, imagesAreSame) {
-					err||!imagesAreSame ? done('failed compare ' + b) : done()
-				})
-		      })
+
+          var phantom = spawn("phantomjs", ['--config', 'phantom.config', "ptest-phantom.js", ptest.url, obj[v].name], {cwd:path.join(__dirname, DATA_DIR) })
+
+          phantom.stdout.pipe(split2()).on("data",function (line) {
+          	// console.log('stdout', line)
+            if (line[0] === '>') {
+              // >{id:12345, type:'type', data:data} format is special!!
+              try{
+                var msg = JSON.parse(line.substr(1))
+                switch(msg.type){
+                  case 'compareImage':
+                    compareImage( msg.data, function(err){ err&&done(err) } )
+                    break
+                }
+              }catch(e){}
+            }
+          })
+          phantom.stderr.on("data",function (data) {
+          	console.log('stderr', data.toString())
+          })
+          phantom.on("exit", function (code, signal) {
+          	// console.log('exit', code, signal)
+            // if(!signal) done(code)
+          })
+          phantom.on("error", function (code) {
+          	console.log('error', code)
+          })
+          this.phantom = phantom
+
 		    })
 	  	} else {
 	  		describe(v, function(){

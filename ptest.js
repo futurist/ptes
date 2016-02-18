@@ -16,7 +16,7 @@ function assertError (msg, stack) {
 }
 var PageClip = {}
 var URL = ''
-var DBLCLICK_INTERVAL = 1000
+var DBLCLICK_INTERVAL = 500   // windows default double click time is 500ms
 var WHICH_MOUSE_BUTTON = {'0': '', '1': 'left', '2': 'middle', '3': 'right'}
 var ASYNC_COMMAND = {
   'page.reload': null,

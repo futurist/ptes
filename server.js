@@ -76,7 +76,7 @@ console.log('server started at %s:%s', HTTP_HOST, HTTP_PORT )
 
 var DEFAULT_URL = [
     'http://1111hui.com/nlp/tree.html', 
-    'http://1111hui.com/github/ptes/abc.html',
+    // 'http://1111hui.com/github/ptes/abc.html',
   ].pop()
 var EventCache = []
 var ViewportCache = []

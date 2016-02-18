@@ -9,7 +9,18 @@ html,body{
 </style>
 </head>
 <body>
-<pre id="test" style="height:100%; background:#ccc; overflow:scroll"></pre>
+<select id="select1">
+    <option>AAAAAAAA</option>
+    <option>bbbbbbbb</option>
+    <option>cccccccc</option>
+    <option>dddddddddd</option>
+</select>
+<hr />
+<input id="input1" />
+<hr />
+<textarea id="textarea1"></textarea>
+
+<pre id="test" style="min-height:50%; background:#ccc; overflow:scroll"></pre>
 <script type="text/javascript">
 var test = document.getElementById("test");
 window.onmousedown = function  (e) {
@@ -19,11 +30,12 @@ window.onmouseup = function  (e) {
     test.innerHTML += e.type+"\n"
 }
 window.onclick = function  (e) {
-    test.innerHTML += e.type+"\n"
+    test.innerHTML += e.type+"\n"+document.activeElement.id+"\n"
 }
 window.ondblclick = function  (e) {
     test.innerHTML += e.type+"\n"
 }
+
 </script>
 </body>
 </html>

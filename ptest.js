@@ -141,6 +141,22 @@ ws.onopen = function (e) {
         }
 
         break
+      case 'event_key':
+        var e = msg.data
+        var c = e.which
+        var name = e.keyName
+        var QTKey = name && (page.event.key[name] || page.event.key[ keyNameAlias[name] ])
+        // console.log(c, name)
+        if( QTKey ){
+          c = QTKey
+          // console.log('found Qt key:', name, c)
+        }else{
+          c = guessKey(e)
+        }
+        
+        page.sendEvent(e.type, c, null, null, e.modifier)
+
+        break
       case 'event_mouse':
         var e = msg.data
         // if (/down|up/.test(e.type)) return
@@ -284,3 +300,73 @@ function init () {
   page.open(URL + '?' + Math.random())
 }
 init()
+
+
+
+// key code map, for sendEvent of key
+var keyNameAlias = {
+  'PrintScreen': 'Print',
+  'Scroll': 'ScrollLock',
+}
+var _to_ascii = {
+  '188': '44',    // ,
+  '190': '46',    // .
+  '191': '47',    // /
+  '192': '96',    // `
+  '220': '92',    // \
+  '222': '39',    // '
+  '221': '93',    // ]
+  '219': '91',    // [
+  '187': '61',    // = IE Key codes
+  '186': '59',    // ; IE Key codes
+  // '109': '45', // -
+  '173': '45',    // -
+  '189': '45'     // - IE Key codes
+}
+
+var shiftUps = {
+  "96": "~",
+  "49": "!",
+  "50": "@",
+  "51": "#",
+  "52": "$",
+  "53": "%",
+  "54": "^",
+  "55": "&",
+  "56": "*",
+  "57": "(",
+  "48": ")",
+  "45": "_",
+  "61": "+",
+  "91": "{",
+  "93": "}",
+  "92": "|",
+  "59": ":",
+  "39": "\"",
+  "44": "<",
+  "46": ">",
+  "47": "?",
+}
+function guessKey(e){
+  var c = e.which
+  var shiftKey = e.modifier & 0x02000000
+  if (_to_ascii[c]) {
+    c = _to_ascii[c]
+  }
+  if (!shiftKey && (c >= 65 && c <= 90)) {
+    c = String.fromCharCode(c + 32)
+  } else if (shiftKey && shiftUps[c]) {
+    //get shifted keyCode value
+    c = shiftUps[c]
+  } else if (c==8) { c = page.event.key.Backspace
+  } else if (c==9) { c = page.event.key.Tab
+  } else if (c==13) { c = page.event.key.Enter
+  } else if (c==27) { c = page.event.key.Escape
+  } else if (c==46) { c = page.event.key.Delete
+  } else {
+    c = String.fromCharCode(c)
+  }
+  return c
+}
+
+

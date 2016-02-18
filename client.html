@@ -66,11 +66,11 @@
 </div>
 <div id="console"></div>
 
+<script type="text/javascript" src="./node_modules/mithril/mithril.min.js"></script>
 <script type="text/javascript" src="./js/jquery.min.js"></script>
 <script type="text/javascript" src="./js/m_drag.js"></script>
 <script type="text/javascript" src="./js/mousetrap.js"></script>
 <script type="text/javascript" src="./node_modules/util_debounce_throttle/dist/util_debounce_throttle.js"></script>
-<script type="text/javascript" src="./node_modules/mithril/mithril.min.js"></script>
 <script type="text/javascript">
 /*
 Copyright @ Michael Yang
@@ -111,7 +111,7 @@ function applyPageClip(){
 
 $('#phantom').on('mousedown', startClip)
 
-ws= new WebSocket('ws://'+ window.location.hostname +':1280');
+ws= new WebSocket('ws://'+ window.location.hostname +':1280')
 ws.onopen = function (e) {
   ws.onmessage = function (message) {
 
@@ -166,7 +166,8 @@ ws.onopen = function (e) {
         case 'render':
           $('.imgCon').width( msg.meta.size.width ).height( msg.meta.size.height )
           $('.screenshot').attr('src', 'data:image/png;base64,'+ msg.data)
-          if( msg.meta.count==0 ) $(window).trigger('resize')
+          // FIXME: phantom don't have scrollbar but browser's scrollbar will reduce window size
+          // if( msg.meta.count==0 ) $(window).trigger('resize')
           break
 
         default:
@@ -267,6 +268,8 @@ function registerEvent(){
 
 
   var eventList = [
+    'keydown',
+    'keyup',
     'mousedown',
     'mouseup',
     'mousemove',
@@ -274,19 +277,26 @@ function registerEvent(){
     // 'dblclick',
   ]
   eventList.forEach(function(v){
-    $('#phantom').on(v, function(e){
-
+    $(document).on(v, function(evt){
+      evt.preventDefault()
+      var e = evt.originalEvent
+      var isKey = /key/.test(e.type)
       var modifier = 0
       if(e.shiftKey) modifier |= MODIFIER.shift
       if(e.altKey) modifier |= MODIFIER.alt
       if(e.ctrlKey) modifier |= MODIFIER.ctrl
       if(e.metaKey) modifier |= MODIFIER.meta
-      var evtData = { type:e.type, pageX:e.pageX-window.scrollX, pageY:e.pageY-window.scrollY, which:e.which, modifier:modifier }
-
+      var evtData = { type:e.type, which:e.which, modifier:modifier }
+      if(isKey){
+        evtData.keyName = e.key||e.keyIdentifier
+        console.log(e,  e.key||e.keyIdentifier, e.keyIdentifier )
+      }else{
+        evtData.pageX = e.pageX-window.scrollX
+        evtData.pageY = e.pageY-window.scrollY
+      }
       // if(evtData.type=='mousemove') ws._send_throttle({ type:'event_mouse', data:evtData })
       // else ws._send({ type:'event_mouse', data:evtData })
-
-      ws._send({ type:'event_mouse', data:evtData })
+      ws._send({ type:isKey?'event_key':'event_mouse', data:evtData })
     })
   })
 }

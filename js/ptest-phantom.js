@@ -24,9 +24,10 @@ page.customHeaders = {
 }
 
 var commands = {}
-function sendCommand(type, data){
+function sendCommand(type, data, meta){
 	var id = +new Date()+Math.random()+'_'
 	var cmd = { id:id, type:type, data:data }
+	if(meta) cmd.meta = meta
 	commands.id = cmd
 	sys.stdout.writeLine( '>'+JSON.stringify(cmd) )
 }
@@ -73,22 +74,24 @@ page.onLoadFinished=function(status){
 	prev = EventCache[0]
 	testStep()
 }
-function testStep(){
+function testStep(diff){
+	diff = diff || 0
 	if(p>=EventCache.length){
 		// console.log('finished')
 		return phantom.exit(0)
 	}
 	var e=EventCache[p]
-	var inter = e.time-prev.time
+	var inter = e.time-prev.time-diff
 	setTimeout( function() {
-		processMsg(e.msg)
+		var t = Date.now()
+		processMsg(e.msg, p===EventCache.length-1)
 		prev = e
 		p++
-		testStep()
+		testStep(Date.now()-t)
 	}, inter )
 }
 
-function processMsg(msg){
+function processMsg(msg, isLast){
 
 	if(typeof msg!='object'||!msg){
 		logError('bad msg', ImageName, msg, p, JSON.stringify(EventCache[p]))
@@ -112,7 +115,7 @@ function processMsg(msg){
 		}
 
 	  	page.render(msg.data+'_test.png')
-	  	sendCommand('compareImage', msg.data)
+	  	sendCommand('compareImage', msg.data, isLast?'last':'')
 
 	  	page.clipRect = {}
 

@@ -152,10 +152,11 @@ ws.onopen = function (e) {
           ce.time = Date.now()
           ws.EventCache.push(ce)
           if(ws.EventCache.length>3) ws.EventCache.shift()
-          if(ws.EventCache.length===3 && ws.EventCache[2].time-ws.EventCache[0].time>DBLCLICK_INTERVAL) ws.EventCache.splice(0, 3)
-          if(ws.EventCache.length===3 && ws.EventCache[0].type==='mousedown' && ws.EventCache[1].type==='mouseup'){
-            e.type = 'mousedoubleclick'
-            ws.EventCache.splice(0, 3)
+          // console.log(JSON.stringify(ws.EventCache))
+          if(ws.EventCache.length===3 
+            && ws.EventCache[0].type==='mousedown' && ws.EventCache[1].type==='mouseup' 
+            && ws.EventCache[2].time-ws.EventCache[0].time<DBLCLICK_INTERVAL){
+            e.type = ws.EventCache[2].type = 'mousedoubleclick'
           }
         }
 

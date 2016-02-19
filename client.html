@@ -201,8 +201,8 @@ function sc(str){
     if(msg.result!==undefined) console.log(msg.result)
   })
 }
-function cc(str){
-  ws._send({type:'command', meta:'', data:str}, function(msg){
+function cc(str, isPhantom){
+  ws._send({type:'command', meta:isPhantom?'phantom':'client', data:str}, function(msg){
     if(msg.result!==undefined) console.log(msg.result)
   })
 }

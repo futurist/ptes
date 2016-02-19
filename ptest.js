@@ -121,9 +121,15 @@ ws.onopen = function (e) {
         if (msg.__id && isAsync) ASYNC_COMMAND[cmd] = cb
 
         try {
-          msg.result = eval(msg.data)
+          if(msg.meta=='client'){
+            msg.result = page.evaluate(function(str){
+              return eval(str)
+            }, msg.data)
+          }else{
+            msg.result = eval(msg.data)
+          }
         } catch (e) {
-          msg.result = e.stack
+          msg.result = e.message
         }
 
         if (!isAsync) {

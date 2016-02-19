@@ -15,6 +15,7 @@
   -moz-user-select: none;
   -ms-user-select: none;
   user-select: none;
+  pointer-events: none;
 }
 
 #phantom{
@@ -256,13 +257,13 @@ function registerEvent(){
 
     $(window).on('resize', function(e){
       var data = { scrollX:window.scrollX, scrollY:window.scrollY, width:$(window).width(), height:$(window).height()}
-      ws._send_debounce({ type:'window_resize', data:data })
+      ws._send({ type:'window_resize', data:data })
     })
     $(window).trigger('resize')
 
     $(window).on('scroll', function(e){
       var data = { scrollX:window.scrollX, scrollY:window.scrollY, width:$(window).width(), height:$(window).height()}
-      ws._send_throttle2({ type:'window_scroll', data:data })
+      ws._send({ type:'window_scroll', data:data })
     })
     $(window).trigger('scroll')
 
@@ -278,9 +279,10 @@ function registerEvent(){
   ]
   eventList.forEach(function(v){
     $(document).on(v, function(evt){
-      evt.preventDefault()
       var e = evt.originalEvent
       var isKey = /key/.test(e.type)
+      if(isKey) e.preventDefault()
+      if (!isKey && e.target.id!=='phantom') return
       var modifier = 0
       if(e.shiftKey) modifier |= MODIFIER.shift
       if(e.altKey) modifier |= MODIFIER.alt
@@ -291,8 +293,8 @@ function registerEvent(){
         evtData.keyName = e.key||e.keyIdentifier
         // console.log(e,  e.key||e.keyIdentifier, e.keyIdentifier )
       }else{
-        evtData.pageX = e.pageX-window.scrollX
-        evtData.pageY = e.pageY-window.scrollY
+        evtData.pageX = e.pageX  // -window.scrollX
+        evtData.pageY = e.pageY  // -window.scrollY
       }
       // if(evtData.type=='mousemove') ws._send_throttle({ type:'event_mouse', data:evtData })
       // else ws._send({ type:'event_mouse', data:evtData })

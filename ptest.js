@@ -37,7 +37,7 @@ function _clone(obj){
 page.zoomFactor = 1
 // page.clipRect = { top: 10, left: 0, width: 640, height: 490 }
 page.viewportSize = { width: 1000, height: 610 }
-page.settings.userAgent = 'Mozilla/5.0 (Windows NT 5.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/31.0.1650.57 Safari/537.36'
+// page.settings.userAgent = 'Mozilla/5.0 (Windows NT 5.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/31.0.1650.57 Safari/537.36'
 page.settings.resourceTimeout = 50000 // 5 seconds
 page.settings.localToRemoteUrlAccessEnabled = true
 page.settings.webSecurityEnabled = false
@@ -159,7 +159,7 @@ ws.onopen = function (e) {
         }else{
           c = guessKey(e)
         }
-        
+
         page.sendEvent(e.type, c, null, null, e.modifier)
 
         break
@@ -175,8 +175,8 @@ ws.onopen = function (e) {
           ws.EventCache.push(ce)
           if(ws.EventCache.length>3) ws.EventCache.shift()
           // console.log(JSON.stringify(ws.EventCache))
-          if(ws.EventCache.length===3 
-            && ws.EventCache[0].type==='mousedown' && ws.EventCache[1].type==='mouseup' 
+          if(ws.EventCache.length===3
+            && ws.EventCache[0].type==='mousedown' && ws.EventCache[1].type==='mouseup'
             && ws.EventCache[2].time-ws.EventCache[0].time<DBLCLICK_INTERVAL){
             e.type = ws.EventCache[2].type = 'mousedoubleclick'
           }

@@ -76,7 +76,7 @@ console.log('server started at %s:%s', HTTP_HOST, HTTP_PORT )
 
 var DEFAULT_URL = [
     'http://1111hui.com/nlp/tree.html', 
-    'http://1111hui.com/github/ptes/abc.html',
+    // 'http://1111hui.com/github/ptes/abc.html',
   ].pop()
 var EventCache = []
 var ViewportCache = []
@@ -162,7 +162,7 @@ wss.on('connection', function connection(ws) {
 
   var heartbeat = setInterval(function(){ ws.send('') }, 10000)
   ws._send( {type:'ws', msg:'connected to socket 8080'} )
-  console.log('protocolVersion', ws.protocolVersion)
+  // console.log('protocolVersion', ws.protocolVersion)
 
   ws.on('close', function incoming(code, message) {
     console.log("WS close:", ws.name, code, message)

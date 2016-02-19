@@ -303,7 +303,7 @@ function init () {
   URL = sys.args[1]
   // URL = 'http://bing.com'
   if (page.clearMemoryCache) page.clearMemoryCache()
-  page.open(URL + '?' + Math.random())
+  page.open(URL)
 }
 init()
 

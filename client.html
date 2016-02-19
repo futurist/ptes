@@ -289,7 +289,7 @@ function registerEvent(){
       var evtData = { type:e.type, which:e.which, modifier:modifier }
       if(isKey){
         evtData.keyName = e.key||e.keyIdentifier
-        console.log(e,  e.key||e.keyIdentifier, e.keyIdentifier )
+        // console.log(e,  e.key||e.keyIdentifier, e.keyIdentifier )
       }else{
         evtData.pageX = e.pageX-window.scrollX
         evtData.pageY = e.pageY-window.scrollY

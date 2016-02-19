@@ -2,6 +2,7 @@
 <html>
 <head>
 <title></title>
+<script type="text/javascript" src="http://1111hui.com/js/mithril.js"></script>
 <style type="text/css">
 html,body{
     height: 100%;
@@ -9,6 +10,7 @@ html,body{
 </style>
 </head>
 <body>
+<div id="mithril"></div>
 <select id="select1">
     <option>AAAAAAAA</option>
     <option>bbbbbbbb</option>
@@ -23,6 +25,7 @@ html,body{
 
 <pre id="test" style="min-height:50%; background:#ccc; overflow:scroll"></pre>
 <script type="text/javascript">
+var $ = function(el){ return document.querySelector(el) }
 var test = document.getElementById("test");
 window.onmousedown = function  (e) {
     test.innerHTML += e.type+"\n"
@@ -37,7 +40,39 @@ window.ondblclick = function  (e) {
     test.innerHTML += e.type+"\n"
 }
 
-console.log( 'soidjf', document.querySelector('#input1').oninput )
+$('#input1').oninput = function(){
+    console.log(this.value)
+}
+
+
+var text = 'sdafasdfasdf'
+m.mount( $('#mithril'), {
+    controller:function(){
+        
+    },
+    view:function(c){
+        return m('ul', 
+            m('li', 
+            m('input', 
+            {
+                config: function config(el, old) {
+                    if(!old) el.onblur=function(){ console.log('blur!!') }
+                    el.focus()
+                    el.select()
+                    return
+                },
+                value:text, 
+                oninput:function(){ text = this.value },
+                onkeyup: function onkeydown(e) {
+                    if (e.keyCode == 13) return v._edit = false
+                    console.log('keydown', this.value)
+                    m.redraw.strategy('none')
+                }
+            }
+        )
+        ))
+    }
+} )
 
 </script>
 </body>

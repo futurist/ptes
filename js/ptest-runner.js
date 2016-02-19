@@ -12,6 +12,7 @@ var ptest = require('./data/ptest.json')
 // colors codes from:
 // https://github.com/Marak/colors.js
 // https://www.linux.com/learn/docs/man/2752-consolecodes4
+// https://en.wikipedia.org/wiki/ANSI_escape_code
 var codes = {
   bold: [1, 22],
   underline: [4, 24],
@@ -24,7 +25,12 @@ var codes = {
   magenta: [35, 39],
   cyan: [36, 39],
   grey: [90, 39],
-};
+
+  clear_screen: '\u001b[0J\r',  // 0J = clear from cursor to bottom; 2J = entire screen
+  clear_line: '\u001b[2K\r',
+  save: '\u001b[s',
+  restore: '\u001b[u',
+}
 
 function _color(str, code){
   var _open = []
@@ -37,7 +43,10 @@ function _color(str, code){
   return _open.join('') + str + _close.join('')
 }
 
+var _repeat = function(str, n){return new Array(n+1).join(str) }
+var _uplines = function(lines){ return '\u001b['+ lines +'A'+ codes.clear_screen }
 var _output = []
+var _prevOutput = ''
 var _activeTests = []
 var _level = 0
 var _beforeEach = null
@@ -49,14 +58,20 @@ var _statusColor = {
     'unknown': 'grey',
 }
 console.log('') //start test with newline
-function _logStatus(str, level, status){ console.log( _repeat('  ',level||0) + _color( str, _statusColor[status||'unknown'] ) )  }
-var _repeat = function(str, level){return new Array(level+1).join(str) }
-var _report = function( redraw ){
-    var _line = _output.length
+function _logStatus(str, level, status){
+  var out = _repeat('  ',level||0) + _color( str, _statusColor[status||'unknown'] )
+  console.log( out )
+  return out
+}
+var _report = function(){
+    if(_prevOutput){
+      // console.log( codes.restore + codes.clear_screen )
+      console.log( _uplines( _prevOutput.split(os.EOL).length ) )
+    }
+    _prevOutput = ''
     _output.forEach(function(v){
-        _logStatus(v.msg, v.level, v.status)
+        _prevOutput += _logStatus(v.msg, v.level, v.status)+os.EOL
     })
-    if(redraw) console.log( _repeat('\u001b[A', _line+1) )
 }
 function afterEach(func){
     _afterEach = func
@@ -64,7 +79,7 @@ function afterEach(func){
 function describe(msg, func){
     var _stat = {msg:msg, level:_level}
     _output.push(_stat)
-    _report(true)
+    _report()
     _level++
     var _this = new func()
     _level--
@@ -87,14 +102,15 @@ function it(msg, func){
         if(err){
             _stat.status = 'fail'
             _report()
+            clearTest()
             assert(false, err)
             return
         }
         _stat.status = 'success'
-        _report(true)
+        _report()
     }
     _output.push(_stat)
-    _report(true)
+    _report()
     var _this = new func(callback)
     _activeTests.push(_this)
 }
@@ -104,8 +120,8 @@ function clearTest(){
     })
     _activeTests = []
 }
-process.on('SIGINT', function(){clearTest(), _report(true)})
-process.on('exit', function(code){clearTest(), _report(code)})
+process.on('SIGINT', function(){ clearTest() })
+process.on('exit', function(code){ clearTest() })
 
 
 

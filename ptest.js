@@ -186,7 +186,7 @@ ws.onopen = function (e) {
 
         // if (/click|down|up/.test(e.type)) page.sendEvent('mousemove', e.pageX, e.pageY, '')
 
-        page.sendEvent(e.type, e.pageX, e.pageY, WHICH_MOUSE_BUTTON[e.which], e.modifier)
+        page.sendEvent(e.type, e.pageX-(page.scrollPosition.left||0), e.pageY-(page.scrollPosition.top||0), WHICH_MOUSE_BUTTON[e.which], e.modifier)
         setCursorPos(e.pageX, e.pageY)
 
         break

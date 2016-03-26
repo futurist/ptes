@@ -3,4 +3,5 @@ cookies.txt
 data/
 *.log
 test*/
-
+#*#
+*~

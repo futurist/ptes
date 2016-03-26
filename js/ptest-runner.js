@@ -6,8 +6,13 @@ var path = require('path')
 var split2 = require('split2')
 var spawn = require('child_process').spawn
 var imageDiff=require("image-diff")
-var ptest = require('./data/ptest.json')
 
+
+var DATA_DIR = 'ptest-data/'
+DATA_DIR = path.join(DATA_DIR, '.') // remove ending sep(/ or \\)
+var ptest = require('./' + path.join(DATA_DIR + 'ptest.json'))
+
+console.log(DATA_DIR+'/ptest.json', ptest)
 
 // colors codes from:
 // https://github.com/Marak/colors.js
@@ -114,7 +119,7 @@ function it(msg, func){
     var _this = new func(callback)
     _activeTests.push(_this)
 }
-function clearTest(){ 
+function clearTest(){
     _activeTests.forEach(function(v){
         _afterEach && _afterEach.call(v)
     })
@@ -126,7 +131,6 @@ process.on('exit', function(code){ clearTest() })
 
 
 // test part
-var DATA_DIR = 'data/'
 function getPath(file){
     return path.join(__dirname, DATA_DIR, file)
 }
@@ -159,7 +163,7 @@ describe('ptest for '+ptest.url, function () {
               this.slow(obj[v].span*1.1)
               var cmd = 'phantomjs --config=phantom.config ptest-phantom.js '+ ptest.url +' '+obj[v].name
               // console.log(__dirname, cmd)
-              
+
               // delete exists test images
               var a = obj[v].name +'.png';
               var b = obj[v].name +'_1.png';

@@ -1,5 +1,5 @@
-/*
-Copyright @ Michael Yang
+/* 
+Copyright @ Michael Yang 
 License MIT
 */
 'use strict'
@@ -15,49 +15,17 @@ var commander=require("commander")
 var imageDiff=require("image-diff")
 var _util=require("util_extend_exclude")
 var spawn=require("child_process").spawn
-var pkg = require("./package.json")
 
-
-
-var DEFAULT_URL = [
-    'http://1111hui.com/nlp/tree.html',
-    // 'http://1111hui.com/github/ptes/abc.html',
-  ].pop()
 var HTTP_HOST = '0.0.0.0'
 var HTTP_PORT = 8080
 var WS_PORT = 1280
-var DATA_DIR = 'ptest_data/'
-DATA_DIR = path.join(DATA_DIR, '.') // remove ending sep(/ or \\)
-var TEST_FOLDER = path.join('test/', DATA_DIR)
-var TEST_FILE = ''
 
-commander
-  .version(pkg.version)
-  .option('-r, --run [testFile]', 'run test config from file', '')
-  .option('-s, --save [testDir]', 'save test data to dir, can be relative', '')
-  .parse(process.argv)
-
-var cmdArgs = (commander.args)
-if(!cmdArgs.length){
-  console.log('Usage: node server url -s [testDir] -r [testFile]\n [testDir] default value: %s', path.join(TEST_FOLDER, '..'))
-  return process.exit()
-}
-if(cmdArgs[0]!='debug') DEFAULT_URL = cmdArgs[0]
-if(commander.save) TEST_FOLDER = path.join(commander.save, DATA_DIR)
-if(commander.run){
-  TEST_FILE = commander.run
-  // TEST_FILE = path.join(TEST_FOLDER, TEST_FILE)
-  TEST_FILE = path.extname(TEST_FILE) ? TEST_FILE : TEST_FILE+'.json'
-}
-console.log(DEFAULT_URL, TEST_FOLDER, TEST_FILE)
-
-
-
-mkdirp(TEST_FOLDER, function(err){
+var DATA_DIR = 'test/data/'
+mkdirp(DATA_DIR, function(err){
   if(err) return console.log(err);
-  copyFileSync('js/ptest-runner.js', path.join(TEST_FOLDER, '../ptest-runner.js'))
-  copyFileSync('./phantom.config', path.join (TEST_FOLDER,'phantom.config'))
-  copyFileSync('js/ptest-phantom.js', path.join (TEST_FOLDER,'ptest-phantom.js'))
+  copyFileSync('js/ptest-runner.js', 'test/ptest-runner.js')
+  copyFileSync('./phantom.config', 'test/data/phantom.config')
+  copyFileSync('js/ptest-phantom.js', 'test/data/ptest-phantom.js')
 })
 
 var ROUTE = {
@@ -107,12 +75,14 @@ HttpServer.listen(HTTP_PORT, HTTP_HOST)
 
 console.log('server started at %s:%s', HTTP_HOST, HTTP_PORT )
 
+var DEFAULT_URL = [
+    'http://1111hui.com/nlp/tree.html', 
+    // 'http://1111hui.com/github/ptes/abc.html',
+  ].pop()
 var EventCache = []
 var ViewportCache = []
 var PageClip = {}
-var Config = { url:DEFAULT_URL}
-Config[DATA_DIR] = {}
-
+var Config = { url:DEFAULT_URL, data:{} }
 var ImageName = ''
 var PlayCount = 0
 var RECORDING = false
@@ -122,13 +92,13 @@ var Options = {
 }
 
 function snapShot(name){
-  toPhantom({ type:'snapshot', data:path.join(TEST_FOLDER, name) })
+  toPhantom({ type:'snapshot', data:DATA_DIR+name })
 }
 function showDiff(a,b){
   imageDiff({
-    actualImage: path.join(TEST_FOLDER, (a||'a.png')),
-    expectedImage: path.join(TEST_FOLDER, (b||'b.png')),
-    diffImage: path.join(TEST_FOLDER, 'diff_'+b),
+    actualImage: DATA_DIR+ (a||'a.png'),
+    expectedImage: DATA_DIR+ (b||'b.png'),
+    diffImage: DATA_DIR+ 'diff_'+b,
   }, function (err, imagesAreSame) {
     console.log(err, imagesAreSame)
   })
@@ -147,16 +117,16 @@ function stopRec(){
   RECORDING = false
   var name = +new Date()
   ImageName = name
-
+ 
     // var Config = {unsaved:{name:'a;b'}}
     var testPath = Config.unsaved.name
     try{
-      mkdirp.sync( path.join(TEST_FOLDER, testPath ))
+        mkdirp.sync( DATA_DIR + testPath )
     }catch(e){
         throw e
     }
     snapKeyFrame(testPath)
-  var objPath = [DATA_DIR].concat(testPath.split('/'))
+  var objPath = ['data'].concat(testPath.split('/'))
     Config.unsaved.name = name
     Config.unsaved.span = Date.now() - Config.unsaved.span
 
@@ -165,26 +135,16 @@ function stopRec(){
   if(a.length==1) b[a.shift()] = Config.unsaved
   else while( p=a.shift() ) b[p]=(b[p]||{}), a.length>1? b=b[p] : b=b[p][a.shift()]=Config.unsaved;
   delete Config.unsaved
-
-  fs.writeFileSync(path.join(TEST_FOLDER,name+'.json'), JSON.stringify({ testPath:testPath, clip:PageClip, event: EventCache }) )
-  fs.writeFileSync(path.join(TEST_FOLDER , 'ptest.json'), JSON.stringify(Config,null,2) )
+ 
+    fs.writeFileSync(DATA_DIR + name + '.json', JSON.stringify({ testPath:testPath, clip:PageClip, event: EventCache }) )
+    fs.writeFileSync(DATA_DIR + 'ptest.json', JSON.stringify(Config,null,2) )
 }
-
-
 function snapKeyFrame(testPath){
     var name = path.join(testPath, String(+new Date()) )
     snapShot(name+'.png')
     EventCache.push( { time:Date.now(), msg:_util._extend({}, { type:'snapshot', data:name }) } )
 }
 
-
-/**
-nsdoifjosdfjs sdf sd fsdf sdf sd sd
-;; fsd sd sd sdfsd sd sd sd sd sd
-;; sdf sd sd sd sdf sd sd sd sd sd
-;; sd sd sd s sd sd sdoifjosdjf
-;; sdfsdojfosdjfojsd
- **/
 
 // create WS Server
 var WebSocketServer = require('ws').Server
@@ -300,7 +260,7 @@ class EventPlayBack{
   }
 
   play(){
-
+    
   }
 
   pause(){
@@ -343,13 +303,11 @@ function broadcast(data) {
 }
 
 
-
 // Phantom
 var phantom
 
 function startPhantom(url){
-  console.log(url)
-  phantom = spawn("phantomjs", ['--config', 'phantom.config', "ptest.js", url], {cwd:__dirname, stdio: "pipe" });
+    phantom = spawn("phantomjs", ['--config', 'phantom.config', "ptest.js", url], {cwd:__dirname, stdio: "pipe" });
 
     phantom.stdout.setEncoding("utf8");
     phantom.stderr.setEncoding("utf8");
@@ -382,7 +340,7 @@ function stopPhantom(){
 function init(){
     var content = ''
     try{
-      content = fs.readFileSync(path.join(TEST_FOLDER, 'ptest.json'), 'utf8')
+        content = fs.readFileSync(DATA_DIR+ 'ptest.json', 'utf8')
         Config = JSON.parse( content )
     }catch(e){
         if(e.code!=='ENOENT'){
@@ -391,16 +349,15 @@ function init(){
         }
     }
 
-    // if(process.argv.length<3 && !DEBUG_MODE){
-    //     console.log('Usage: node server url [configfile.json] ')
-    //     return process.exit()
-    // }
-
-
-  var URL = DEFAULT_URL
-  if(TEST_FILE) fs.readFile(path.join(TEST_FOLDER, TEST_FILE), 'utf8', (err, data) => {
+    if(process.argv.length<3 && !DEBUG_MODE){
+        console.log('Usage: node server url [configfile.json] ')
+        return process.exit()
+    }
+    var  process.argv[2] || DEFAULT_URL
+    var name = process.argv[3]
+    if(name) fs.readFile(DATA_DIR+ name +'.json', 'utf8', (err, data) => {
         if(err){
-          console.log('invalid json format', TEST_FILE)
+            console.log('invalid json format', DATA_DIR+ name +'.json' )
             return process.exit();
         }
         try{

@@ -8,9 +8,9 @@ var spawn = require('child_process').spawn
 var imageDiff=require("image-diff")
 
 
-var DATA_DIR = 'ptest-data/'
+var DATA_DIR = 'ptest_data/'
 DATA_DIR = path.join(DATA_DIR, '.') // remove ending sep(/ or \\)
-var ptest = require('./' + path.join(DATA_DIR + 'ptest.json'))
+var ptest = require('./' + path.join(DATA_DIR , 'ptest.json'))
 
 console.log(DATA_DIR+'/ptest.json', ptest)
 
@@ -135,7 +135,7 @@ function getPath(file){
     return path.join(__dirname, DATA_DIR, file)
 }
 function compareImage(imageID, done){
-  var a = imageID+'.png'
+  var a = imageID
   var b = imageID+'_test.png'
   var diff = imageID+'_diff.png'
   imageDiff({
@@ -153,7 +153,7 @@ afterEach(function(){
 
 
 describe('ptest for '+ptest.url, function () {
-    var iter = function(obj){
+  var iter = function(obj){
       if(typeof obj!='object' || !obj) return;
       Object.keys(obj).forEach(function(v){
         if( typeof obj[v]!=='object') return;
@@ -213,7 +213,7 @@ describe('ptest for '+ptest.url, function () {
         }
       })
     }
-    iter(ptest.data)
+  iter(ptest[DATA_DIR])
 })
 
 

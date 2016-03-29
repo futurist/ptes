@@ -88,6 +88,7 @@ ws.onopen = function (e) {
           }
         }
 
+      console.log("data path:", msg.data)
         page.render(msg.data)
 
         page.clipRect = {}

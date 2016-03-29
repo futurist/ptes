@@ -83,11 +83,11 @@ function testStep(diff){
 	var e=EventCache[p]
 	var inter = e.time-prev.time-diff
 	setTimeout( function() {
-		var t = Date.now()
-		processMsg(e.msg, p===EventCache.length-1)
-		prev = e
-		p++
-		testStep(Date.now()-t)
+	  var t = Date.now()
+	  if(e.msg) processMsg(e.msg, p===EventCache.length-1)
+	  prev = e
+	  p++
+	  testStep(Date.now()-t)
 	}, inter )
 }
 

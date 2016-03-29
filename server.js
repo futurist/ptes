@@ -49,15 +49,18 @@ if(commander.run){
   // TEST_FILE = path.join(TEST_FOLDER, TEST_FILE)
   TEST_FILE = path.extname(TEST_FILE) ? TEST_FILE : TEST_FILE+'.json'
 }
-console.log(DEFAULT_URL, TEST_FOLDER, TEST_FILE)
+console.log(__dirname, __filename, process.cwd(), DEFAULT_URL, TEST_FOLDER, TEST_FILE)
 
+
+// convert to absolute path
+// TEST_FOLDER = path.isAbsolute(TEST_FOLDER) ? TEST_FOLDER : path.join(process.cwd(), TEST_FOLDER)
 
 
 mkdirp(TEST_FOLDER, function(err){
   if(err) return console.log(err);
-  copyFileSync('js/ptest-runner.js', path.join(TEST_FOLDER, '../ptest-runner.js'))
-  copyFileSync('./phantom.config', path.join (TEST_FOLDER,'phantom.config'))
-  copyFileSync('js/ptest-phantom.js', path.join (TEST_FOLDER,'ptest-phantom.js'))
+  copyFileSync(path.join(__dirname, 'js/ptest-runner.js'), path.join(TEST_FOLDER, '../ptest-runner.js'))
+  copyFileSync(path.join(__dirname, './phantom.config'), path.join (TEST_FOLDER,'phantom.config'))
+  copyFileSync(path.join(__dirname, 'js/ptest-phantom.js'), path.join (TEST_FOLDER,'ptest-phantom.js'))
 })
 
 var ROUTE = {
@@ -94,7 +97,7 @@ var HttpServer = http.createServer(function(req,res){
   var ext = path.extname(filePath)
   var contentType = MIME[ext] || 'text/html'
 
-  fs.readFile(filePath, function(err, data) {
+  fs.readFile(path.join(__dirname, filePath), function(err, data) {
     if(err){
       res.statusCode=404
       return res.end()
@@ -166,25 +169,18 @@ function stopRec(){
   else while( p=a.shift() ) b[p]=(b[p]||{}), a.length>1? b=b[p] : b=b[p][a.shift()]=Config.unsaved;
   delete Config.unsaved
 
-  fs.writeFileSync(path.join(TEST_FOLDER,name+'.json'), JSON.stringify({ testPath:testPath, clip:PageClip, event: EventCache }) )
+  fs.writeFileSync(path.join(TEST_FOLDER, name+'.json'), JSON.stringify({ testPath:testPath, clip:PageClip, event: EventCache }) )
   fs.writeFileSync(path.join(TEST_FOLDER , 'ptest.json'), JSON.stringify(Config,null,2) )
 }
 
 
 function snapKeyFrame(testPath){
-    var name = path.join(testPath, String(+new Date()) )
-    snapShot(name+'.png')
+  var name = path.join( testPath, String(+new Date())+".png" )
+  console.log("------",name)
+    snapShot(name)
     EventCache.push( { time:Date.now(), msg:_util._extend({}, { type:'snapshot', data:name }) } )
 }
 
-
-/**
-nsdoifjosdfjs sdf sd fsdf sdf sd sd
-;; fsd sd sd sdfsd sd sd sd sd sd
-;; sdf sd sd sd sdf sd sd sd sd sd
-;; sd sd sd s sd sd sdoifjosdjf
-;; sdfsdojfosdjfojsd
- **/
 
 // create WS Server
 var WebSocketServer = require('ws').Server
@@ -349,27 +345,27 @@ var phantom
 
 function startPhantom(url){
   console.log(url)
-  phantom = spawn("phantomjs", ['--config', 'phantom.config', "ptest.js", url], {cwd:__dirname, stdio: "pipe" });
+  phantom = spawn('phantomjs', ['--config', path.join(__dirname, 'phantom.config'), path.join(__dirname, 'ptest.js'), url], {cwd:process.cwd(), stdio: "pipe" })
 
-    phantom.stdout.setEncoding("utf8");
-    phantom.stderr.setEncoding("utf8");
-    phantom.stdout.on("data",function (data) {
-      console.log('stdout', data);
+    phantom.stdout.setEncoding('utf8')
+    phantom.stderr.setEncoding('utf8')
+    phantom.stdout.on('data',function (data) {
+      console.log('stdout', data)
     })
-    phantom.stderr.on("data",function (data) {
-      console.log('stderr', data);
+    phantom.stderr.on('data',function (data) {
+      console.log('stderr', data)
     })
-    phantom.on("exit", function (code) {
+    phantom.on('exit', function (code) {
       console.log('exit', code)
     })
-    phantom.on("error", function (code) {
-      console.log('error', code);
+    phantom.on('error', function (code) {
+      console.log('error', code)
     })
     console.log('spawn phantom', phantom.pid)
 }
 
 function reloadPhantom(){
-  toPhantom({ type:'command', meta:'server', data:'page.reload()' } );
+  toPhantom({ type:'command', meta:'server', data:'page.reload()' } )
 }
 
 function stopPhantom(){

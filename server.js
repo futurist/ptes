@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 /*
 Copyright @ Michael Yang
 License MIT
@@ -33,19 +35,19 @@ var TEST_FILE = ''
 
 commander
   .version(pkg.version)
-  .option('-r, --run [testFile]', 'run test config from file', '')
-  .option('-s, --save [testDir]', 'save test data to dir, can be relative', '')
+  .option('-p, --profile [testProfile]', 'run test profile when start', '')
+  .option('-d, --dir [testDir]', 'save test data to dir, can be relative', '')
   .parse(process.argv)
 
 var cmdArgs = (commander.args)
 if(!cmdArgs.length){
-  console.log('Usage: node server url -s [testDir] -r [testFile]\n [testDir] default value: %s', path.join(TEST_FOLDER, '..'))
+  console.log('Usage: node server url -d [testDir] -p [testProfile]\n [testDir] default value: %s', path.join(TEST_FOLDER, '..'))
   return process.exit()
 }
 if(cmdArgs[0]!='debug') DEFAULT_URL = cmdArgs[0]
-if(commander.save) TEST_FOLDER = path.join(commander.save, DATA_DIR)
-if(commander.run){
-  TEST_FILE = commander.run
+if(commander.dir) TEST_FOLDER = path.join(commander.dir, DATA_DIR)
+if(commander.profile){
+  TEST_FILE = commander.profile
   // TEST_FILE = path.join(TEST_FOLDER, TEST_FILE)
   TEST_FILE = path.extname(TEST_FILE) ? TEST_FILE : TEST_FILE+'.json'
 }
@@ -171,12 +173,13 @@ function stopRec(){
 
   fs.writeFileSync(path.join(TEST_FOLDER, name+'.json'), JSON.stringify({ testPath:testPath, clip:PageClip, event: EventCache }) )
   fs.writeFileSync(path.join(TEST_FOLDER , 'ptest.json'), JSON.stringify(Config,null,2) )
+  reloadPhantom()
 }
 
 
 function snapKeyFrame(testPath){
   var name = path.join( testPath, String(+new Date())+".png" )
-  console.log("------",name)
+  console.log("------snapshot:",name)
     snapShot(name)
     EventCache.push( { time:Date.now(), msg:_util._extend({}, { type:'snapshot', data:name }) } )
 }

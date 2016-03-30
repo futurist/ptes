@@ -6,6 +6,11 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
+  "bin":{
+    "ptest":"server.js",
+    "ptest-run": "js/ptest-runner.js"
+  },
+  "preferGlobal":true,
   "author": "",
   "license": "ISC",
   "dependencies": {

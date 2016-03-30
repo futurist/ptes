@@ -90,6 +90,8 @@ var MODIFIER = {
   keypad: 0x20000000
 }
 
+var keyframeCount = 0
+var intervalTitle = 0
 var PageClip = {}
 var clipDrag = m_drag({});
 var startClip = clipDrag('clip', function(e, data, root){
@@ -233,6 +235,7 @@ function registerEvent(){
       if(!lastTitle) return
       e.preventDefault()
       sc(' snapKeyFrame("'+ lastTitle +'") ')
+      keyframeCount++
     })
     Mousetrap.bind('ctrl+r', function(e){
       e.preventDefault()
@@ -244,10 +247,13 @@ function registerEvent(){
           if( INVALID_NAME_REGEXP.test(title) ) alert('path name cannot contain '+ INVALID_NAME)
           else break
         }
-        document.title = 'recording...'+title
+        // document.title = 'recording...'+title
+        flashTitle()
+
         sc(' startRec("'+ title +'") ')
         stage = RECORDING
       }else if(stage == RECORDING) {
+        clearInterval(intervalTitle)
         document.title = 'ptest'
         sc(' stopRec() ')
         stage = null
@@ -302,6 +308,21 @@ function registerEvent(){
     })
   })
 }
+
+  var _repeat = function(str, n){return new Array(n+1).join(str) }
+
+  function flashTitle(){
+    clearInterval(intervalTitle)
+    var t=0
+    var flash = function(){
+      var tt=_repeat('+', keyframeCount)
+      tt+= t++%2?"RECORDING...":"ptest..."
+      document.title=tt
+    }
+    intervalTitle = setInterval(flash, 1000)
+  }
+
+
 
 $(function(){
   registerEvent()

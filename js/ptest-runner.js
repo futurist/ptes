@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 var process = require('process')
 var assert = require('assert')
 var os = require('os')
@@ -8,9 +10,16 @@ var spawn = require('child_process').spawn
 var imageDiff=require("image-diff")
 
 
-var DATA_DIR = 'ptest_data/'
+var ptest, DATA_DIR = 'ptest_data/'
 DATA_DIR = path.join(DATA_DIR, '.') // remove ending sep(/ or \\)
-var ptest = require('./' + path.join(DATA_DIR , 'ptest.json'))
+
+try{
+  ptest = fs.readFileSync(path.join(DATA_DIR , 'ptest.json'), 'utf8')
+  ptest = JSON.parse(ptest)
+}catch(e){
+  console.log("Cannot find ptest.json, now exit")
+  process.exit()
+}
 
 console.log(DATA_DIR+'/ptest.json', ptest)
 
@@ -132,7 +141,7 @@ process.on('exit', function(code){ clearTest() })
 
 // test part
 function getPath(file){
-    return path.join(__dirname, DATA_DIR, file)
+    return path.join( DATA_DIR, file)
 }
 function compareImage(imageID, done){
   var a = imageID
@@ -148,64 +157,72 @@ function compareImage(imageID, done){
 }
 
 afterEach(function(){
-    if(this.phantom) this.phantom.kill(), this.phantom=null;
+    if(this.phantom) this.phantom.kill(), this.phantom=null
 })
 
 
 describe('ptest for '+ptest.url, function () {
   var iter = function(obj){
-      if(typeof obj!='object' || !obj) return;
+      if(typeof obj!='object' || !obj) return
       Object.keys(obj).forEach(function(v){
-        if( typeof obj[v]!=='object') return;
+        if( typeof obj[v]!=='object') return
         if(obj[v].name && obj[v].span){
-            it(v+'['+ obj[v].name +']', function(done){
-              this.timeout(obj[v].span*2)
-              this.slow(obj[v].span*1.1)
-              var cmd = 'phantomjs --config=phantom.config ptest-phantom.js '+ ptest.url +' '+obj[v].name
-              // console.log(__dirname, cmd)
+          it(v+'['+ obj[v].name +']', function(done){
+            this.timeout(obj[v].span*2)
+            this.slow(obj[v].span*1.1)
+            // var cmd = 'phantomjs --config=phantom.config ptest-phantom.js '+ ptest.url +' '+obj[v].name
+            // console.log(__dirname, cmd)
 
-              // delete exists test images
-              var a = obj[v].name +'.png';
-              var b = obj[v].name +'_1.png';
-              [getPath(b), getPath('diff_'+b)].forEach(function(v){
-                fs.unlink(v, function(err){ 
-                    if(err && err.code!=='ENOENT') throw Error('file or folder permission error') 
-                })
+            // delete exists test images
+            var a = obj[v].name +'.png'
+            var b = obj[v].name +'_1.png'
+            ;[getPath(b), getPath('diff_'+b)].forEach(function(v){
+              fs.unlink(v, function(err){
+                if(err && err.code!=='ENOENT') throw Error('file or folder permission error')
               })
+            })
 
 
-          var phantom = spawn("phantomjs", ['--config', 'phantom.config', "ptest-phantom.js", ptest.url, obj[v].name], {cwd:path.join(__dirname, DATA_DIR) })
+            var phantom = spawn("phantomjs", [
+              '--config',
+              path.join('.', 'phantom.config'),
+              path.join('.', 'ptest-phantom.js'),
+              ptest.url,
+              obj[v].name
+            ], {
+              cwd:path.join(process.cwd(), DATA_DIR)
+            })
 
-          phantom.stdout.pipe(split2()).on("data",function (line) {
-            // console.log('stdout', line)
-            if (line[0] === '>') {
-              // >{id:12345, type:'type', data:data} format is special!!
-              try{
-                var msg = JSON.parse(line.substr(1))
-                switch(msg.type){
+            phantom.stdout.pipe(split2()).on("data",function (line) {
+              // console.log('stdout', line)
+              if (line[0] === '>') {
+                // >{id:12345, type:'type', data:data} format is special!!
+                try{
+                  var msg = JSON.parse(line.substr(1))
+                  switch(msg.type){
                   case 'compareImage':
-                    compareImage( msg.data, function(err){ 
-                        if(err) return done(err)
-                        if(msg.meta=='last') done()
+                    compareImage( msg.data, function(err){
+                      if(err) return done(err)
+                      if(msg.meta=='last') done()
                     } )
                     break
-                }
-              }catch(e){}
-            }
-          })
-          phantom.stderr.on("data",function (data) {
-            console.log('stderr', data.toString())
-          })
-          phantom.on("exit", function (code, signal) {
-            // console.log('exit', code, signal)
-            // if(!signal) done(code)
-          })
-          phantom.on("error", function (code) {
-            console.log('error', code)
-          })
-          this.phantom = phantom
-
+                  }
+                }catch(e){}
+              }
             })
+            phantom.stderr.on("data",function (data) {
+              console.log('stderr', data.toString())
+            })
+            phantom.on("exit", function (code, signal) {
+              // console.log('exit', code, signal)
+              // if(!signal) done(code)
+            })
+            phantom.on("error", function (code) {
+              console.log('error', code)
+            })
+            this.phantom = phantom
+
+          })
         } else {
             describe(v, function(){
                 iter(obj[v])

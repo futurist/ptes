@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 var process = require('process')
+var util = require('util')
 var assert = require('assert')
 var os = require('os')
 var fs = require('fs')
@@ -99,35 +100,42 @@ function describe(msg, func){
     _level--
 }
 function it(msg, func){
-    var _this_level = _level;
-    var _stat = {msg:'⋅ ' + msg, level:_this_level}
-    func.prototype._timeout = 2000
-    func.prototype._slow = 2000
-    func.prototype.timeout = function(val){
-        this._timeout = val
-    }
-    func.prototype.slow = function(val){
-        this._slow = val
-    }
-    var callback = function(err){
-        var idx = _activeTests.indexOf(_this)
-        if(idx>-1) _activeTests.splice(idx, 1)
-        _afterEach && _afterEach.call(_this)
-        if(err){
-            _stat.status = 'fail'
-            _report()
-            clearTest()
-            assert(false, err)
-            return
-        }
-        _stat.status = 'success'
-        _report()
-    }
-    _output.push(_stat)
+  var indent = '⋅ '
+  var _this_level = _level;
+  var _stat = {msg: indent + msg, level:_this_level}
+  func.prototype._timeout = 2000
+  func.prototype._slow = 2000
+  func.prototype.timeout = function(val){
+    this._timeout = val
+  }
+  func.prototype.slow = function(val){
+    this._slow = val
+  }
+  func.prototype.submsg = function(val){
+    this._submsg = val
+    _stat.msg = indent+msg+val
     _report()
-    var _this = new func(callback)
-    _activeTests.push(_this)
+  }
+  var callback = function(err){
+    var idx = _activeTests.indexOf(_this)
+    if(idx>-1) _activeTests.splice(idx, 1)
+    _afterEach && _afterEach.call(_this)
+    if(err){
+      _stat.status = 'fail'
+      _report()
+      clearTest()
+      assert(false, err)
+      return
+    }
+    _stat.status = 'success'
+    _report()
+  }
+  _output.push(_stat)
+  _report()
+  var _this = new func(callback)
+  _activeTests.push(_this)
 }
+
 function clearTest(){
     _activeTests.forEach(function(v){
         _afterEach && _afterEach.call(v)
@@ -168,46 +176,47 @@ describe('ptest for '+ptest.url, function () {
         if( typeof obj[v]!=='object') return
         if(obj[v].name && obj[v].span){
           it(v+'['+ obj[v].name +']', function(done){
+            var self = this
             this.timeout(obj[v].span*2)
             this.slow(obj[v].span*1.1)
             // var cmd = 'phantomjs --config=phantom.config ptest-phantom.js '+ ptest.url +' '+obj[v].name
             // console.log(__dirname, cmd)
 
             // delete exists test images
-            var a = obj[v].name +'.png'
-            var b = obj[v].name +'_1.png'
+            var a = obj[v].name + '.png'
+            var b = obj[v].name + '_1.png'
             ;[getPath(b), getPath('diff_'+b)].forEach(function(v){
               fs.unlink(v, function(err){
-                if(err && err.code!=='ENOENT') throw Error('file or folder permission error')
+                if (err && err.code !== 'ENOENT') throw Error('file or folder permission error')
               })
             })
 
-
-            var phantom = spawn("phantomjs", [
+            var phantom = spawn('phantomjs', [
               '--config',
               path.join('.', 'phantom.config'),
               path.join('.', 'ptest-phantom.js'),
               ptest.url,
               obj[v].name
             ], {
-              cwd:path.join(process.cwd(), DATA_DIR)
+              cwd: path.join(process.cwd(), DATA_DIR)
             })
 
-            phantom.stdout.pipe(split2()).on("data",function (line) {
+
+            phantom.stdout.pipe(split2()).on('data', function (line) {
               // console.log('stdout', line)
               if (line[0] === '>') {
-                // >{id:12345, type:'type', data:data} format is special!!
-                try{
+                // >{id:12345, type:'type', data:data, cur:1, total:5} format is special!!
+                try {
                   var msg = JSON.parse(line.substr(1))
-                  switch(msg.type){
+                  switch (msg.type) {
                   case 'compareImage':
-                    compareImage( msg.data, function(err){
-                      if(err) return done(err)
-                      if(msg.meta=='last') done()
-                    } )
+                    compareImage(msg.data, function (err) {
+                      self.submsg(util.format('(%s / %s)', msg.cur, msg.total))
+                      if (err) return done(err)
+                      if (msg.meta == 'last') return done()
+                    })
                     break
-                  }
-                }catch(e){}
+                  } } catch(e) {}
               }
             })
             phantom.stderr.on("data",function (data) {

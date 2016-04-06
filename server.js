@@ -60,7 +60,7 @@ console.log(__dirname, __filename, process.cwd(), DEFAULT_URL, TEST_FOLDER, TEST
 
 mkdirp(TEST_FOLDER, function(err){
   if(err) return console.log(err);
-  copyFileSync(path.join(__dirname, 'js/ptest-runner.js'), path.join(TEST_FOLDER, '../ptest-runner.js'))
+  // copyFileSync(path.join(__dirname, 'js/ptest-runner.js'), path.join(TEST_FOLDER, '../ptest-runner.js'))
   copyFileSync(path.join(__dirname, './phantom.config'), path.join (TEST_FOLDER,'phantom.config'))
   copyFileSync(path.join(__dirname, 'js/ptest-phantom.js'), path.join (TEST_FOLDER,'ptest-phantom.js'))
 })

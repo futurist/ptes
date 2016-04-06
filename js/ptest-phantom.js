@@ -150,7 +150,7 @@ function processMsg (msg, isLast) {
       if (arguments.length) msg.result = result
       delete msg.data
       msg.type = 'command_result'
-      ws._send(msg)
+      // ws._send(msg)
     }
     var isAsync = cmd in ASYNC_COMMAND
     if (isAsync) ASYNC_COMMAND[cmd] = cb

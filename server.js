@@ -35,19 +35,19 @@ var TEST_FILE = ''
 
 commander
   .version(pkg.version)
-  .option('-p, --profile [testProfile]', 'run test profile when start', '')
+  .option('-p, --play [playTest]', 'play test profile when start', '')
   .option('-d, --dir [testDir]', 'save test data to dir, can be relative', '')
   .parse(process.argv)
 
 var cmdArgs = (commander.args)
 if(!cmdArgs.length){
-  console.log('Usage: node server url -d [testDir] -p [testProfile]\n [testDir] default value: %s', path.join(TEST_FOLDER, '..'))
+  console.log('Usage: node server url -d [testDir] -p [playTest]\n [testDir] default value: %s', path.join(TEST_FOLDER, '..'))
   return process.exit()
 }
 if(cmdArgs[0]!='debug') DEFAULT_URL = cmdArgs[0]
 if(commander.dir) TEST_FOLDER = path.join(commander.dir, DATA_DIR)
-if(commander.profile){
-  TEST_FILE = commander.profile
+if(commander.play){
+  TEST_FILE = commander.play
   // TEST_FILE = path.join(TEST_FOLDER, TEST_FILE)
   TEST_FILE = path.extname(TEST_FILE) ? TEST_FILE : TEST_FILE+'.json'
 }
@@ -122,8 +122,8 @@ var ImageName = ''
 var PlayCount = 0
 var RECORDING = false
 var Options = {
-  syncReload  : true,
-  playBackOnInit  : true,
+  syncReload  : true,           // after recording, reload phantom page
+  playBackOnInit  : true,       // with --play option, auto play test when socket open
 }
 
 function snapShot(name){
@@ -143,10 +143,17 @@ function startRec(title){
   if(playBack.status!=STOPPED){
     return client_console('cannot record when in playback')
   }
-  Config.unsaved = { name:title, span:Date.now() }
-  RECORDING = true
-  EventCache = [ { time:Date.now(), msg: arrayLast(ViewportCache) }, { time:Date.now(), msg:{type:'page_clip', data:PageClip} } ]
-  // ViewportCache = [  ]
+  toPhantom({ type: 'command', meta: 'server', data: 'page.reload()' }, function (msg) {
+    if (msg.result === 'success') {
+      Config.unsaved = { name:title, span:Date.now() }
+      RECORDING = true
+      EventCache = [ { time:Date.now(), msg: arrayLast(ViewportCache) }, { time:Date.now(), msg:{type:'page_clip', data:PageClip} } ]
+      // ViewportCache = [  ]
+    }
+    else{
+      client_console('error open page, status', msg)
+    }
+  })
 }
 function stopRec(){
   RECORDING = false
@@ -173,7 +180,7 @@ function stopRec(){
 
   fs.writeFileSync(path.join(TEST_FOLDER, name+'.json'), JSON.stringify({ testPath:testPath, clip:PageClip, event: EventCache }) )
   fs.writeFileSync(path.join(TEST_FOLDER , 'ptest.json'), JSON.stringify(Config,null,2) )
-  reloadPhantom()
+  // reloadPhantom()
 }
 
 
@@ -217,18 +224,18 @@ wss.on('connection', function connection(ws) {
 
     var relay = function(){
       if( ws.name==='client' ){
-          RECORDING && EventCache.push( { time:Date.now(), msg:_util._extend({}, msg) } )   // , viewport: arrayLast(ViewportCache)
-          toPhantom(msg)
-        } else {
-          toClient(msg)
-        }
+        RECORDING && EventCache.push( { time:Date.now(), msg:_util._extend({}, msg) } )   // , viewport: arrayLast(ViewportCache)
+        toPhantom(msg)
+      } else {
+        toClient(msg)
+      }
     }
 
     switch(msg.type){
 
-      case 'connection':
-        ws.name = msg.name
-        broadcast({ meta:'clientList', data:clientList() })
+    case 'connection':
+      ws.name = msg.name
+      broadcast({ meta:'clientList', data:clientList() })
       if(ws.name=='client'){
         if(Options.playBackOnInit) playBack.play()
       }
@@ -236,53 +243,53 @@ wss.on('connection', function connection(ws) {
 
       }
 
-        break
+      break
 
       // command from client.html or phantom
-      case 'command':
-        if(msg.meta=='server'){
-          try{
-            msg.result = eval( msg.data )
-          }catch(e){
-            msg.result = e.stack
-          }
-          delete msg.data
-          msg.type = 'command_result'
-          ws._send( msg )
-          return
-        } else {
-          relay()
+    case 'command':
+      if(msg.meta=='server'){
+        try{
+          msg.result = eval( msg.data )
+        }catch(e){
+          msg.result = e.stack
         }
+        delete msg.data
+        msg.type = 'command_result'
+        ws._send( msg )
+        return
+      } else {
+        relay()
+      }
 
-        break
+      break
 
       // get callback from ws._call
     case 'command_result':
-    if(msg.__id && msg.meta=='server'){
-      var cb = WS_CALLBACK[msg.__id]
-      delete WS_CALLBACK[msg.__id]
-      cb && cb(msg)
-      return
-    } else {
-      relay()
-    }
+      if(msg.__id && msg.meta=='server'){
+        var cb = WS_CALLBACK[msg.__id]
+        delete WS_CALLBACK[msg.__id]
+        cb && cb(msg)
+        return
+      } else {
+        relay()
+      }
 
-    break
+      break
 
     case 'window_resize':
     case 'window_scroll':
-        ViewportCache.push(msg)
-        relay()
-        break
+      ViewportCache.push(msg)
+      relay()
+      break
 
-      case 'page_clip':
-        PageClip = msg.data
-        relay()
-        break
+    case 'page_clip':
+      PageClip = msg.data
+      relay()
+      break
 
-      default:
-        relay()
-        break
+    default:
+      relay()
+      break
 
     }
   })
@@ -291,22 +298,103 @@ wss.on('connection', function connection(ws) {
 
 // *** EventPlayBack will be rewritten, don't use at this time
 var STOPPED = 0, STOPPING = 1, PAUSING = 2, PAUSED = 4, RUNNING = 8
-class EventPlayBack{
-  constructor(){
-    this.status = STOPPED
-    this.resume = () => {}
-    this.cancel = () => {}
+class EventPlayBack {
+  constructor () {
+    this._status = STOPPED
+    Object.defineProperty(this, 'status', {
+      get: () => {
+        return this._status
+      },
+      set: (status) => {
+        this._status = status
+        console.log('playback status changed:', status)
+        toClient({type: 'playback', data: status})
+      }
+    })
+    this.resume = () => {
+    }
+    this.cancel = () => {
+    }
   }
 
-  play(){
-
+  play () {
+    var self = this
+    if (RECORDING) return client_console('cannot play when recording')
+    if (self.status === RUNNING) return
+    if (self.status === PAUSED) return self.resume()
+    if (EventCache.length < 3) return
+    let prev = EventCache[0]
+    let last = arrayLast(EventCache)
+    client_console('begin playback, total time:', last.time - prev.time, '(ms)')
+    self.status = RUNNING
+    co(function * () {
+      // refresh phantom page before play
+      yield new Promise(function (ok, error) {
+        toPhantom({ type: 'command', meta: 'server', data: 'page.reload()' }, function (msg) {
+          if (msg.result == 'success') ok()
+          else error()
+        })
+      })
+      for (let i = 0, n = EventCache.length; i < n; i++) {
+        if (self.status === STOPPING) {
+          self.cancel()
+          self.status = STOPPED
+          throw 'stopped'
+        }
+        if (self.status === PAUSING) {
+          yield new Promise((resolve, reject) => {
+            self.status = PAUSED
+            self.resume = () => {
+              self.status = RUNNING
+              self.resume = () => {
+              }
+              resolve()
+            }
+            self.cancel = () => {
+              self.status = STOPPED
+              self.cancel = () => {
+              }
+              reject('canceled')
+            }
+          })
+        }
+        let e = EventCache[i]
+        let inter = e.time - prev.time
+        let result = yield new Promise((resolve, reject) => {
+          setTimeout(() => {
+            // client_console(e.time, e.msg.type, e.msg.data)
+            if (e.msg) {
+              if (e.msg.type === 'snapshot')
+                console.log(e.msg.data)
+              else
+                toPhantom(e.msg)
+              if (/page_clip|scroll|resize/.test(e.msg.type)) toClient(e.msg)
+              else e.viewport && toClient(e.viewport)
+            }
+            prev = e
+            resolve(true)
+          }, inter)
+        })
+      }
+      return 'playback complete'
+    }).then((ret) => {
+      self.status = STOPPED
+      client_console(ret)
+    }, (err) => {
+      self.status = STOPPED
+      client_console('playback incomplete:', err)
+    })
   }
 
-  pause(){
+  playPause () {
+    if (this.status === PAUSED)  this.play()
+    else if (this.status === RUNNING) this.pause()
+  }
+  pause () {
     this.status = PAUSING
   }
 
-  stop(){
+  stop () {
     this.status = STOPPING
   }
 
@@ -398,22 +486,22 @@ function init(){
 
   var URL = DEFAULT_URL
   if(TEST_FILE) fs.readFile(path.join(TEST_FOLDER, TEST_FILE), 'utf8', (err, data) => {
-        if(err){
-          console.log('invalid json format', TEST_FILE)
-            return process.exit();
-        }
-        try{
-            data = JSON.parse(data)
-            if(typeof data!='object' || !data) throw Error();
-            EventCache = data.event
-            ViewportCache = [EventCache[0].msg]
-            PageClip = data.clip
-            ImageName = data.image
-            startPhantom()
-        }catch(e){
-            client_console('userdata parse error')
-        }
-    });
+    if (err) {
+      console.log('invalid json format', TEST_FILE)
+      return process.exit()
+    }
+    try {
+      data = JSON.parse(data)
+      if (typeof data != 'object' || !data) throw Error()
+      EventCache = data.event
+      ViewportCache = [EventCache[0].msg]
+      PageClip = data.clip
+      ImageName = data.image
+      startPhantom(URL)
+    } catch(e) {
+      client_console('userdata parse error')
+    }
+  })
     else startPhantom(URL)
 }
 init()

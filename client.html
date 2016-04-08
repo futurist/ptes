@@ -90,6 +90,8 @@ var MODIFIER = {
   keypad: 0x20000000
 }
 
+var STOPPED = 0, STOPPING = 1, PAUSING = 2, PAUSED = 4, RUNNING = 8
+var playbackStatus = STOPPED
 var keyframeCount = 0
 var intervalTitle = 0
 var PageClip = {}
@@ -126,6 +128,15 @@ ws.onopen = function (e) {
         case 'broadcast':
 
           break
+      case 'playback':
+        playbackStatus = msg.data
+        console.log('playbackStatus', msg.data)
+        stage = !msg.data || msg.data === STOPPED ? null : PLAYING
+        if (stage) flashTitle(msg.data === RUNNING ? 'PLAYING' : 'PAUSED', true)
+        else{
+          clearTitle()
+        }
+        break
         case 'page_clip':
           PageClip = msg.data
           applyPageClip()
@@ -217,16 +228,16 @@ function registerEvent(){
       e.preventDefault()
       console.log(e)
     })
-    // Mousetrap.bind('ctrl+p', function(e){
-    //   e.preventDefault()
-    //   if( stage==null ){
-    //     sc(' playBack.play() ')
-    //     stage = PLAYING
-    //   } else if(stage == PLAYING) {
-    //     sc(' playBack.pause() ')
-    //     stage = null
-    //   }
-    // })
+  Mousetrap.bind('space', function(e){
+    if(stage!==PLAYING) return
+    e.preventDefault()
+    sc(' playBack.playPause() ')
+  })
+  Mousetrap.bind('f5', function(e){
+    if(stage!==null) return
+    e.preventDefault()
+    sc(' reloadPhantom() ')
+  })
     Mousetrap.bind('ctrl+a', function(e){
       e.preventDefault()
       stage = CLIPPING
@@ -248,16 +259,15 @@ function registerEvent(){
           else break
         }
         // document.title = 'recording...'+title
-        flashTitle()
+        flashTitle('RECORDING')
 
         sc(' startRec("'+ title +'") ')
         stage = RECORDING
       }else if(stage == RECORDING) {
-        clearInterval(intervalTitle)
-        document.title = 'ptest'
         sc(' stopRec() ')
-        stage = null
-        lastTitle = ''
+        clearTitle()
+        keyframeCount = 0
+        // lastTitle = ''
       }
     })
 
@@ -288,6 +298,7 @@ function registerEvent(){
       var e = evt.originalEvent
       var isKey = /key/.test(e.type)
       if(isKey) e.preventDefault()
+      if(stage===PLAYING) return
       // if (!isKey && e.target.id!=='phantom') return
       var modifier = 0
       if(e.shiftKey) modifier |= MODIFIER.shift
@@ -311,15 +322,22 @@ function registerEvent(){
 
   var _repeat = function(str, n){return new Array(n+1).join(str) }
 
-  function flashTitle(){
+  function clearTitle (str) {
+    clearInterval(intervalTitle)
+    document.title = 'ptest'
+    stage = null
+  }
+  function flashTitle(str, isStatic){
     clearInterval(intervalTitle)
     var t=0
     var flash = function(){
       var tt=_repeat('+', keyframeCount)
-      tt+= t++%2?"RECORDING...":"ptest..."
+      if(isStatic) tt += str+'...'
+      else tt += t++ % 2 ? str + '...' : 'ptest...'
       document.title=tt
     }
     intervalTitle = setInterval(flash, 1000)
+    flash()
   }
 
 
@@ -330,7 +348,8 @@ $(function(){
 })
 
 window.onunload = function(){
-  $.ajax({ type:'GET', url: window.location.protocol+ '//'+ window.location.host + '/reload', async:false })
+  // $.ajax({ type:'GET', url: window.location.protocol+ '//'+ window.location.host + '/reload', async:false })
+  sc(' reloadPhantom() ')
 }
 
 </script>

@@ -184,30 +184,26 @@ function processMsg (msg, isLast) {
 
     break
 
-      case 'event_mouse':
-        var e = msg.data
-        // if (/down|up/.test(e.type)) return
-        e.type = e.type.replace('dbl', 'double')
+  case 'event_mouse':
+    var e = msg.data
+    // if (/down|up/.test(e.type)) return
+    e.type = e.type.replace('dbl', 'double')
 
-        // generate double click event
-        if (/down|up/.test(e.type)){
-          var ce = _clone(e)
-          ce.time = Date.now()
-          DoubleClick_Cache.push(ce)
-          if(DoubleClick_Cache.length>3) DoubleClick_Cache.shift()
-          // console.log(JSON.stringify(DoubleClick_Cache))
-          if(DoubleClick_Cache.length===3
-            && DoubleClick_Cache[0].type==='mousedown' && DoubleClick_Cache[1].type==='mouseup'
-            && DoubleClick_Cache[2].time-DoubleClick_Cache[0].time<DBLCLICK_INTERVAL){
-            e.type = DoubleClick_Cache[2].type = 'mousedoubleclick'
-          }
-        }
+    // generate double click event
+    if (/down|up/.test(e.type)){
+      var ce = _clone(e)
+      ce.time = Date.now()
+      DoubleClick_Cache.push(ce)
+      if(DoubleClick_Cache.length>3) DoubleClick_Cache.shift()
+      // console.log(JSON.stringify(DoubleClick_Cache))
+      if(DoubleClick_Cache.length===3
+         && DoubleClick_Cache[0].type==='mousedown' && DoubleClick_Cache[1].type==='mouseup'
+         && DoubleClick_Cache[2].time-DoubleClick_Cache[0].time<DBLCLICK_INTERVAL){
+        e.type = DoubleClick_Cache[2].type = 'mousedoubleclick'
+      }
+    }
 
-        // console.log(e.type, e.pageX, e.pageY, e.which, WHICH_MOUSE_BUTTON[e.which], e.modifier)
-
-        // if (/click|down|up/.test(e.type)) page.sendEvent('mousemove', e.pageX, e.pageY, '')
-
-        page.sendEvent(e.type, e.pageX-(page.scrollPosition.left||0), e.pageY-(page.scrollPosition.top||0), WHICH_MOUSE_BUTTON[e.which], e.modifier)
+    page.sendEvent(e.type, e.pageX-(page.scrollPosition.left||0), e.pageY-(page.scrollPosition.top||0), WHICH_MOUSE_BUTTON[e.which], e.modifier)
     break
 
   case 'event_mouse11':

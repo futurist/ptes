@@ -267,7 +267,7 @@ function createCursor () {
 
 page.onLoadFinished = function (status) { // success
   page.status = status
-  console.log(page.url, page.status)
+  console.log('onLoadFinished', page.url, page.status)
   //set background to white to prevent transparent
   page.evaluate(function() {
     var head = document.querySelector('head');

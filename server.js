@@ -40,56 +40,54 @@ commander
   .parse(process.argv)
 
 var cmdArgs = (commander.args)
-if(!cmdArgs.length){
+if (!cmdArgs.length) {
   console.log('Usage: node server url -d [testDir] -p [playTest]\n [testDir] default value: %s', path.join(TEST_FOLDER, '..'))
-  return process.exit()
+  process.exit()
 }
-if(cmdArgs[0]!='debug') DEFAULT_URL = cmdArgs[0]
-if(commander.dir) TEST_FOLDER = path.join(commander.dir, DATA_DIR)
-if(commander.play){
+if (cmdArgs[0] !== 'debug') DEFAULT_URL = cmdArgs[0]
+if (commander.dir) TEST_FOLDER = path.join(commander.dir, DATA_DIR)
+if (commander.play) {
   TEST_FILE = commander.play
   // TEST_FILE = path.join(TEST_FOLDER, TEST_FILE)
-  TEST_FILE = path.extname(TEST_FILE) ? TEST_FILE : TEST_FILE+'.json'
+  TEST_FILE = path.extname(TEST_FILE) ? TEST_FILE : TEST_FILE + '.json'
 }
 console.log(__dirname, __filename, process.cwd(), DEFAULT_URL, TEST_FOLDER, TEST_FILE)
-
 
 // convert to absolute path
 // TEST_FOLDER = path.isAbsolute(TEST_FOLDER) ? TEST_FOLDER : path.join(process.cwd(), TEST_FOLDER)
 
-
-mkdirp(TEST_FOLDER, function(err){
-  if(err) return console.log(err);
+mkdirp(TEST_FOLDER, function (err) {
+  if (err) return console.log(err)
   // copyFileSync(path.join(__dirname, 'js/ptest-runner.js'), path.join(TEST_FOLDER, '../ptest-runner.js'))
-  copyFileSync(path.join(__dirname, './phantom.config'), path.join (TEST_FOLDER,'phantom.config'))
-  copyFileSync(path.join(__dirname, 'js/ptest-phantom.js'), path.join (TEST_FOLDER,'ptest-phantom.js'))
+  copyFileSync(path.join(__dirname, './phantom.config'), path.join(TEST_FOLDER, 'phantom.config'))
+  copyFileSync(path.join(__dirname, 'js/ptest-phantom.js'), path.join(TEST_FOLDER, 'ptest-phantom.js'))
 })
 
 var ROUTE = {
-  '/'   :   '/client.html',
+  '/'     : '/client.html',
 }
-var MIME = {
-  '.js' : 'application/javascript',
+var MIME  = {
+  '.js'   : 'application/javascript',
   '.json' : 'application/json',
   '.css'  : 'text/css',
   '.png'  : 'image/png',
 }
 
 function copyFileSync (srcFile, destFile, encoding) {
-  var content = fs.readFileSync(srcFile, encoding||'utf8');
-  fs.writeFileSync(destFile, content, encoding||'utf8');
+  var content = fs.readFileSync(srcFile, encoding || 'utf8')
+  fs.writeFileSync(destFile, content, encoding || 'utf8')
 }
 // helper function
-function arrayLast(arr){
-  if(arr.length) return arr[arr.length-1]
+function arrayLast (arr) {
+  if (arr.length) return arr[arr.length - 1]
 }
 
 // create Http Server
-var HttpServer = http.createServer(function(req,res){
+var HttpServer = http.createServer(function (req, res) {
   // console.log( (new Date).toLocaleString(), req.method, req.url )
 
-  if(req.url=='/reload'){
-    if(Options.syncReload) reloadPhantom();
+  if (req.url === '/reload') {
+    if (Options.syncReload) reloadPhantom()
     return res.end()
   }
 
@@ -99,62 +97,64 @@ var HttpServer = http.createServer(function(req,res){
   var ext = path.extname(filePath)
   var contentType = MIME[ext] || 'text/html'
 
-  fs.readFile(path.join(__dirname, filePath), function(err, data) {
-    if(err){
-      res.statusCode=404
+  fs.readFile(path.join(__dirname, filePath), function (err, data) {
+    if (err) {
+      res.statusCode = 404
       return res.end()
     }
-    res.writeHeader(200, {'Content-Type':contentType})
+    res.writeHeader(200, {'Content-Type': contentType})
     res.end(data, 'utf8')
   })
 })
 HttpServer.listen(HTTP_PORT, HTTP_HOST)
 
-console.log('server started at %s:%s', HTTP_HOST, HTTP_PORT )
+console.log('server started at %s:%s', HTTP_HOST, HTTP_PORT)
 
 var EventCache = []
 var ViewportCache = []
 var PageClip = {}
-var Config = { url:DEFAULT_URL}
+var Config = {url: DEFAULT_URL}
 Config[DATA_DIR] = {}
 
 var ImageName = ''
 var PlayCount = 0
 var RECORDING = false
 var Options = {
-  syncReload  : true,           // after recording, reload phantom page
-  playBackOnInit  : true,       // with --play option, auto play test when socket open
+  syncReload: true,            // after recording, reload phantom page
+  playBackOnInit: true, // with --play option, auto play test when socket open
 }
 
-function snapShot(name){
-  toPhantom({ type:'snapshot', data:path.join(TEST_FOLDER, name) })
+
+// function begin
+function snapShot (name) {
+  toPhantom({ type: 'snapshot', data: path.join(TEST_FOLDER, name) })
 }
-function showDiff(a,b){
+function showDiff (a, b) {
   imageDiff({
-    actualImage: path.join(TEST_FOLDER, (a||'a.png')),
-    expectedImage: path.join(TEST_FOLDER, (b||'b.png')),
-    diffImage: path.join(TEST_FOLDER, 'diff_'+b),
+    actualImage: path.join(TEST_FOLDER, (a || 'a.png')),
+    expectedImage: path.join(TEST_FOLDER, (b || 'b.png')),
+    diffImage: path.join(TEST_FOLDER, 'diff_' + b),
   }, function (err, imagesAreSame) {
     console.log(err, imagesAreSame)
   })
 }
 
-function startRec(title){
-  if(playBack.status!=STOPPED){
+function startRec (title) {
+  if (playBack.status != STOPPED) {
     return client_console('cannot record when in playback')
   }
   toPhantom({ type: 'command', meta: 'server', data: 'page.reload()' }, function (msg) {
     if (msg.result === 'success') {
-      Config.unsaved = { name:title, span:Date.now() }
+      Config.unsaved = { name: title, span: Date.now() }
       RECORDING = true
-      EventCache = [ { time:Date.now(), msg: arrayLast(ViewportCache) }, { time:Date.now(), msg:{type:'page_clip', data:PageClip} } ]
+      EventCache = [ { time: Date.now(), msg: arrayLast(ViewportCache) }, { time: Date.now(), msg: {type: 'page_clip', data: PageClip} } ]
       // ViewportCache = [  ]
-    }
-    else{
+    } else {
       client_console('error open page, status', msg)
     }
   })
 }
+
 function stopRec(){
   RECORDING = false
   var name = +new Date()
@@ -184,11 +184,11 @@ function stopRec(){
 }
 
 
-function snapKeyFrame(testPath){
-  var name = path.join( testPath, String(+new Date())+".png" )
-  console.log("------snapshot:",name)
-    snapShot(name)
-    EventCache.push( { time:Date.now(), msg:_util._extend({}, { type:'snapshot', data:name }) } )
+function snapKeyFrame (testPath) {
+  var name = path.join(testPath, String(+new Date()) + '.png')
+  console.log('------snapshot:', name)
+  snapShot(name)
+  EventCache.push({ time: Date.now(), msg: _util._extend({}, { type: 'snapshot', data: name }) })
 }
 
 
@@ -467,42 +467,44 @@ function stopPhantom(){
 
 
 function init(){
-    var content = ''
-    try{
-      content = fs.readFileSync(path.join(TEST_FOLDER, 'ptest.json'), 'utf8')
-        Config = JSON.parse( content )
-    }catch(e){
-        if(e.code!=='ENOENT'){
-            console.log(e, 'error parse ptest.json...')
-            return process.exit()
-        }
+  var content = ''
+  try{
+    content = fs.readFileSync(path.join(TEST_FOLDER, 'ptest.json'), 'utf8')
+    Config = JSON.parse( content )
+  }catch(e){
+    if(e.code!=='ENOENT'){
+      console.log(e, 'error parse ptest.json...')
+      return process.exit()
     }
+  }
 
-    // if(process.argv.length<3 && !DEBUG_MODE){
-    //     console.log('Usage: node server url [configfile.json] ')
-    //     return process.exit()
-    // }
+  // if(process.argv.length<3 && !DEBUG_MODE){
+  //     console.log('Usage: node server url [configfile.json] ')
+  //     return process.exit()
+  // }
 
 
   var URL = DEFAULT_URL
-  if(TEST_FILE) fs.readFile(path.join(TEST_FOLDER, TEST_FILE), 'utf8', (err, data) => {
-    if (err) {
-      console.log('invalid json format', TEST_FILE)
-      return process.exit()
-    }
-    try {
-      data = JSON.parse(data)
-      if (typeof data != 'object' || !data) throw Error()
-      EventCache = data.event
-      ViewportCache = [EventCache[0].msg]
-      PageClip = data.clip
-      ImageName = data.image
-      startPhantom(URL)
-    } catch(e) {
-      client_console('userdata parse error')
-    }
-  })
-    else startPhantom(URL)
+  if(TEST_FILE)
+    fs.readFile(path.join(TEST_FOLDER, TEST_FILE), 'utf8', (err, data) => {
+      if (err) {
+        console.log('invalid json format', TEST_FILE)
+        return process.exit()
+      }
+      try {
+        data = JSON.parse(data)
+        if (typeof data != 'object' || !data) throw Error()
+        EventCache = data.event
+        ViewportCache = [EventCache[0].msg]
+        PageClip = data.clip
+        ImageName = data.image
+        startPhantom(URL)
+      } catch(e) {
+        client_console('userdata parse error')
+      }
+    })
+  else
+    startPhantom(URL)
 }
 init()
 

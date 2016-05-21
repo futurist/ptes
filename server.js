@@ -1,50 +1,51 @@
 #!/usr/bin/env node
 
 /*
-Copyright @ Michael Yang
-License MIT
-*/
+ Copyright @ Michael Yang
+ License MIT
+ */
 'use strict'
 
 var DEBUG_MODE = true
-var fs=require("fs")
-var mkdirp=require("mkdirp")
-var http=require("http")
-var path=require("path")
-var process=require("process")
-var co=require("co")
-var commander=require("commander")
-var imageDiff=require("image-diff")
-var _util=require("util_extend_exclude")
-var spawn=require("child_process").spawn
-var pkg = require("./package.json")
-
-
+var fs = require('fs')
+var mkdirp = require('mkdirp')
+var http = require('http')
+var path = require('path')
+var process = require('process')
+var co = require('co')
+var commander = require('commander')
+var imageDiff = require('image-diff')
+var _util = require('util_extend_exclude')
+var spawn = require('child_process').spawn
+var pkg = require('./package.json')
 
 var DEFAULT_URL = [
-    'http://1111hui.com/nlp/tree.html',
-    // 'http://1111hui.com/github/ptes/abc.html',
-  ].pop()
+  'http://1111hui.com/nlp/tree.html',
+  // 'http://1111hui.com/github/ptes/abc.html',
+].pop()
 var HTTP_HOST = '0.0.0.0'
 var HTTP_PORT = 8080
 var WS_PORT = 1280
 var DATA_DIR = 'ptest_data/'
 DATA_DIR = path.join(DATA_DIR, '.') // remove ending sep(/ or \\)
-var TEST_FOLDER = path.join('test/', DATA_DIR)
+var TEST_FOLDER = path.join(DATA_DIR)
 var TEST_FILE = ''
 
 commander
   .version(pkg.version)
   .option('-p, --play [playTest]', 'play test profile when start', '')
   .option('-d, --dir [testDir]', 'save test data to dir, can be relative', '')
+  .option('-l, --list', 'check test folder and list available tests', '')
   .parse(process.argv)
 
 var cmdArgs = (commander.args)
-if (!cmdArgs.length) {
-  console.log('Usage: node server url -d [testDir] -p [playTest]\n [testDir] default value: %s', path.join(TEST_FOLDER, '..'))
+console.log(commander)
+if (!commander.list && !cmdArgs.length) {
+  console.log('Usage:\n  ptest-server -l\n  ptest-server url -d [testDir] -p [playTest]\n    [testDir] default value: %s', path.join(TEST_FOLDER, '..'))
   process.exit()
 }
 if (cmdArgs[0] !== 'debug') DEFAULT_URL = cmdArgs[0]
+if (commander.list) { }
 if (commander.dir) TEST_FOLDER = path.join(commander.dir, DATA_DIR)
 if (commander.play) {
   TEST_FILE = commander.play
@@ -64,13 +65,13 @@ mkdirp(TEST_FOLDER, function (err) {
 })
 
 var ROUTE = {
-  '/'     : '/client.html',
+  '/': '/client.html',
 }
-var MIME  = {
-  '.js'   : 'application/javascript',
-  '.json' : 'application/json',
-  '.css'  : 'text/css',
-  '.png'  : 'image/png',
+var MIME = {
+  '.js': 'application/javascript',
+  '.json': 'application/json',
+  '.css': 'text/css',
+  '.png': 'image/png',
 }
 
 function copyFileSync (srcFile, destFile, encoding) {
@@ -120,11 +121,11 @@ var ImageName = ''
 var PlayCount = 0
 var RECORDING = false
 var Options = {
-  syncReload: true,            // after recording, reload phantom page
+  syncReload: true, // after recording, reload phantom page
   playBackOnInit: true, // with --play option, auto play test when socket open
 }
 
-
+//
 // function begin
 function snapShot (name) {
   toPhantom({ type: 'snapshot', data: path.join(TEST_FOLDER, name) })
@@ -155,34 +156,33 @@ function startRec (title) {
   })
 }
 
-function stopRec(){
+function stopRec () {
   RECORDING = false
   var name = +new Date()
   ImageName = name
 
-    // var Config = {unsaved:{name:'a;b'}}
-    var testPath = Config.unsaved.name
-    try{
-      mkdirp.sync( path.join(TEST_FOLDER, testPath ))
-    }catch(e){
-        throw e
-    }
-    snapKeyFrame(testPath)
+  // var Config = {unsaved:{name:'a;b'}}
+  var testPath = Config.unsaved.name
+  try {
+    mkdirp.sync(path.join(TEST_FOLDER, testPath))
+  } catch(e) {
+    throw e
+  }
+  snapKeyFrame(testPath)
   var objPath = [DATA_DIR].concat(testPath.split('/'))
-    Config.unsaved.name = name
-    Config.unsaved.span = Date.now() - Config.unsaved.span
+  Config.unsaved.name = name
+  Config.unsaved.span = Date.now() - Config.unsaved.span
 
-    // object path
-  var p, a = objPath, b=Config
-  if(a.length==1) b[a.shift()] = Config.unsaved
-  else while( p=a.shift() ) b[p]=(b[p]||{}), a.length>1? b=b[p] : b=b[p][a.shift()]=Config.unsaved;
+  // object path
+  var p, a = objPath, b = Config
+  if (a.length == 1) b[a.shift()] = Config.unsaved
+  else while(p = a.shift()) b[p] = (b[p] || {}), a.length > 1 ? b = b[p] : b = b[p][a.shift()] = Config.unsaved
   delete Config.unsaved
 
-  fs.writeFileSync(path.join(TEST_FOLDER, name+'.json'), JSON.stringify({ testPath:testPath, clip:PageClip, event: EventCache }) )
-  fs.writeFileSync(path.join(TEST_FOLDER , 'ptest.json'), JSON.stringify(Config,null,2) )
+  fs.writeFileSync(path.join(TEST_FOLDER, name + '.json'), JSON.stringify({ testPath: testPath, clip: PageClip, event: EventCache }))
+  fs.writeFileSync(path.join(TEST_FOLDER , 'ptest.json'), JSON.stringify(Config, null, 2))
   // reloadPhantom()
 }
-
 
 function snapKeyFrame (testPath) {
   var name = path.join(testPath, String(+new Date()) + '.png')
@@ -191,71 +191,68 @@ function snapKeyFrame (testPath) {
   EventCache.push({ time: Date.now(), msg: _util._extend({}, { type: 'snapshot', data: name }) })
 }
 
-
 // create WS Server
 var WebSocketServer = require('ws').Server
 var wss = new WebSocketServer({ port: WS_PORT })
 var WS_CALLBACK = {}
-wss.on('connection', function connection(ws) {
-
-    ws._send = function(msg, cb) {
-    if(ws.readyState!=1) return
-    if(typeof cb=='function'){
-      msg.__id = '_'+Date.now()+Math.random()
+wss.on('connection', function connection (ws) {
+  ws._send = function (msg, cb) {
+    if (ws.readyState != 1) return
+    if (typeof cb == 'function') {
+      msg.__id = '_' + Date.now() + Math.random()
       WS_CALLBACK[msg.__id] = cb
     }
-    ws.send( typeof msg=='string' ? msg : JSON.stringify(msg) )
+    ws.send(typeof msg == 'string' ? msg : JSON.stringify(msg))
   }
 
-  var heartbeat = setInterval(function(){ ws.send('') }, 10000)
-  ws._send( {type:'ws', msg:'connected to socket 8080'} )
+  var heartbeat = setInterval(function () { ws.send('') }, 10000)
+  ws._send({type: 'ws', msg: 'connected to socket 8080'})
   // console.log('protocolVersion', ws.protocolVersion)
 
-  ws.on('close', function incoming(code, message) {
-    console.log("WS close:", ws.name, code, message)
+  ws.on('close', function incoming (code, message) {
+    console.log('WS close:', ws.name, code, message)
     clearInterval(heartbeat)
-    if(ws.name=='client') toPhantom({ type:'client_close', meta:'server', data:'' } );
+    if (ws.name == 'client') toPhantom({ type: 'client_close', meta: 'server', data: '' })
   })
 
-  ws.on('message', function incoming(message) {
+  ws.on('message', function incoming (message) {
     // console.log('received: %s', message)
-    var msg; try{ msg=JSON.parse(message) }catch(e){ msg=message }
-    if(typeof msg!=='object') return;
+    var msg
+    try { msg = JSON.parse(message) } catch(e) { msg = message }
+    if (typeof msg !== 'object') return
 
-    var relay = function(){
-      if( ws.name==='client' ){
-        RECORDING && EventCache.push( { time:Date.now(), msg:_util._extend({}, msg) } )   // , viewport: arrayLast(ViewportCache)
+    var relay = function () {
+      if (ws.name === 'client') {
+        RECORDING && EventCache.push({ time: Date.now(), msg: _util._extend({}, msg) }) // , viewport: arrayLast(ViewportCache)
         toPhantom(msg)
       } else {
         toClient(msg)
       }
     }
 
-    switch(msg.type){
-
+    switch (msg.type) {
     case 'connection':
       ws.name = msg.name
-      broadcast({ meta:'clientList', data:clientList() })
-      if(ws.name=='client'){
-        if(Options.playBackOnInit) playBack.play()
+      broadcast({ meta: 'clientList', data: clientList() })
+      if (ws.name == 'client') {
+        if (Options.playBackOnInit) playBack.play()
       }
-      if(ws.name=='phantom'){
-
+      if (ws.name == 'phantom') {
       }
 
       break
 
       // command from client.html or phantom
     case 'command':
-      if(msg.meta=='server'){
-        try{
-          msg.result = eval( msg.data )
-        }catch(e){
+      if (msg.meta == 'server') {
+        try {
+          msg.result = eval(msg.data)
+        } catch(e) {
           msg.result = e.stack
         }
         delete msg.data
         msg.type = 'command_result'
-        ws._send( msg )
+        ws._send(msg)
         return
       } else {
         relay()
@@ -265,7 +262,7 @@ wss.on('connection', function connection(ws) {
 
       // get callback from ws._call
     case 'command_result':
-      if(msg.__id && msg.meta=='server'){
+      if (msg.__id && msg.meta == 'server') {
         var cb = WS_CALLBACK[msg.__id]
         delete WS_CALLBACK[msg.__id]
         cb && cb(msg)
@@ -290,10 +287,8 @@ wss.on('connection', function connection(ws) {
     default:
       relay()
       break
-
     }
   })
-
 })
 
 // *** EventPlayBack will be rewritten, don't use at this time
@@ -364,10 +359,12 @@ class EventPlayBack {
           setTimeout(() => {
             // client_console(e.time, e.msg.type, e.msg.data)
             if (e.msg) {
-              if (e.msg.type === 'snapshot')
+              if (e.msg.type === 'snapshot') {
                 console.log(e.msg.data)
-              else
+                snapShot(e.msg.data.replace('.png', '_last.png'))
+              } else {
                 toPhantom(e.msg)
+              }
               if (/page_clip|scroll|resize/.test(e.msg.type)) toClient(e.msg)
               else e.viewport && toClient(e.viewport)
             }
@@ -402,80 +399,102 @@ class EventPlayBack {
 
 var playBack = new EventPlayBack()
 
-function clientList(){
-  return wss.clients.map((v,i)=>v.name)
+function clientList () {
+  return wss.clients.map((v, i) => v.name)
 }
-function findClient(name){
-  return wss.clients.find((v,i)=>v.name==name)
+function findClient (name) {
+  return wss.clients.find((v, i) => v.name == name)
 }
-function toClient(msg, cb){
+function toClient (msg, cb) {
   var client = findClient('client')
-  if(client) client._send(msg, cb)
+  if (client) client._send(msg, cb)
 }
-function toPhantom(msg, cb){
+function toPhantom (msg, cb) {
   var phantom = findClient('phantom')
-  if(phantom) phantom._send(msg, cb)
+  if (phantom) phantom._send(msg, cb)
 }
-function client_console(){
+function client_console () {
   var msg = ''
-  for(let i=0; i<arguments.length; i++) msg+=arguments[i]+' ';
-    toClient( {type:'client_console', data: (new Date).toLocaleString() + ' [server] '+ msg} )
+  for (let i = 0; i < arguments.length; i++) msg += arguments[i] + ' '
+  toClient({type: 'client_console', data: (new Date).toLocaleString() + ' [server] ' + msg})
 }
 
-function broadcast(data) {
-  wss.clients.forEach(function each(client) {
-    data.type='broadcast'
-    client._send(data);
+function broadcast (data) {
+  wss.clients.forEach(function each (client) {
+    data.type = 'broadcast'
+    client._send(data)
   })
 }
-
-
 
 // Phantom
 var phantom
 
-function startPhantom(url){
+function startPhantom (url) {
   console.log(url)
-  phantom = spawn('phantomjs', ['--config', path.join(__dirname, 'phantom.config'), path.join(__dirname, 'ptest.js'), url], {cwd:process.cwd(), stdio: "pipe" })
+  phantom = spawn('phantomjs', ['--config', path.join(__dirname, 'phantom.config'), path.join(__dirname, 'ptest.js'), url], {cwd: process.cwd(), stdio: 'pipe' })
 
-    phantom.stdout.setEncoding('utf8')
-    phantom.stderr.setEncoding('utf8')
-    phantom.stdout.on('data',function (data) {
-      console.log('stdout', data)
-    })
-    phantom.stderr.on('data',function (data) {
-      console.log('stderr', data)
-    })
-    phantom.on('exit', function (code) {
-      console.log('exit', code)
-    })
-    phantom.on('error', function (code) {
-      console.log('error', code)
-    })
-    console.log('spawn phantom', phantom.pid)
+  phantom.stdout.setEncoding('utf8')
+  phantom.stderr.setEncoding('utf8')
+  phantom.stdout.on('data', function (data) {
+    console.log('stdout', data)
+  })
+  phantom.stderr.on('data', function (data) {
+    console.log('stderr', data)
+  })
+  phantom.on('exit', function (code) {
+    console.log('exit', code)
+  })
+  phantom.on('error', function (code) {
+    console.log('error', code)
+  })
+  console.log('spawn phantom', phantom.pid)
 }
 
-function reloadPhantom(){
-  toPhantom({ type:'command', meta:'server', data:'page.reload()' } )
+function reloadPhantom () {
+  toPhantom({ type: 'command', meta: 'server', data: 'page.reload()' })
 }
 
-function stopPhantom(){
-  if( phantom && phantom.connected ) phantom.kill()
+function stopPhantom () {
+  if (phantom && phantom.connected) phantom.kill()
 }
 
+function playTestFile (filename, url) {
+  // console.log(path.join(TEST_FOLDER, filename))
+  fs.readFile(path.join(TEST_FOLDER, filename), 'utf8', (err, data) => {
+    if (err) {
+      console.log('invalid json format', filename)
+      return process.exit()
+    }
+    try {
+      data = JSON.parse(data)
+      if (typeof data != 'object' || !data) throw Error()
+      EventCache = data.event
+      ViewportCache = [EventCache[0].msg]
+      PageClip = data.clip
+      ImageName = data.image
+      startPhantom(url)
+    } catch(e) {
+      client_console('userdata parse error')
+    }
+  })
+}
 
-
-
-function init(){
+function init () {
   var content = ''
-  try{
+  try {
     content = fs.readFileSync(path.join(TEST_FOLDER, 'ptest.json'), 'utf8')
-    Config = JSON.parse( content )
-  }catch(e){
-    if(e.code!=='ENOENT'){
+    Config = JSON.parse(content)
+  } catch(e) {
+    if (e.code !== 'ENOENT') {
       console.log(e, 'error parse ptest.json...')
       return process.exit()
     }
+  }
+
+  if(commander.list){
+    var d = Config.ptest_data
+    console.log(content)
+    return process.exit()
   }
 
   // if(process.argv.length<3 && !DEBUG_MODE){
@@ -483,26 +502,9 @@ function init(){
   //     return process.exit()
   // }
 
-
   var URL = DEFAULT_URL
-  if(TEST_FILE)
-    fs.readFile(path.join(TEST_FOLDER, TEST_FILE), 'utf8', (err, data) => {
-      if (err) {
-        console.log('invalid json format', TEST_FILE)
-        return process.exit()
-      }
-      try {
-        data = JSON.parse(data)
-        if (typeof data != 'object' || !data) throw Error()
-        EventCache = data.event
-        ViewportCache = [EventCache[0].msg]
-        PageClip = data.clip
-        ImageName = data.image
-        startPhantom(URL)
-      } catch(e) {
-        client_console('userdata parse error')
-      }
-    })
+  if (TEST_FILE)
+    playTestFile(TEST_FILE, URL)
   else
     startPhantom(URL)
 }

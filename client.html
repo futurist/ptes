@@ -256,6 +256,7 @@ function registerEvent(){
           title= lastTitle = window.prompt('which title', lastTitle)||''
           if(!title) return
           if( INVALID_NAME_REGEXP.test(title) ) alert('path name cannot contain '+ INVALID_NAME)
+          else if( /\/$/.test(title) ) alert('cannot end of /')
           else break
         }
         // document.title = 'recording...'+title
@@ -294,7 +295,7 @@ function registerEvent(){
     // 'dblclick',
   ]
   eventList.forEach(function(v){
-    $(document).on(v, function(evt){
+    $('#phantom').on(v, function(evt){
       var e = evt.originalEvent
       var isKey = /key/.test(e.type)
       if(isKey) e.preventDefault()
@@ -355,3 +356,4 @@ window.onunload = function(){
 </script>
 </body>
 </html>
+<!-- <script type="text/javascript" src="./js/tree.js"></script> -->

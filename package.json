@@ -6,11 +6,11 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "bin":{
-    "ptest-server":"server.js",
+  "bin": {
+    "ptest-server": "server.js",
     "ptest-run": "js/ptest-runner.js"
   },
-  "preferGlobal":true,
+  "preferGlobal": true,
   "author": "",
   "license": "ISC",
   "dependencies": {
@@ -23,5 +23,12 @@
     "util_debounce_throttle": "^1.0.0",
     "util_extend_exclude": "^1.0.4",
     "ws": "^1.0.1"
+  },
+  "devDependencies": {
+    "babel-core": "^6.9.1",
+    "babel-loader": "^6.2.4",
+    "babel-preset-es2015": "^6.9.0",
+    "file-loader": "^0.8.5",
+    "webpack": "^1.13.1"
   }
 }

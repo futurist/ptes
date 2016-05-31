@@ -1,0 +1,43 @@
+body {
+  font-family: Verdana, Consolas, monospace;
+  background: #fff;
+  color: #444;
+}
+body.noselect .mtree * {
+  -webkit-user-select: none;
+     -moz-user-select: none;
+      -ms-user-select: none;
+          user-select: none;
+}
+ul {
+  padding-left: 1.5em;
+  line-height: 1.5em;
+  list-style-type: dot;
+}
+.mtree li {
+  cursor: default;
+}
+.mtree li>span {
+  display: inline-block;
+}
+.mtree .selected>span,
+.mtree .selected>pre {
+  color: #f00;
+  opacity: 0.5;
+  -ms-filter: "progid:DXImageTransform.Microsoft.Alpha(Opacity=50)";
+}
+.mtree .moving>span,
+.mtree .moving>pre {
+  color: #800080;
+  opacity: 0.5;
+  -ms-filter: "progid:DXImageTransform.Microsoft.Alpha(Opacity=50)";
+  font-style: italic;
+}
+.mtree .copying>span,
+.mtree .copying>pre {
+  color: #800080;
+  opacity: 0.5;
+  -ms-filter: "progid:DXImageTransform.Microsoft.Alpha(Opacity=50)";
+}
+
+/*# sourceMappingURL=mtree.css.map */

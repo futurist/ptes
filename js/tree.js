@@ -573,11 +573,11 @@ var com = {
   //
   // view
   view: function (ctrl) {
-    return m('.tree1', ctrl.getDom())
+    return m('.mtree', ctrl.getDom())
   }
 }
 
-m.mount(document.body, m.component(com, {data: data}))
+m.mount(document.querySelector('#mtree'), m.component(com, {data: data}))
 
 // below line will remove -webkit-user-select:none
 // which cause phantomjs input cannot be selected!!!!!

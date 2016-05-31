@@ -39,7 +39,6 @@ commander
   .parse(process.argv)
 
 var cmdArgs = (commander.args)
-console.log(commander)
 if (!commander.list && !cmdArgs.length) {
   console.log('Usage:\n  ptest-server -l\n  ptest-server url -d [testDir] -p [playTest]\n    [testDir] default value: %s', path.join(TEST_FOLDER, '..'))
   process.exit()
@@ -85,7 +84,7 @@ function arrayLast (arr) {
 
 // create Http Server
 var HttpServer = http.createServer(function (req, res) {
-  // console.log( (new Date).toLocaleString(), req.method, req.url )
+  console.log( (new Date).toLocaleString(), req.method, req.url )
 
   if (req.url === '/reload') {
     if (Options.syncReload) reloadPhantom()

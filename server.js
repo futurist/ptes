@@ -8,6 +8,7 @@
 
 var DEBUG_MODE = true
 var fs = require('fs')
+var querystring = require('querystring')
 var mkdirp = require('mkdirp')
 var http = require('http')
 var path = require('path')
@@ -84,7 +85,30 @@ function arrayLast (arr) {
 
 // create Http Server
 var HttpServer = http.createServer(function (req, res) {
-  console.log( (new Date).toLocaleString(), req.method, req.url )
+  console.log((new Date).toLocaleString(), req.method, req.url)
+
+  if (req.url === '/config' && req.method == 'GET') {
+    res.writeHeader(200, {'Content-Type': 'application/json'})
+    return res.end(readPtestConfig())
+  }
+
+  if (req.url === '/config' && req.method == 'POST') {
+    res.writeHead(200, 'OK', {'Content-Type': 'application/json'})
+    var body = ''
+    req.on('data', function (chunk) { body += chunk })
+    req.on('end', function () {
+      try{
+        JSON.parse(body)
+        writePtestConfig(body)
+        res.end(JSON.stringify({error:null}))
+      }catch(e){
+        var msg = 'Config data not valid json'
+        console.log(msg, body)
+        res.end(JSON.stringify({error:msg}))
+      }
+    })
+    return
+  }
 
   if (req.url === '/reload') {
     if (Options.syncReload) reloadPhantom()
@@ -155,6 +179,24 @@ function startRec (title) {
   })
 }
 
+function writePtestConfig(Config) {
+  fs.writeFileSync(path.join(TEST_FOLDER , 'ptest.json'), JSON.stringify(Config, null, 2))
+}
+
+function readPtestConfig() {
+  var content = ''
+  try {
+    content = fs.readFileSync(path.join(TEST_FOLDER, 'ptest.json'), 'utf8')
+    Config = JSON.parse(content)
+  } catch(e) {
+    if (e.code !== 'ENOENT') {
+      console.log(e, 'error parse ptest.json...')
+      return process.exit()
+    }
+  }
+  return content
+}
+
 function stopRec () {
   RECORDING = false
   var name = +new Date()
@@ -179,7 +221,7 @@ function stopRec () {
   delete Config.unsaved
 
   fs.writeFileSync(path.join(TEST_FOLDER, name + '.json'), JSON.stringify({ testPath: testPath, clip: PageClip, event: EventCache }))
-  fs.writeFileSync(path.join(TEST_FOLDER , 'ptest.json'), JSON.stringify(Config, null, 2))
+  writePtestConfig(Config)
   // reloadPhantom()
 }
 
@@ -479,17 +521,7 @@ function playTestFile (filename, url) {
 }
 
 function init () {
-  var content = ''
-  try {
-    content = fs.readFileSync(path.join(TEST_FOLDER, 'ptest.json'), 'utf8')
-    Config = JSON.parse(content)
-  } catch(e) {
-    if (e.code !== 'ENOENT') {
-      console.log(e, 'error parse ptest.json...')
-      return process.exit()
-    }
-  }
-
+  var content = readPtestConfig()
   if(commander.list){
     var d = Config.ptest_data
     console.log(content)

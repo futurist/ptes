@@ -166,7 +166,7 @@ function registerEvent () {
   Mousetrap.bind('ctrl+s', function (e) {
     e.preventDefault()
     // mOverlay.show({html: 'oisdjfojdf'})
-    mOverlay.show({com: m.component(mTree, {data:data})})
+    mOverlay.show({com: m.component(mTree, {url:'/config'})})
   })
   Mousetrap.bind('space', function (e) {
     if (stage !== PLAYING) return

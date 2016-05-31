@@ -105,7 +105,7 @@
                 'valign': 'middle',
                 'style': {
                   'position': 'relative',
-                  'vertical-align': 'middle'
+                  // 'vertical-align': 'middle'
                 }
               },
               [

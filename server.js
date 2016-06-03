@@ -192,11 +192,12 @@ function writePtestConfig (Config) {
   fs.writeFileSync(path.join(TEST_FOLDER , 'ptest.json'), JSON.stringify(Config, null, 2))
 }
 
-function readPtestConfig () {
+function readPtestConfig (toJSON) {
   var content = ''
+  var json = null
   try {
     content = fs.readFileSync(path.join(TEST_FOLDER, 'ptest.json'), 'utf8')
-    Config = JSON.parse(content)
+    json = JSON.parse(content)
   } catch(e) {
     if (e.code !== 'ENOENT') {
       console.log(e, 'error parse ptest.json...')
@@ -205,7 +206,7 @@ function readPtestConfig () {
     }
     return process.exit()
   }
-  return content
+  return toJSON?json: content
 }
 
 function stopRec () {
@@ -548,10 +549,9 @@ function playTestFile (filename, url) {
 }
 
 function init () {
-  var content = readPtestConfig()
+  Config = readPtestConfig(true)
   if (commander.list) {
-    var d = Config.ptest_data
-    console.log(content)
+    console.log(JSON.stringify(Config))
     return process.exit()
   }
 

@@ -148,9 +148,11 @@ var com = {
   controller: function (args) {
     var ctrl = this
     var data = args.data || []
+    var result = {}
     if (args.url) {
       m.request({method: 'GET', url: args.url})
-        .then(function (result) {
+        .then(function (ret) {
+          result = ret
           data = convertSimpleData(result.ptest_data)
           console.log(data)
           m.redraw()
@@ -188,17 +190,20 @@ var com = {
 
 
     function getAction(v){
+      if(!args.onclose) return
+      const node = []
       const emptyNode = !v.children || v.children.length==0
+      const leafNode = (!emptyNode) && v.children[0]._leaf
+      if(!leafNode && !emptyNode) return node
       if(!v._leaf){
-        const node = []
+        let path = getArrayPath(data, v._path).texts
         node.push( m('a[href=#]', {class: 'action', onmousedown:e=>{
           e.stopPropagation()
           e.preventDefault()
           if(emptyNode){
-            let path = getArrayPath(data, v._path).texts.join('/')
-            if(args.onclose) args.onclose(path)
+            args.onclose({action:'add', path:path})
           }else{
-            // TODO: add play action
+            args.onclose({action:'play', path:path, file: v.children[0].name, url:result.url})
           }
         }}, emptyNode?'add':'play'))
         return node

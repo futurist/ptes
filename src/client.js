@@ -6,6 +6,9 @@
 import mTree from './mtree'
 import mOverlay from './overlay'
 
+// import pointer from 'json-pointer'
+// window.pointer = pointer
+
 const RECORDING = 'STAGE_RECORDING', PLAYING = 'STAGE_PLAYING', CLIPPING = 'STAGE_CLIPPING', SETUP = 'STAGE_SETUP'
 const INVALID_NAME = '<>:"\\|?*' // '<>:"/\\|?*'
 const INVALID_NAME_REGEXP = new RegExp('[' + INVALID_NAME.replace('\\', '\\\\') + ']', 'g')
@@ -19,6 +22,7 @@ const MODIFIER = {
 
 const STOPPED = 0, STOPPING = 1, PAUSING = 2, PAUSED = 4, RUNNING = 8
 
+let currentName = ''
 let currentPath = ''
 let keyframeCount = 0
 let intervalTitle = 0
@@ -165,14 +169,18 @@ function startStopRec (e, title) {
         if (!title) return
         if (INVALID_NAME_REGEXP.test(title)) alert('path name cannot contain ' + INVALID_NAME)
         else if (/\/$/.test(title)) alert('cannot end of /')
-        else break
+        else {
+          // title is string of json: ['a','b']
+          title = JSON.stringify(title.split('/'))
+          break
+        }
       }
     else
       currentPath = title
     // document.title = 'recording...'+title
     flashTitle('RECORDING')
-
-    sc(' startRec("' + title + '") ')
+    currentName = 'test' + (+new Date())
+    sc(' startRec("' + btoa(title) + '", "' + currentName + '") ')
     stage = RECORDING
   } else if (stage == RECORDING) {
     return saveRec(null, true)
@@ -191,9 +199,17 @@ function saveRec(e, save, slient) {
 
 var oncloseSetup = function (arg) {
   hideSetup()
-  if (arg) {
-    if(confirm('Confirm to begin record new test for path:\n\n    ' + arg))
-      startStopRec(null, arg)
+  const path =JSON.stringify(arg.path)
+  if (arg.action=='add') {
+    if(confirm('Confirm to begin record new test for path:\n\n    ' + path))
+      startStopRec(null, path)
+  }
+  if(arg.action=='play'){
+    stage = PLAYING
+    sc(' playTestFile("' + arg.file + '", "' + arg.url + '") ')
+    setTimeout(function(arg) {
+      // window.reload()
+    })
   }
 }
 
@@ -240,7 +256,7 @@ function registerEvent () {
   Mousetrap.bind('f4', function (e) {
     if (!currentPath || stage!==RECORDING) return
     e.preventDefault()
-    sc(' snapKeyFrame("' + currentPath + '") ')
+    sc(' snapKeyFrame("' + currentName + '") ')
     keyframeCount++
   })
   Mousetrap.bind('ctrl+r', function (e) {

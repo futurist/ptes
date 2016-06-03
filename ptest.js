@@ -49,171 +49,177 @@ page.customHeaders = {
 
 console.log('phantom started')
 
-var ws = new WebSocket('ws://localhost:1280')
-ws.onopen = function (e) {
-  console.log('phantom connected to ws')
-  ws.EventCache = []
 
-  ws.onmessage = function (message) {
-    var msg
-    try { msg = JSON.parse(message.data) } catch (e) { msg = message.data }
-    if (typeof msg !== 'object' || !msg) return
+var ws = null
 
-    switch (msg.type) {
-    case 'ping':
-      // beat heart ping
-      return
-      break
+function connectWS() {
+  var WS_CALLBACK = {}
+  ws = new WebSocket('ws://localhost:1280')
+  ws.onopen = function (e) {
+    console.log('phantom connected to ws')
+    ws.EventCache = []
 
-    case 'broadcast':
-      // if(msg.meta=='clientList'&&msg.data.indexOf('client')>-1 && page.status!='success' ) init()
+    ws.onmessage = function (message) {
+      var msg
+      try { msg = JSON.parse(message.data) } catch (e) { msg = message.data }
+      if (typeof msg !== 'object' || !msg) return
 
-      break
+      switch (msg.type) {
+      case 'ping':
+        // beat heart ping
+        return
+        break
 
-    case 'client_close':
-      console.log('client close')
-      renderCount = 0
-      break
+      case 'broadcast':
+        // if(msg.meta=='clientList'&&msg.data.indexOf('client')>-1 && page.status!='success' ) init()
 
-    case 'page_clip':
-      PageClip = msg.data
+        break
 
-      break
-    case 'snapshot':
-      hideCursor()
-      var prevPos = page.scrollPosition
-      page.scrollPosition = { top: 0, left: 0 }
-      if (Object.keys(PageClip).length) {
-        page.clipRect = {
-          top: PageClip.top || page.scrollPosition.top,
-          left: PageClip.left || page.scrollPosition.left,
-          width: PageClip.width || page.viewportSize.width,
-          height: PageClip.height || page.viewportSize.height
+      case 'client_close':
+        console.log('client close')
+        renderCount = 0
+        break
+
+      case 'page_clip':
+        PageClip = msg.data
+
+        break
+      case 'snapshot':
+        hideCursor()
+        var prevPos = page.scrollPosition
+        page.scrollPosition = { top: 0, left: 0 }
+        if (Object.keys(PageClip).length) {
+          page.clipRect = {
+            top: PageClip.top || page.scrollPosition.top,
+            left: PageClip.left || page.scrollPosition.left,
+            width: PageClip.width || page.viewportSize.width,
+            height: PageClip.height || page.viewportSize.height
+          }
         }
-      }
 
-      console.log('data path:', msg.data)
-      page.render(msg.data)
+        console.log('data path:', msg.data)
+        page.render(msg.data)
 
-      page.clipRect = {}
+        page.clipRect = {}
 
-      page.scrollPosition = prevPos
+        page.scrollPosition = prevPos
 
-      showCursor()
+        showCursor()
 
-      break
-    case 'window_resize':
-    case 'window_scroll':
-      page.scrollPosition = {
-        top: msg.data.scrollY,
-        left: msg.data.scrollX
-      }
-      page.viewportSize = { width: msg.data.width, height: msg.data.height }
-      // console.log( msg.type, JSON.stringify( msg.data ) )
+        break
+      case 'window_resize':
+      case 'window_scroll':
+        page.scrollPosition = {
+          top: msg.data.scrollY,
+          left: msg.data.scrollX
+        }
+        page.viewportSize = { width: msg.data.width, height: msg.data.height }
+        // console.log( msg.type, JSON.stringify( msg.data ) )
 
-      break
+        break
 
-      // command from client.html
-    case 'command':
-      var cmd = msg.data.trim().split('(').shift()
-      var cb = function (result) {
-        if (arguments.length) msg.result = result
-        delete msg.data
-        msg.type = 'command_result'
-        ws._send(msg)
-      }
-      var isAsync = cmd in ASYNC_COMMAND
-      if (msg.__id && isAsync) ASYNC_COMMAND[cmd] = cb
+        // command from client.html
+      case 'command':
+        var cmd = msg.data.trim().split('(').shift()
+        var cb = function (result) {
+          if (arguments.length) msg.result = result
+          delete msg.data
+          msg.type = 'command_result'
+          ws._send(msg)
+        }
+        var isAsync = cmd in ASYNC_COMMAND
+        if (msg.__id && isAsync) ASYNC_COMMAND[cmd] = cb
 
-      try {
-        if (msg.meta == 'client') {
-          msg.result = page.evaluate(function (str) {
-            return eval(str)
-          }, msg.data)
+        try {
+          if (msg.meta == 'client') {
+            msg.result = page.evaluate(function (str) {
+              return eval(str)
+            }, msg.data)
+          } else {
+            msg.result = eval(msg.data)
+          }
+        } catch (e) {
+          msg.result = e.message
+        }
+
+        if (!isAsync) {
+          cb()
+        }
+
+        break
+
+        // get callback from ws._call
+      case 'command_result':
+        if (msg.__id) {
+          var cb = WS_CALLBACK[msg.__id]
+          delete WS_CALLBACK[msg.__id]
+          cb && cb(msg)
+        }
+
+        break
+      case 'event_key':
+        var e = msg.data
+        var c = e.which
+        var name = e.keyName
+        var QTKey = name && (page.event.key[name] || page.event.key[ keyNameAlias[name]])
+        // console.log(c, name)
+        if (QTKey) {
+          c = QTKey
+          // console.log('found Qt key:', name, c)
         } else {
-          msg.result = eval(msg.data)
+          c = guessKey(e)
         }
-      } catch (e) {
-        msg.result = e.message
-      }
 
-      if (!isAsync) {
-        cb()
-      }
+        page.sendEvent(e.type, c, null, null, e.modifier)
 
-      break
+        break
+      case 'event_mouse':
+        var e = msg.data
+        // if (/down|up/.test(e.type)) return
+        e.type = e.type.replace('dbl', 'double')
 
-      // get callback from ws._call
-    case 'command_result':
-      if (msg.__id) {
-        var cb = WS_CALLBACK[msg.__id]
-        delete WS_CALLBACK[msg.__id]
-        cb && cb(msg)
-      }
-
-      break
-    case 'event_key':
-      var e = msg.data
-      var c = e.which
-      var name = e.keyName
-      var QTKey = name && (page.event.key[name] || page.event.key[ keyNameAlias[name]])
-      // console.log(c, name)
-      if (QTKey) {
-        c = QTKey
-        // console.log('found Qt key:', name, c)
-      } else {
-        c = guessKey(e)
-      }
-
-      page.sendEvent(e.type, c, null, null, e.modifier)
-
-      break
-    case 'event_mouse':
-      var e = msg.data
-      // if (/down|up/.test(e.type)) return
-      e.type = e.type.replace('dbl', 'double')
-
-      // generate double click event
-      if (/down|up/.test(e.type)) {
-        var ce = _clone(e)
-        ce.time = Date.now()
-        ws.EventCache.push(ce)
-        if (ws.EventCache.length > 3) ws.EventCache.shift()
-        // console.log(JSON.stringify(ws.EventCache))
-        if (ws.EventCache.length === 3
-            && ws.EventCache[0].type === 'mousedown' && ws.EventCache[1].type === 'mouseup'
-            && ws.EventCache[2].time - ws.EventCache[0].time < DBLCLICK_INTERVAL) {
-          e.type = ws.EventCache[2].type = 'mousedoubleclick'
+        // generate double click event
+        if (/down|up/.test(e.type)) {
+          var ce = _clone(e)
+          ce.time = Date.now()
+          ws.EventCache.push(ce)
+          if (ws.EventCache.length > 3) ws.EventCache.shift()
+          // console.log(JSON.stringify(ws.EventCache))
+          if (ws.EventCache.length === 3
+              && ws.EventCache[0].type === 'mousedown' && ws.EventCache[1].type === 'mouseup'
+              && ws.EventCache[2].time - ws.EventCache[0].time < DBLCLICK_INTERVAL) {
+            e.type = ws.EventCache[2].type = 'mousedoubleclick'
+          }
         }
+
+        // console.log(e.type, e.pageX, e.pageY, e.which, WHICH_MOUSE_BUTTON[e.which], e.modifier)
+
+        // if (/click|down|up/.test(e.type)) page.sendEvent('mousemove', e.pageX, e.pageY, '')
+
+        page.sendEvent(e.type, e.pageX - (page.scrollPosition.left || 0), e.pageY - (page.scrollPosition.top || 0), WHICH_MOUSE_BUTTON[e.which], e.modifier)
+        setCursorPos(e.pageX, e.pageY)
+
+        break
+      default:
+
+        break
       }
-
-      // console.log(e.type, e.pageX, e.pageY, e.which, WHICH_MOUSE_BUTTON[e.which], e.modifier)
-
-      // if (/click|down|up/.test(e.type)) page.sendEvent('mousemove', e.pageX, e.pageY, '')
-
-      page.sendEvent(e.type, e.pageX - (page.scrollPosition.left || 0), e.pageY - (page.scrollPosition.top || 0), WHICH_MOUSE_BUTTON[e.which], e.modifier)
-      setCursorPos(e.pageX, e.pageY)
-
-      break
-    default:
-
-      break
     }
+    ws.onclose = function (code, reason, bClean) {
+      console.log('ws error: ', code, reason)
+    }
+    ws._send({type: 'connection', meta: 'server', name: 'phantom'})
   }
-  ws.onclose = function (code, reason, bClean) {
-    console.log('ws error: ', code, reason)
+  ws._send = function (msg, cb) {
+    if (ws.readyState !== 1) return
+    if (typeof cb === 'function') {
+      msg.__id = '_' + Date.now() + Math.random()
+      WS_CALLBACK[msg.__id] = cb
+    }
+    ws.send(typeof msg === 'string' ? msg : JSON.stringify(msg))
   }
-  ws._send({type: 'connection', meta: 'server', name: 'phantom'})
 }
-var WS_CALLBACK = {}
-ws._send = function (msg, cb) {
-  if (ws.readyState !== 1) return
-  if (typeof cb === 'function') {
-    msg.__id = '_' + Date.now() + Math.random()
-    WS_CALLBACK[msg.__id] = cb
-  }
-  ws.send(typeof msg === 'string' ? msg : JSON.stringify(msg))
-}
+connectWS()
 
 page.onError = function (msg, stack) {
   ws._send({type: 'client_error', data: {msg: msg, stack: stack}})

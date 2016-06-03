@@ -61,6 +61,9 @@
 
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
+	// import pointer from 'json-pointer'
+	// window.pointer = pointer
+
 	var RECORDING = 'STAGE_RECORDING',
 	    PLAYING = 'STAGE_PLAYING',
 	    CLIPPING = 'STAGE_CLIPPING',
@@ -81,6 +84,7 @@
 	    PAUSED = 4,
 	    RUNNING = 8;
 
+	var currentName = '';
 	var currentPath = '';
 	var keyframeCount = 0;
 	var intervalTitle = 0;
@@ -224,12 +228,16 @@
 	    if (!title) while (1) {
 	      title = currentPath = window.prompt('which title', currentPath) || '';
 	      if (!title) return;
-	      if (INVALID_NAME_REGEXP.test(title)) alert('path name cannot contain ' + INVALID_NAME);else if (/\/$/.test(title)) alert('cannot end of /');else break;
+	      if (INVALID_NAME_REGEXP.test(title)) alert('path name cannot contain ' + INVALID_NAME);else if (/\/$/.test(title)) alert('cannot end of /');else {
+	        // title is string of json: ['a','b']
+	        title = JSON.stringify(title.split('/'));
+	        break;
+	      }
 	    } else currentPath = title;
 	    // document.title = 'recording...'+title
 	    flashTitle('RECORDING');
-
-	    sc(' startRec("' + title + '") ');
+	    currentName = 'test' + +new Date();
+	    sc(' startRec("' + btoa(title) + '", "' + currentName + '") ');
 	    stage = RECORDING;
 	  } else if (stage == RECORDING) {
 	    return saveRec(null, true);
@@ -248,8 +256,16 @@
 
 	var oncloseSetup = function oncloseSetup(arg) {
 	  hideSetup();
-	  if (arg) {
-	    if (confirm('Confirm to begin record new test for path:\n\n    ' + arg)) startStopRec(null, arg);
+	  var path = JSON.stringify(arg.path);
+	  if (arg.action == 'add') {
+	    if (confirm('Confirm to begin record new test for path:\n\n    ' + path)) startStopRec(null, path);
+	  }
+	  if (arg.action == 'play') {
+	    stage = PLAYING;
+	    sc(' playTestFile("' + arg.file + '", "' + arg.url + '") ');
+	    setTimeout(function (arg) {
+	      // window.reload()
+	    });
 	  }
 	};
 
@@ -296,7 +312,7 @@
 	  Mousetrap.bind('f4', function (e) {
 	    if (!currentPath || stage !== RECORDING) return;
 	    e.preventDefault();
-	    sc(' snapKeyFrame("' + currentPath + '") ');
+	    sc(' snapKeyFrame("' + currentName + '") ');
 	    keyframeCount++;
 	  });
 	  Mousetrap.bind('ctrl+r', function (e) {
@@ -399,6 +415,9 @@
 	Object.defineProperty(exports, "__esModule", {
 	  value: true
 	});
+
+	var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol ? "symbol" : typeof obj; };
+
 	/**
 	 * DATA format:
 	 * node -> {
@@ -549,8 +568,10 @@
 	  controller: function controller(args) {
 	    var ctrl = this;
 	    var data = args.data || [];
+	    var result = {};
 	    if (args.url) {
-	      m.request({ method: 'GET', url: args.url }).then(function (result) {
+	      m.request({ method: 'GET', url: args.url }).then(function (ret) {
+	        result = ret;
 	        data = convertSimpleData(result.ptest_data);
 	        console.log(data);
 	        m.redraw();
@@ -588,20 +609,29 @@
 	    }
 
 	    function getAction(v) {
+	      if (!args.onclose) return;
+	      var node = [];
 	      var emptyNode = !v.children || v.children.length == 0;
+	      var leafNode = !emptyNode && v.children[0]._leaf;
+	      if (!leafNode && !emptyNode) return node;
 	      if (!v._leaf) {
-	        var node = [];
-	        node.push(m('a[href=#]', { class: 'action', onmousedown: function onmousedown(e) {
-	            e.stopPropagation();
-	            e.preventDefault();
-	            if (emptyNode) {
-	              var path = getArrayPath(data, v._path).texts.join('/');
-	              if (args.onclose) args.onclose(path);
-	            } else {
-	              // TODO: add play action
-	            }
-	          } }, emptyNode ? 'add' : 'play'));
-	        return node;
+	        var _ret = function () {
+	          var path = getArrayPath(data, v._path).texts;
+	          node.push(m('a[href=#]', { class: 'action', onmousedown: function onmousedown(e) {
+	              e.stopPropagation();
+	              e.preventDefault();
+	              if (emptyNode) {
+	                args.onclose({ action: 'add', path: path });
+	              } else {
+	                args.onclose({ action: 'play', path: path, file: v.children[0].name, url: result.url });
+	              }
+	            } }, emptyNode ? 'add' : 'play'));
+	          return {
+	            v: node
+	          };
+	        }();
+
+	        if ((typeof _ret === 'undefined' ? 'undefined' : _typeof(_ret)) === "object") return _ret.v;
 	      }
 	    }
 

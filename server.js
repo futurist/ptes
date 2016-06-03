@@ -8,6 +8,7 @@
 
 var DEBUG_MODE = true
 var fs = require('fs')
+var atob = require('atob')
 var querystring = require('querystring')
 var mkdirp = require('mkdirp')
 var http = require('http')
@@ -51,7 +52,7 @@ if (commander.dir) TEST_FOLDER = path.join(commander.dir, DATA_DIR)
 if (commander.play) {
   TEST_FILE = commander.play
   // TEST_FILE = path.join(TEST_FOLDER, TEST_FILE)
-  TEST_FILE = path.extname(TEST_FILE) ? TEST_FILE : TEST_FILE + '.json'
+  // TEST_FILE = path.extname(TEST_FILE) ? TEST_FILE : TEST_FILE + '.json'
 }
 console.log(__dirname, __filename, process.cwd(), DEFAULT_URL, TEST_FOLDER, TEST_FILE)
 
@@ -98,14 +99,14 @@ var HttpServer = http.createServer(function (req, res) {
     var body = ''
     req.on('data', function (chunk) { body += chunk })
     req.on('end', function () {
-      try{
+      try {
         JSON.parse(body)
         writePtestConfig(body)
-        res.end(JSON.stringify({error:null}))
-      }catch(e){
+        res.end(JSON.stringify({error: null}))
+      } catch(e) {
         var msg = 'Config data not valid json'
         console.log(msg, body)
-        res.end(JSON.stringify({error:msg}))
+        res.end(JSON.stringify({error: msg}))
       }
     })
     return
@@ -135,6 +136,7 @@ HttpServer.listen(HTTP_PORT, HTTP_HOST)
 
 console.log('server started at %s:%s', HTTP_HOST, HTTP_PORT)
 
+var stage = null
 var EventCache = []
 var ViewportCache = []
 var PageClip = {}
@@ -164,13 +166,19 @@ function showDiff (a, b) {
   })
 }
 
-function startRec (title) {
+function startRec (title, name) {
   if (playBack.status != STOPPED) {
     return client_console('cannot record when in playback')
   }
+  try {
+    // title is base64+JSON-stringify, so decode it
+    title = JSON.parse(atob(title))
+  } catch(e) { return console.log('startRec: bad title') }
   toPhantom({ type: 'command', meta: 'server', data: 'page.reload()' }, function (msg) {
     if (msg.result === 'success') {
-      Config.unsaved = { name: title, span: Date.now() }
+      name = name || 'test' + (+new Date())
+      ImageName = name
+      Config.unsaved = { name: name, path: title, span: Date.now() }
       RECORDING = true
       EventCache = [ { time: Date.now(), msg: arrayLast(ViewportCache) }, { time: Date.now(), msg: {type: 'page_clip', data: PageClip} } ]
       // ViewportCache = [  ]
@@ -180,11 +188,11 @@ function startRec (title) {
   })
 }
 
-function writePtestConfig(Config) {
+function writePtestConfig (Config) {
   fs.writeFileSync(path.join(TEST_FOLDER , 'ptest.json'), JSON.stringify(Config, null, 2))
 }
 
-function readPtestConfig() {
+function readPtestConfig () {
   var content = ''
   try {
     content = fs.readFileSync(path.join(TEST_FOLDER, 'ptest.json'), 'utf8')
@@ -192,27 +200,30 @@ function readPtestConfig() {
   } catch(e) {
     if (e.code !== 'ENOENT') {
       console.log(e, 'error parse ptest.json...')
-      return process.exit()
+    }else{
+      console.log('please run server from folder:', TEST_FOLDER)
     }
+    return process.exit()
   }
   return content
 }
 
 function stopRec () {
   RECORDING = false
-  var name = +new Date()
-  ImageName = name
-
-  // var Config = {unsaved:{name:'a;b'}}
-  var testPath = Config.unsaved.name
+  const name = Config.unsaved.name
+  // var Config = {unsaved:{path:'a/b'}}
   try {
-    mkdirp.sync(path.join(TEST_FOLDER, testPath))
+    mkdirp.sync(path.join(TEST_FOLDER, name))
   } catch(e) {
     throw e
   }
-  snapKeyFrame(testPath)
-  var objPath = [DATA_DIR].concat(testPath.split('/'))
-  Config.unsaved.name = name
+  snapKeyFrame(name)
+
+  var testPath = Config.unsaved.path
+  delete Config.unsaved.path
+
+  // var objPath = [DATA_DIR].concat(testPath.split('/'))
+  var objPath = pointer.compile([DATA_DIR].concat(testPath))
   Config.unsaved.span = Date.now() - Config.unsaved.span
 
   // // object path
@@ -267,7 +278,7 @@ wss.on('connection', function connection (ws) {
     if (typeof msg !== 'object') return
 
     // beat heart ping to keep alive
-    if(msg.type==='ping')return toPhantom(msg)
+    if (msg.type === 'ping')return toPhantom(msg)
 
     var relay = function () {
       if (ws.name === 'client') {
@@ -281,9 +292,10 @@ wss.on('connection', function connection (ws) {
     switch (msg.type) {
     case 'connection':
       ws.name = msg.name
+      console.log(msg)
       broadcast({ meta: 'clientList', data: clientList() })
       if (ws.name == 'client') {
-        if (Options.playBackOnInit) playBack.play()
+        if (Options.playBackOnInit || stage === PLAYING) playBack.play()
       }
       if (ws.name == 'phantom') {
       }
@@ -340,7 +352,7 @@ wss.on('connection', function connection (ws) {
 })
 
 // *** EventPlayBack will be rewritten, don't use at this time
-var STOPPED = 0, STOPPING = 1, PAUSING = 2, PAUSED = 4, RUNNING = 8
+var STOPPED = 0, STOPPING = 1, PAUSING = 2, PAUSED = 4, RUNNING = 8, PLAYING = 16
 class EventPlayBack {
   constructor () {
     this._status = STOPPED
@@ -425,9 +437,11 @@ class EventPlayBack {
     }).then((ret) => {
       self.status = STOPPED
       client_console(ret)
+      stage = null
     }, (err) => {
       self.status = STOPPED
       client_console('playback incomplete:', err)
+      stage = null
     })
   }
 
@@ -508,6 +522,7 @@ function stopPhantom () {
 
 function playTestFile (filename, url) {
   // console.log(path.join(TEST_FOLDER, filename))
+  if (!path.extname(filename)) filename += '.json'
   fs.readFile(path.join(TEST_FOLDER, filename), 'utf8', (err, data) => {
     if (err) {
       console.log('invalid json format', filename)
@@ -520,7 +535,12 @@ function playTestFile (filename, url) {
       ViewportCache = [EventCache[0].msg]
       PageClip = data.clip
       ImageName = data.image
-      startPhantom(url)
+      stage = PLAYING
+      if (!phantom) {
+        startPhantom(url)
+      } else {
+        playBack.play()
+      }
     } catch(e) {
       client_console('userdata parse error')
     }
@@ -529,7 +549,7 @@ function playTestFile (filename, url) {
 
 function init () {
   var content = readPtestConfig()
-  if(commander.list){
+  if (commander.list) {
     var d = Config.ptest_data
     console.log(content)
     return process.exit()

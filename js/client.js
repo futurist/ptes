@@ -59,15 +59,12 @@
 
 	var _overlay2 = _interopRequireDefault(_overlay);
 
-	var _data = __webpack_require__(3);
-
-	var _data2 = _interopRequireDefault(_data);
-
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 	var RECORDING = 'STAGE_RECORDING',
 	    PLAYING = 'STAGE_PLAYING',
-	    CLIPPING = 'STAGE_CLIPPING';
+	    CLIPPING = 'STAGE_CLIPPING',
+	    SETUP = 'STAGE_SETUP';
 	var INVALID_NAME = '<>:"\\|?*'; // '<>:"/\\|?*'
 	var INVALID_NAME_REGEXP = new RegExp('[' + INVALID_NAME.replace('\\', '\\\\') + ']', 'g');
 	var MODIFIER = {
@@ -84,6 +81,7 @@
 	    PAUSED = 4,
 	    RUNNING = 8;
 
+	var currentPath = '';
 	var keyframeCount = 0;
 	var intervalTitle = 0;
 	var PageClip = {};
@@ -219,18 +217,67 @@
 	  });
 	}
 
+	function startStopRec(e, title) {
+	  if (e) e.preventDefault();
+	  // let title = ''
+	  if (stage == null) {
+	    if (!title) while (1) {
+	      title = currentPath = window.prompt('which title', currentPath) || '';
+	      if (!title) return;
+	      if (INVALID_NAME_REGEXP.test(title)) alert('path name cannot contain ' + INVALID_NAME);else if (/\/$/.test(title)) alert('cannot end of /');else break;
+	    } else currentPath = title;
+	    // document.title = 'recording...'+title
+	    flashTitle('RECORDING');
+
+	    sc(' startRec("' + title + '") ');
+	    stage = RECORDING;
+	  } else if (stage == RECORDING) {
+	    return saveRec(null, true);
+	  }
+	}
+
+	function saveRec(e, save, slient) {
+	  if (e) e.preventDefault();
+	  if (!slient && !confirm('Confirm ' + (save ? 'save' : '!!!not!!! save') + ' current record:' + currentPath)) return false;
+	  sc(' stopRec(' + !!save + ') ');
+	  clearTitle();
+	  keyframeCount = 0;
+	  showSetup();
+	  return true;
+	}
+
+	var oncloseSetup = function oncloseSetup(arg) {
+	  hideSetup();
+	  if (arg) {
+	    if (confirm('Confirm to begin record new test for path:\n\n    ' + arg)) startStopRec(null, arg);
+	  }
+	};
+
+	function hideSetup(arg) {
+	  _overlay2.default.hide('#overlay');
+	  stage = null;
+	}
+
+	function showSetup(arg) {
+	  if (stage == RECORDING && !startStopRec()) return;
+	  stage = SETUP;
+	  _overlay2.default.show({ com: m.component(_mtree2.default, { url: '/config', onclose: oncloseSetup }) });
+	}
+
 	//
 	// setup keyboard event
 
 	function registerEvent() {
-	  var lastTitle = '';
 	  Mousetrap.bind('ctrl+p', function (e) {
 	    e.preventDefault();
 	  });
 	  Mousetrap.bind('ctrl+s', function (e) {
 	    e.preventDefault();
-	    // mOverlay.show({html: 'oisdjfojdf'})
-	    _overlay2.default.show({ com: m.component(_mtree2.default, { url: '/config' }) });
+	    if (stage === SETUP) {
+	      hideSetup();
+	    } else {
+	      showSetup();
+	    }
 	  });
 	  Mousetrap.bind('space', function (e) {
 	    if (stage !== PLAYING) return;
@@ -247,31 +294,13 @@
 	    stage = CLIPPING;
 	  });
 	  Mousetrap.bind('f4', function (e) {
-	    if (!lastTitle) return;
+	    if (!currentPath || stage !== RECORDING) return;
 	    e.preventDefault();
-	    sc(' snapKeyFrame("' + lastTitle + '") ');
+	    sc(' snapKeyFrame("' + currentPath + '") ');
 	    keyframeCount++;
 	  });
 	  Mousetrap.bind('ctrl+r', function (e) {
-	    e.preventDefault();
-	    var title = '';
-	    if (stage == null) {
-	      while (1) {
-	        title = lastTitle = window.prompt('which title', lastTitle) || '';
-	        if (!title) return;
-	        if (INVALID_NAME_REGEXP.test(title)) alert('path name cannot contain ' + INVALID_NAME);else if (/\/$/.test(title)) alert('cannot end of /');else break;
-	      }
-	      // document.title = 'recording...'+title
-	      flashTitle('RECORDING');
-
-	      sc(' startRec("' + title + '") ');
-	      stage = RECORDING;
-	    } else if (stage == RECORDING) {
-	      sc(' stopRec() ');
-	      clearTitle();
-	      keyframeCount = 0;
-	      // lastTitle = ''
-	    }
+	    saveRec(e, false);
 	  });
 
 	  $(window).on('resize', function (e) {
@@ -355,7 +384,7 @@
 	    return m('.abc', {
 	      onclick: function onclick(e) {
 	        var target = e.target || event.srcElement;
-	        _overlay2.default.close(target);
+	        _overlay2.default.hide(target);
 	      }
 	    }, testText);
 	  }
@@ -391,7 +420,18 @@
 
 	// using webpack inline style, but not for lib
 	// var css = require('../css/mtree.stylus')
+
 	var css = {};
+
+	var INVALID_NAME = '<>:"\\|?*\/'; // '<>:"/\\|?*'
+	var INVALID_NAME_REGEXP = new RegExp('[' + INVALID_NAME.replace('\\', '\\\\') + ']', 'g');
+	var isValidName = function isValidName(name) {
+	  return !INVALID_NAME_REGEXP.test(name);
+	};
+	var showInvalidMsg = function showInvalidMsg(v) {
+	  v._invalid = true;
+	  alert('invalid text, cannot contain: ' + INVALID_NAME);
+	};
 
 	//
 	// ========================================
@@ -422,11 +462,14 @@
 	  }
 	  if (type.call(d) === ARRAY) {
 	    return d.map(function (v) {
-	      return { text: v };
+	      return convertSimpleData(v);
 	    });
 	  }
 	  if (type.call(d) === OBJECT) {
-	    if ('name' in d || 'text' in d) return [d];
+	    if ('name' in d || 'text' in d) {
+	      d._leaf = true;
+	      return [d];
+	    }
 	    return Object.keys(d).map(function (v) {
 	      return !v ? [] : { text: v, children: convertSimpleData(d[v]) };
 	    });
@@ -458,10 +501,12 @@
 	 */
 	function getArrayPath(arr, path) {
 	  var obj = arr;
+	  var texts = [];
 	  for (var i = 0; i < path.length; i++) {
 	    obj = type.call(obj) === ARRAY ? obj[path[i]] : obj && obj.children && obj.children[path[i]];
+	    texts.push(obj.text);
 	  }
-	  return obj;
+	  return { obj: obj, texts: texts };
 	}
 
 	/**
@@ -505,7 +550,7 @@
 	    var ctrl = this;
 	    var data = args.data || [];
 	    if (args.url) {
-	      m.request({ method: "GET", url: args.url }).then(function (result) {
+	      m.request({ method: 'GET', url: args.url }).then(function (result) {
 	        data = convertSimpleData(result.ptest_data);
 	        console.log(data);
 	        m.redraw();
@@ -542,8 +587,28 @@
 	      return dest;
 	    }
 
+	    function getAction(v) {
+	      var emptyNode = !v.children || v.children.length == 0;
+	      if (!v._leaf) {
+	        var node = [];
+	        node.push(m('a[href=#]', { class: 'action', onmousedown: function onmousedown(e) {
+	            e.stopPropagation();
+	            e.preventDefault();
+	            if (emptyNode) {
+	              var path = getArrayPath(data, v._path).texts.join('/');
+	              if (args.onclose) args.onclose(path);
+	            } else {
+	              // TODO: add play action
+	            }
+	          } }, emptyNode ? 'add' : 'play'));
+	        return node;
+	      }
+	    }
+
 	    function getText(v) {
-	      return 'text' in v ? v.text : v.name || '';
+	      var text = v.text || '';
+	      var node = v.name ? [m('span.name', '[' + v.name + ']'), m('br'), text] : [text];
+	      return node;
 	    }
 
 	    /**
@@ -634,23 +699,31 @@
 	    }
 	    function getInput(v) {
 	      if (v._leaf) {
-	        return m('textarea', {
+	        return [m('div', v.name), m('textarea', {
 	          config: function config(el) {
 	            return el.focus();
 	          },
 	          oninput: function oninput(e) {
-	            v.text = this.value;
+	            if (isValidName(this.value)) v.text = this.value;else showInvalidMsg(v);
 	          },
 	          onkeydown: function onkeydown(e) {
-	            if (e.keyCode == 13 && e.ctrlKey) return v._edit = false;
+	            if (e.keyCode == 13 && e.ctrlKey && !v._invalid) {
+	              return v._edit = false;
+	            }
+	            if (e.keyCode == 27) {
+	              var undo = undoList.pop();
+	              if (undo) undo();
+	              v._edit = false;
+	              m.redraw();
+	            }
 	          }
-	        }, getText(v));
+	        }, v.text)];
 	      } else {
 	        return m('input', {
 	          config: function config(el) {
 	            el.focus();
 	          },
-	          value: getText(v),
+	          value: v.text,
 	          oninput: function oninput(e) {
 	            v.text = this.value;
 	          },
@@ -694,7 +767,7 @@
 	                // save parent _pos when select node
 	                if (parent) parent._pos = idx;
 
-	                if (isInputActive(e.target)) return;else if (v._edit) {
+	                if (isInputActive(e.target)) return;else if (v._edit && !v._invalid) {
 	                  v._edit = false;
 	                  return;
 	                }
@@ -745,7 +818,7 @@
 	              ondblclick: function ondblclick(e) {
 	                e.stopPropagation();
 	                v._edit = true;
-	                var oldVal = getText(v);
+	                var oldVal = v.text;
 	                undoList.push(function () {
 	                  setTimeout(function (_) {
 	                    v.text = oldVal;
@@ -755,7 +828,7 @@
 	                });
 	              }
 	            }, v),
-	            children: [v.children ? m('a', v._close ? '+ ' : '- ') : [], v._edit ? getInput(v) : m(v._leaf ? 'pre' : 'span', getText(v))].concat(v._close ? [] : interTree(v.children, v, path.concat(idx)))
+	            children: [v.children ? m('a', v._close ? '+ ' : '- ') : [], v._edit ? getInput(v) : m(v._leaf ? 'pre.leaf' : 'span.node', [getText(v), getAction(v)])].concat(v._close ? [] : interTree(v.children, v, path.concat(idx)))
 	          };
 	        })
 	      };
@@ -795,7 +868,7 @@
 	          sel.node = newParent;
 	          sel.idx = newParent._path.last();
 	          // _path is data[0][2]... if there's only data[0], then it's first root, parent is null
-	          sel.parent = newParent._path.length > 1 ? getArrayPath(data, newParent._path.slice(0, -1)) : null;
+	          sel.parent = newParent._path.length > 1 ? getArrayPath(data, newParent._path.slice(0, -1)).obj : null;
 	          m.redraw();
 	        }
 	        if (/right/.test(key) && child && child.length) {
@@ -831,12 +904,20 @@
 	        e.preventDefault();
 	        if (!sel.parent) child = data;else child = sel.parent.children;
 	        if (child.length) {
-	          if (/down$/.test(key) && sel.idx + 1 < child.length) {
-	            newIdx = sel.idx + 1;
+	          if (/down$/.test(key)) {
+	            if (sel.idx + 1 < child.length) {
+	              newIdx = sel.idx + 1;
+	            } else {
+	              newIdx = 0;
+	            }
 	            moveSibling(/ctrl/.test(key));
 	          }
-	          if (/up$/.test(key) && sel.idx - 1 >= 0) {
-	            newIdx = sel.idx - 1;
+	          if (/up$/.test(key)) {
+	            if (sel.idx - 1 >= 0) {
+	              newIdx = sel.idx - 1;
+	            } else {
+	              newIdx = child.length - 1;
+	            }
 	            moveSibling(/ctrl/.test(key));
 	          }
 	        }
@@ -963,13 +1044,13 @@
 
 	var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol ? "symbol" : typeof obj; };
 
-	(function (root, factory) {
+	(function (_global, factory) {
 	  if (true) {
 	    !(__WEBPACK_AMD_DEFINE_ARRAY__ = [], __WEBPACK_AMD_DEFINE_FACTORY__ = (factory), __WEBPACK_AMD_DEFINE_RESULT__ = (typeof __WEBPACK_AMD_DEFINE_FACTORY__ === 'function' ? (__WEBPACK_AMD_DEFINE_FACTORY__.apply(exports, __WEBPACK_AMD_DEFINE_ARRAY__)) : __WEBPACK_AMD_DEFINE_FACTORY__), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__)); // define(['jquery'], factory)
 	  } else if ((typeof exports === 'undefined' ? 'undefined' : _typeof(exports)) === 'object') {
 	      module.exports = factory(); // factory(require('jquery'))
 	    } else {
-	        root.mOverlay = factory(); // should return obj in factory
+	        _global.mOverlay = factory(); // should return obj in factory
 	      }
 	})(undefined, function () {
 	  'use strict';
@@ -1005,6 +1086,7 @@
 	      var ctrl = this;
 	      root.classList.add('overlay-root');
 	      root.style.position = 'fixed';
+	      root.style.display = 'block';
 	      root.style.left = 0;
 	      root.style.top = 0;
 	      root.style.zIndex = 99999;
@@ -1072,49 +1154,36 @@
 	    }
 	  };
 
-	  function closeOverlay(root) {
+	  function clearRoot(root) {
+	    m.mount(root, null);
+	    root.classList.remove('overlay-root');
+	    root.style.display = 'none';
+	  }
+
+	  function closeOverlay(root, ret) {
 	    if (!root) return;
 	    root = typeof root == 'string' ? document.querySelector(root) : root.closest('.overlay-root');
 	    if (root) {
-	      m.mount(root, null);
-	      root.classList.remove('overlay-root');
-	      root.style.display = 'none';
+	      clearRoot(root);
+	      var callback = root.overlayStack.pop();
+	      if (callback) callback.call(this, ret);
 	    }
 	  }
-	  function popupOverlay(root, popupObj) {
-	    if (arguments.length < 2) popupObj = root, root = null;
+	  function popupOverlay(root, popup) {
+	    if (arguments.length < 2) popup = root, root = null;
 	    if (!root) root = '#overlay';
 	    root = typeof root == 'string' ? document.querySelector(root) : root;
-	    if (root) m.mount(root, m.component(overlay, { root: root, popup: popupObj }));
+	    if (root) {
+	      root.overlayStack = root.overlayStack || [];
+	      root.overlayStack.push(popup.onclose);
+	      m.mount(root, m.component(overlay, { root: root, popup: popup }));
+	    }
 	  }
 
 	  // export function
 
-	  return { pop: popupOverlay, show: popupOverlay, close: closeOverlay, hide: closeOverlay };
+	  return { open: popupOverlay, show: popupOverlay, close: closeOverlay, hide: closeOverlay };
 	});
-
-/***/ },
-/* 3 */
-/***/ function(module, exports) {
-
-	'use strict';
-
-	module.exports = [{
-	  text: 'root',
-	  'class': 'asdfas',
-	  _static: true,
-	  children: [{
-	    text: 'A',
-	    _close: true,
-	    children: [{
-	      name: 'A1',
-	      font: 'red',
-	      children: null
-	    }, {
-	      text: 'A2'
-	    }]
-	  }, { text: 'B' }, { text: 'B' }, { text: 'B' }, { text: 'B' }, { text: 'B' }, { text: 'B' }, { text: 'B' }, { text: 'B' }, { text: 'B' }, { text: 'B' }, { text: 'B' }, { text: 'B' }, { text: 'B' }, { text: 'B' }, { text: 'B' }, { text: 'B' }]
-	}];
 
 /***/ }
 /******/ ]);

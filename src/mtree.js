@@ -19,7 +19,18 @@
 
 // using webpack inline style, but not for lib
 // var css = require('../css/mtree.stylus')
-var css={}
+
+let css = {}
+
+const INVALID_NAME = '<>:"\\|?*\/' // '<>:"/\\|?*'
+const INVALID_NAME_REGEXP = new RegExp('[' + INVALID_NAME.replace('\\', '\\\\') + ']', 'g')
+const isValidName = function isValidName (name) {
+  return !INVALID_NAME_REGEXP.test(name)
+}
+const showInvalidMsg = function showInvalidMsg(v) {
+  v._invalid = true
+  alert('invalid text, cannot contain: ' + INVALID_NAME)
+}
 
 //
 // ========================================
@@ -27,9 +38,9 @@ var css={}
 // ========================================
 
 // better type check
-var type = {}.toString
-var OBJECT = '[object Object]'
-var ARRAY = '[object Array]'
+const type = {}.toString
+const OBJECT = '[object Object]'
+const ARRAY = '[object Array]'
 
 /**
  * convert simple Object into tree data
@@ -50,11 +61,14 @@ function convertSimpleData (d) {
   }
   if (type.call(d) === ARRAY) {
     return d.map(function (v) {
-      return {text: v}
+      return convertSimpleData(v)
     })
   }
   if (type.call(d) === OBJECT) {
-    if ('name' in d || 'text' in d) return [d]
+    if ('name' in d || 'text' in d) {
+      d._leaf = true
+      return [d]
+    }
     return Object.keys(d).map(function (v) {
       return !v ? [] : {text: v, children: convertSimpleData(d[v])}
     })
@@ -86,10 +100,12 @@ if (!Array.prototype.last) {
  */
 function getArrayPath (arr, path) {
   var obj = arr
+  var texts = []
   for (var i = 0; i < path.length; i++) {
     obj = type.call(obj) === ARRAY ? obj[path[i]] : obj && obj.children && obj.children[path[i]]
+    texts.push(obj.text)
   }
-  return obj
+  return {obj, texts}
 }
 
 /**
@@ -132,10 +148,10 @@ var com = {
   controller: function (args) {
     var ctrl = this
     var data = args.data || []
-    if(args.url){
-      m.request({method: "GET", url: args.url})
-        .then(function(result) {
-          data= convertSimpleData(result.ptest_data)
+    if (args.url) {
+      m.request({method: 'GET', url: args.url})
+        .then(function (result) {
+          data = convertSimpleData(result.ptest_data)
           console.log(data)
           m.redraw()
         })
@@ -170,8 +186,29 @@ var com = {
       return dest
     }
 
-    function getText(v) {
-      return 'text' in v? v.text : v.name||''
+
+    function getAction(v){
+      const emptyNode = !v.children || v.children.length==0
+      if(!v._leaf){
+        const node = []
+        node.push( m('a[href=#]', {class: 'action', onmousedown:e=>{
+          e.stopPropagation()
+          e.preventDefault()
+          if(emptyNode){
+            let path = getArrayPath(data, v._path).texts.join('/')
+            if(args.onclose) args.onclose(path)
+          }else{
+            // TODO: add play action
+          }
+        }}, emptyNode?'add':'play'))
+        return node
+      }
+    }
+
+    function getText (v) {
+      let text = (v.text || '')
+      let node = v.name ? [m('span.name', '[' + v.name + ']'), m('br'), text] : [text]
+      return node
     }
 
     /**
@@ -183,9 +220,9 @@ var com = {
      */
     function getClass (node) {
       var c = ' '
-      c += selected && selected.node === node ? (css.selected||'selected') + ' ' : ''
+      c += selected && selected.node === node ? (css.selected || 'selected') + ' ' : ''
       c += ' '
-      c += target && target.node === node ? (css[target.type]||target.type) : ''
+      c += target && target.node === node ? (css[target.type] || target.type) : ''
       return c
     }
 
@@ -261,19 +298,33 @@ var com = {
     }
     function getInput (v) {
       if (v._leaf) {
-        return m('textarea', {
-          config: el => el.focus(),
-          oninput: function (e) { v.text = this.value; },
-          onkeydown: e => {
-            if (e.keyCode == 13 && e.ctrlKey) return v._edit = false
-          }
-        }, getText(v))
+        return [
+          m('div', v.name),
+          m('textarea', {
+            config: el => el.focus(),
+            oninput: function (e) {
+              if (isValidName(this.value)) v.text = this.value
+              else showInvalidMsg(v)
+            },
+            onkeydown: e => {
+              if (e.keyCode == 13 && e.ctrlKey && !v._invalid) {
+                return v._edit = false
+              }
+              if (e.keyCode == 27) {
+                var undo = undoList.pop()
+                if (undo) undo()
+                v._edit = false
+                m.redraw()
+              }
+            }
+          }, v.text)
+        ]
       } else {
         return m('input', {
           config: el => {
             el.focus()
           },
-          value: getText(v),
+          value: v.text,
           oninput: function (e) { v.text = this.value; },
           onkeydown: e => {
             if (e.keyCode == 13) return v._edit = false
@@ -309,7 +360,7 @@ var com = {
               },
               onmouseup: function (e) {},
               onmousedown: function (e) {
-                if(!e) e=window.event
+                if (!e) e = window.event
                 e.stopPropagation()
                 selected = {node: v, idx: idx, parent: parent}
 
@@ -317,7 +368,7 @@ var com = {
                 if (parent) parent._pos = idx
 
                 if (isInputActive(e.target)) return
-                else if (v._edit) {
+                else if (v._edit && !v._invalid) {
                   v._edit = false
                   return
                 }
@@ -368,7 +419,7 @@ var com = {
               ondblclick: function (e) {
                 e.stopPropagation()
                 v._edit = true
-                var oldVal = getText(v)
+                var oldVal = v.text
                 undoList.push(function () {
                   setTimeout(_ => {
                     v.text = oldVal
@@ -382,7 +433,7 @@ var com = {
               v.children ? m('a', v._close ? '+ ' : '- ') : [],
               v._edit
                 ? getInput(v)
-                : m(v._leaf ? 'pre' : 'span', getText(v))
+                : m(v._leaf ? 'pre.leaf' : 'span.node', [getText(v), getAction(v)])
             ].concat(v._close ? [] : interTree(v.children, v, path.concat(idx)))
           }
         })
@@ -419,7 +470,7 @@ var com = {
           sel.node = newParent
           sel.idx = newParent._path.last()
           // _path is data[0][2]... if there's only data[0], then it's first root, parent is null
-          sel.parent = newParent._path.length > 1 ? getArrayPath(data, newParent._path.slice(0, -1)) : null
+          sel.parent = newParent._path.length > 1 ? getArrayPath(data, newParent._path.slice(0, -1)).obj : null
           m.redraw()
         }
         if (/right/.test(key) && child && child.length) {
@@ -450,12 +501,20 @@ var com = {
         if (!sel.parent) child = data
         else child = sel.parent.children
         if (child.length) {
-          if (/down$/.test(key) && sel.idx + 1 < child.length) {
-            newIdx = sel.idx + 1
+          if (/down$/.test(key)) {
+            if (sel.idx + 1 < child.length) {
+              newIdx = sel.idx + 1
+            } else {
+              newIdx = 0
+            }
             moveSibling(/ctrl/.test(key))
           }
-          if (/up$/.test(key) && sel.idx - 1 >= 0) {
-            newIdx = sel.idx - 1
+          if (/up$/.test(key)) {
+            if (sel.idx - 1 >= 0) {
+              newIdx = sel.idx - 1
+            } else {
+              newIdx = child.length - 1
+            }
             moveSibling(/ctrl/.test(key))
           }
         }
@@ -549,7 +608,7 @@ var com = {
       'ctrl+c': doCopy,
       'ctrl+x': doMove,
       'ctrl+shift+v': doMoveCopy,
-      'ctrl+v': doMoveCopy
+      'ctrl+v': doMoveCopy,
     }
 
     for (var k in keyMap) {
@@ -560,14 +619,14 @@ var com = {
   //
   // view
   view: function (ctrl) {
-    return m('.'+(css.mtree||'mtree'), ctrl.getDom())
+    return m('.' + (css.mtree || 'mtree'), ctrl.getDom())
   }
 }
 
 export default com
 
-const testRoot= document.querySelector('#mtree')
-if(testRoot) m.mount(testRoot, m.component(com, {data: data}))
+const testRoot = document.querySelector('#mtree')
+if (testRoot) m.mount(testRoot, m.component(com, {data: data}))
 
 // below line will remove -webkit-user-select:none
 // which cause phantomjs input cannot be selected!!!!!

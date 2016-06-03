@@ -18,6 +18,7 @@ var commander = require('commander')
 var imageDiff = require('image-diff')
 var _util = require('util_extend_exclude')
 var spawn = require('child_process').spawn
+var pointer = require('json-pointer')
 var pkg = require('./package.json')
 
 var DEFAULT_URL = [
@@ -145,7 +146,7 @@ var PlayCount = 0
 var RECORDING = false
 var Options = {
   syncReload: true, // after recording, reload phantom page
-  playBackOnInit: true, // with --play option, auto play test when socket open
+  playBackOnInit: false, // with --play option, auto play test when socket open
 }
 
 //
@@ -214,10 +215,13 @@ function stopRec () {
   Config.unsaved.name = name
   Config.unsaved.span = Date.now() - Config.unsaved.span
 
-  // object path
-  var p, a = objPath, b = Config
-  if (a.length == 1) b[a.shift()] = Config.unsaved
-  else while(p = a.shift()) b[p] = (b[p] || {}), a.length > 1 ? b = b[p] : b = b[p][a.shift()] = Config.unsaved
+  // // object path
+  // var p, a = objPath, b = Config
+  // if (a.length == 1) b[a.shift()] = Config.unsaved
+  // else while(p = a.shift()) b[p] = (b[p] || {}), a.length > 1 ? b = b[p] : b = b[p][a.shift()] = Config.unsaved
+  // delete Config.unsaved
+
+  pointer.set(Config, objPath, Config.unsaved)
   delete Config.unsaved
 
   fs.writeFileSync(path.join(TEST_FOLDER, name + '.json'), JSON.stringify({ testPath: testPath, clip: PageClip, event: EventCache }))
@@ -261,6 +265,9 @@ wss.on('connection', function connection (ws) {
     var msg
     try { msg = JSON.parse(message) } catch(e) { msg = message }
     if (typeof msg !== 'object') return
+
+    // beat heart ping to keep alive
+    if(msg.type==='ping')return toPhantom(msg)
 
     var relay = function () {
       if (ws.name === 'client') {

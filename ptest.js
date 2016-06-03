@@ -60,6 +60,11 @@ ws.onopen = function (e) {
     if (typeof msg !== 'object' || !msg) return
 
     switch (msg.type) {
+    case 'ping':
+      // beat heart ping
+      return
+      break
+
     case 'broadcast':
       // if(msg.meta=='clientList'&&msg.data.indexOf('client')>-1 && page.status!='success' ) init()
 

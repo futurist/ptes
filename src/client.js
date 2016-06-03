@@ -5,9 +5,8 @@
 
 import mTree from './mtree'
 import mOverlay from './overlay'
-import data from './data'
 
-const RECORDING = 'STAGE_RECORDING', PLAYING = 'STAGE_PLAYING', CLIPPING = 'STAGE_CLIPPING'
+const RECORDING = 'STAGE_RECORDING', PLAYING = 'STAGE_PLAYING', CLIPPING = 'STAGE_CLIPPING', SETUP = 'STAGE_SETUP'
 const INVALID_NAME = '<>:"\\|?*' // '<>:"/\\|?*'
 const INVALID_NAME_REGEXP = new RegExp('[' + INVALID_NAME.replace('\\', '\\\\') + ']', 'g')
 const MODIFIER = {
@@ -20,6 +19,7 @@ const MODIFIER = {
 
 const STOPPED = 0, STOPPING = 1, PAUSING = 2, PAUSED = 4, RUNNING = 8
 
+let currentPath = ''
 let keyframeCount = 0
 let intervalTitle = 0
 let PageClip = {}
@@ -155,18 +155,73 @@ function cc (str, isPhantom) {
   })
 }
 
+function startStopRec (e, title) {
+  if (e) e.preventDefault()
+  // let title = ''
+  if (stage == null) {
+    if (!title)
+      while(1) {
+        title = currentPath = window.prompt('which title', currentPath) || ''
+        if (!title) return
+        if (INVALID_NAME_REGEXP.test(title)) alert('path name cannot contain ' + INVALID_NAME)
+        else if (/\/$/.test(title)) alert('cannot end of /')
+        else break
+      }
+    else
+      currentPath = title
+    // document.title = 'recording...'+title
+    flashTitle('RECORDING')
+
+    sc(' startRec("' + title + '") ')
+    stage = RECORDING
+  } else if (stage == RECORDING) {
+    return saveRec(null, true)
+  }
+}
+
+function saveRec(e, save, slient) {
+  if (e) e.preventDefault()
+  if(!slient && !confirm('Confirm '+ (save?'save':'!!!not!!! save')+ ' current record:'+currentPath)) return false
+  sc(' stopRec(' + !!save + ') ')
+  clearTitle()
+  keyframeCount = 0
+  showSetup()
+  return true
+}
+
+var oncloseSetup = function (arg) {
+  hideSetup()
+  if (arg) {
+    if(confirm('Confirm to begin record new test for path:\n\n    ' + arg))
+      startStopRec(null, arg)
+  }
+}
+
+function hideSetup (arg) {
+  mOverlay.hide('#overlay')
+  stage = null
+}
+
+function showSetup (arg) {
+  if(stage == RECORDING && !startStopRec() ) return
+  stage = SETUP
+  mOverlay.show({com: m.component(mTree, {url: '/config', onclose: oncloseSetup })})
+}
+
 //
 // setup keyboard event
 
 function registerEvent () {
-  let lastTitle = ''
   Mousetrap.bind('ctrl+p', function (e) {
     e.preventDefault()
   })
   Mousetrap.bind('ctrl+s', function (e) {
     e.preventDefault()
-    // mOverlay.show({html: 'oisdjfojdf'})
-    mOverlay.show({com: m.component(mTree, {url:'/config'})})
+    if (stage === SETUP) {
+      hideSetup()
+    } else {
+      showSetup()
+    }
   })
   Mousetrap.bind('space', function (e) {
     if (stage !== PLAYING) return
@@ -183,33 +238,13 @@ function registerEvent () {
     stage = CLIPPING
   })
   Mousetrap.bind('f4', function (e) {
-    if (!lastTitle) return
+    if (!currentPath || stage!==RECORDING) return
     e.preventDefault()
-    sc(' snapKeyFrame("' + lastTitle + '") ')
+    sc(' snapKeyFrame("' + currentPath + '") ')
     keyframeCount++
   })
   Mousetrap.bind('ctrl+r', function (e) {
-    e.preventDefault()
-    let title = ''
-    if (stage == null) {
-      while(1) {
-        title = lastTitle = window.prompt('which title', lastTitle) || ''
-        if (!title) return
-        if (INVALID_NAME_REGEXP.test(title)) alert('path name cannot contain ' + INVALID_NAME)
-        else if (/\/$/.test(title)) alert('cannot end of /')
-        else break
-      }
-      // document.title = 'recording...'+title
-      flashTitle('RECORDING')
-
-      sc(' startRec("' + title + '") ')
-      stage = RECORDING
-    }else if (stage == RECORDING) {
-      sc(' stopRec() ')
-      clearTitle()
-      keyframeCount = 0
-      // lastTitle = ''
-    }
+    saveRec(e, false)
   })
 
   $(window).on('resize', function (e) {
@@ -290,17 +325,14 @@ window.onunload = function () {
   sc(' reloadPhantom() ')
 }
 
-
-var testText= 'this is the mithril com test'
-var test={
-  controller : function(){
-
-  },
-  view       : function(ctrl){
-    return m('.abc',{
-      onclick: function(e){
-        var target = e.target||event.srcElement
-        mOverlay.close(target)
+var testText = 'this is the mithril com test'
+var test = {
+  controller: function () {},
+  view: function (ctrl) {
+    return m('.abc', {
+      onclick: function (e) {
+        var target = e.target || event.srcElement
+        mOverlay.hide(target)
       }
     }, testText)
   }

@@ -1,10 +1,10 @@
-(function (root, factory) {
+(function (_global, factory) {
   if (typeof define === 'function' && define.amd) {
     define([], factory) // define(['jquery'], factory)
   } else if (typeof exports === 'object') {
     module.exports = factory() // factory(require('jquery'))
   } else {
-    root.mOverlay = factory() // should return obj in factory
+    _global.mOverlay = factory() // should return obj in factory
   }
 }(this, function () {
   'use strict'
@@ -41,6 +41,7 @@
       var ctrl = this
       root.classList.add('overlay-root')
       root.style.position = 'fixed'
+      root.style.display = 'block'
       root.style.left = 0
       root.style.top = 0
       root.style.zIndex = 99999
@@ -127,23 +128,34 @@
     }
   }
 
-  function closeOverlay (root) {
+  function clearRoot(root) {
+    m.mount(root, null)
+    root.classList.remove('overlay-root')
+    root.style.display = 'none'
+  }
+
+  function closeOverlay (root, ret) {
     if (!root) return
     root = typeof root == 'string' ? document.querySelector(root) : root.closest('.overlay-root')
     if (root) {
-      m.mount(root, null)
-      root.classList.remove('overlay-root')
-      root.style.display = 'none'
+      clearRoot(root)
+      var callback = root.overlayStack.pop()
+      if(callback) callback.call(this, ret)
     }
   }
-  function popupOverlay (root, popupObj) {
-    if (arguments.length < 2) popupObj = root, root = null
+  function popupOverlay (root, popup) {
+    if (arguments.length < 2) popup = root, root = null
     if (!root) root = '#overlay'
     root = typeof root == 'string' ? document.querySelector(root) : root
-    if (root) m.mount(root, m.component(overlay, {root: root, popup: popupObj}))
+    if (root){
+      root.overlayStack = root.overlayStack||[]
+      root.overlayStack.push(popup.onclose)
+      m.mount(root, m.component(overlay, {root: root, popup: popup}))
+    }
   }
 
   // export function
 
-  return {pop: popupOverlay, show: popupOverlay, close: closeOverlay, hide: closeOverlay}
+  return {open: popupOverlay, show: popupOverlay, close: closeOverlay, hide: closeOverlay}
 }))
+

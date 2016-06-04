@@ -466,18 +466,18 @@
 	 * convert simple Object into tree data
 	 *
 	 format:
-	 {"a":{"b":{"c":{"name":"test 1"}}},"e":"test 2", f:null}
-	 *        v.name||v.text is a leaf node.
-	 *        If each value is null,
-	 *        or not of type {string|object|array},
-	 *        then it's empty leaf.
+	 {"a":{"b":{"c":{"":["leaf 1"]}}},"abc":123, f:null}
+	 *        1. every key is folder node; "":[] is leaf node
+	 *        2. {abc:123} is shortcut for {abc:{"": 123}}
 	 *
 	 * @param {object} d - simple object data
+	 * @param {any} prop - prop to merged into current node
 	 * @returns {object} tree data object
 	 */
-	function convertSimpleData(d) {
-	  if (typeof d === 'string') {
-	    return { text: d };
+	function convertSimpleData(d, prop) {
+	  if (!d || (typeof d === 'undefined' ? 'undefined' : _typeof(d)) !== 'object') {
+	    // {abc:123} is shortcut for {abc:{"": 123}}
+	    return [Object.assign({ text: d, _leaf: true }, prop)];
 	  }
 	  if (type.call(d) === ARRAY) {
 	    return d.map(function (v) {
@@ -485,13 +485,17 @@
 	    });
 	  }
 	  if (type.call(d) === OBJECT) {
-	    if ('name' in d || 'text' in d) {
-	      d._leaf = true;
-	      return [d];
+	    var node = [];
+	    for (var k in d) {
+	      if (k === '' && type.call(d[k]) === ARRAY) {
+	        node.push.apply(node, d[k].map(function (v) {
+	          return type.call(v) === OBJECT ? v : { text: v, _leaf: true };
+	        }));
+	      } else {
+	        node.push({ text: k, children: convertSimpleData(d[k]) });
+	      }
 	    }
-	    return Object.keys(d).map(function (v) {
-	      return !v ? [] : { text: v, children: convertSimpleData(d[v]) };
-	    });
+	    return node;
 	  }
 	  return [];
 	}
@@ -612,7 +616,7 @@
 	      if (!args.onclose) return;
 	      var node = [];
 	      var emptyNode = !v.children || v.children.length == 0;
-	      var leafNode = !emptyNode && v.children[0]._leaf;
+	      var leafNode = !emptyNode && v.children && v.children[0]._leaf;
 	      if (!leafNode && !emptyNode) return node;
 	      if (!v._leaf) {
 	        var _ret = function () {

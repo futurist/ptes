@@ -59,10 +59,13 @@
 
 	var _overlay2 = _interopRequireDefault(_overlay);
 
+	var _jsonPointer = __webpack_require__(3);
+
+	var _jsonPointer2 = _interopRequireDefault(_jsonPointer);
+
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-	// import pointer from 'json-pointer'
-	// window.pointer = pointer
+	window.pointer = _jsonPointer2.default;
 
 	var RECORDING = 'STAGE_RECORDING',
 	    PLAYING = 'STAGE_PLAYING',
@@ -136,6 +139,7 @@
 	          flashTitle(msg.data === RUNNING ? 'PLAYING' : 'PAUSED', true);
 	        } else {
 	          clearTitle();
+	          alert('Play back complete');
 	        }
 
 	        break;
@@ -194,6 +198,10 @@
 	  ws.onclose = function (code, reason, bClean) {
 	    console.log('ws error: ', code, reason);
 	  };
+
+	  var heartbeat = setInterval(function () {
+	    ws._send({ type: 'ping' });
+	  }, 10000);
 	  ws._send({ type: 'connection', meta: 'server', name: 'client' });
 	};
 
@@ -237,7 +245,7 @@
 	    // document.title = 'recording...'+title
 	    flashTitle('RECORDING');
 	    currentName = 'test' + +new Date();
-	    sc(' startRec("' + btoa(title) + '", "' + currentName + '") ');
+	    sc(' startRec("' + btoa(encodeURIComponent(title)) + '", "' + currentName + '") ');
 	    stage = RECORDING;
 	  } else if (stage == RECORDING) {
 	    return saveRec(null, true);
@@ -256,6 +264,7 @@
 
 	var oncloseSetup = function oncloseSetup(arg) {
 	  hideSetup();
+	  console.log(arg);
 	  var path = JSON.stringify(arg.path);
 	  if (arg.action == 'add') {
 	    if (confirm('Confirm to begin record new test for path:\n\n    ' + path)) startStopRec(null, path);
@@ -467,7 +476,7 @@
 	 *
 	 format:
 	 {"a":{"b":{"c":{"":["leaf 1"]}}},"abc":123, f:null}
-	 *        1. every key is folder node;
+	 *        1. every key is folder node
 	 *        2. "":[] is leaf node
 	 *        3. otherwise, array value is not allowed
 	 *        4. {abc:123} is shortcut for {abc:{"": [123]}}
@@ -481,7 +490,7 @@
 	  path = path || [];
 	  if (!d || (typeof d === 'undefined' ? 'undefined' : _typeof(d)) !== 'object') {
 	    // {abc:123} is shortcut for {abc:{"": [123]}}
-	    return [Object.assign({ text: d, _leaf: true }, prop && prop(d, path))];
+	    return [Object.assign({ name: d, _leaf: true }, prop && prop(d, path))];
 	  }
 	  if (type.call(d) === ARRAY) {
 	    return d.map(function (v, i) {
@@ -493,10 +502,10 @@
 	    for (var k in d) {
 	      if (k === '' && type.call(d[k]) === ARRAY) {
 	        node.push.apply(node, d[k].map(function (v, i) {
-	          return type.call(v) === OBJECT ? v : Object.assign({ text: v, _leaf: true }, prop && prop(v, path.concat(['', i])));
+	          return type.call(v) === OBJECT ? v : Object.assign({ name: v, _leaf: true }, prop && prop(v, path.concat(['', i])));
 	        }));
 	      } else {
-	        node.push(Object.assign({ text: k, children: convertSimpleData(d[k], prop, path.concat('' + k)) }, prop && prop(k, path)));
+	        node.push(Object.assign({ name: k, children: convertSimpleData(d[k], prop, path.concat('' + k)) }, prop && prop(k, path)));
 	      }
 	    }
 	    return node;
@@ -531,7 +540,7 @@
 	  var texts = [];
 	  for (var i = 0; i < path.length; i++) {
 	    obj = type.call(obj) === ARRAY ? obj[path[i]] : obj && obj.children && obj.children[path[i]];
-	    texts.push(obj.text);
+	    texts.push(obj.name || obj.text);
 	  }
 	  return { obj: obj, texts: texts };
 	}
@@ -616,36 +625,32 @@
 	      return dest;
 	    }
 
+	    function oneAction(obj) {
+	      return m('a[href=#]', { class: 'action', onmousedown: function onmousedown(e) {
+	          e.stopPropagation();
+	          e.preventDefault();
+	          args.onclose(obj);
+	        } }, obj.text || obj.action);
+	    }
+
 	    function getAction(v) {
 	      if (!args.onclose) return;
 	      var node = [];
 	      var emptyNode = !v.children || v.children.length == 0;
 	      var leafNode = !emptyNode && v.children && v.children[0]._leaf;
 	      if (!leafNode && !emptyNode) return node;
+	      var path = getArrayPath(data, v._path).texts;
 	      if (!v._leaf) {
-	        var _ret = function () {
-	          var path = getArrayPath(data, v._path).texts;
-	          node.push(m('a[href=#]', { class: 'action', onmousedown: function onmousedown(e) {
-	              e.stopPropagation();
-	              e.preventDefault();
-	              if (emptyNode) {
-	                args.onclose({ action: 'add', path: path });
-	              } else {
-	                args.onclose({ action: 'play', path: path, file: v.children[0].name, url: result.url });
-	              }
-	            } }, emptyNode ? 'add' : 'play'));
-	          return {
-	            v: node
-	          };
-	        }();
-
-	        if ((typeof _ret === 'undefined' ? 'undefined' : _typeof(_ret)) === "object") return _ret.v;
+	        node.push({ action: 'add', text: 'Add', path: path });
+	      } else {
+	        node.push({ action: 'play', text: 'Play', path: path, file: v.name || v.text, url: result.url });
 	      }
+	      return node.map(oneAction);
 	    }
 
 	    function getText(v) {
 	      var text = v.text || '';
-	      var node = v.name ? [m('span.name', '[' + v.name + ']'), m('br'), text] : [text];
+	      var node = v.name ? [m('span.name', '[' + v.name + ']'), getAction(v), m('br'), text] : [text, getAction(v)];
 	      return node;
 	    }
 
@@ -866,7 +871,7 @@
 	                });
 	              }
 	            }, v),
-	            children: [v.children ? m('a', v._close ? '+ ' : '- ') : [], v._edit ? getInput(v) : m(v._leaf ? 'pre.leaf' : 'span.node', [getText(v), getAction(v)])].concat(v._close ? [] : interTree(v.children, v, path.concat(idx)))
+	            children: [v.children ? m('a', v._close ? '+ ' : '- ') : [], v._edit ? getInput(v) : m(v._leaf ? 'pre.leaf' : 'span.node', [getText(v)])].concat(v._close ? [] : interTree(v.children, v, path.concat(idx)))
 	          };
 	        })
 	      };
@@ -1222,6 +1227,255 @@
 
 	  return { open: popupOverlay, show: popupOverlay, close: closeOverlay, hide: closeOverlay };
 	});
+
+/***/ },
+/* 3 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+
+	var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol ? "symbol" : typeof obj; };
+
+	var each = __webpack_require__(4);
+	module.exports = api;
+
+	/**
+	 * Convenience wrapper around the api.
+	 * Calls `.get` when called with an `object` and a `pointer`.
+	 * Calls `.set` when also called with `value`.
+	 * If only supplied `object`, returns a partially applied function, mapped to the object.
+	 *
+	 * @param {Object} obj
+	 * @param {String|Array} pointer
+	 * @param value
+	 * @returns {*}
+	 */
+
+	function api(obj, pointer, value) {
+	    // .set()
+	    if (arguments.length === 3) {
+	        return api.set(obj, pointer, value);
+	    }
+	    // .get()
+	    if (arguments.length === 2) {
+	        return api.get(obj, pointer);
+	    }
+	    // Return a partially applied function on `obj`.
+	    var wrapped = api.bind(api, obj);
+
+	    // Support for oo style
+	    for (var name in api) {
+	        if (api.hasOwnProperty(name)) {
+	            wrapped[name] = api[name].bind(wrapped, obj);
+	        }
+	    }
+	    return wrapped;
+	}
+
+	/**
+	 * Lookup a json pointer in an object
+	 *
+	 * @param {Object} obj
+	 * @param {String|Array} pointer
+	 * @returns {*}
+	 */
+	api.get = function get(obj, pointer) {
+	    var refTokens = Array.isArray(pointer) ? pointer : api.parse(pointer);
+
+	    for (var i = 0; i < refTokens.length; ++i) {
+	        var tok = refTokens[i];
+	        if (!((typeof obj === 'undefined' ? 'undefined' : _typeof(obj)) == 'object' && tok in obj)) {
+	            throw new Error('Invalid reference token: ' + tok);
+	        }
+	        obj = obj[tok];
+	    }
+	    return obj;
+	};
+
+	/**
+	 * Sets a value on an object
+	 *
+	 * @param {Object} obj
+	 * @param {String|Array} pointer
+	 * @param value
+	 */
+	api.set = function set(obj, pointer, value) {
+	    var refTokens = Array.isArray(pointer) ? pointer : api.parse(pointer),
+	        nextTok = refTokens[0];
+
+	    for (var i = 0; i < refTokens.length - 1; ++i) {
+	        var tok = refTokens[i];
+	        if (tok === '-' && Array.isArray(obj)) {
+	            tok = obj.length;
+	        }
+	        nextTok = refTokens[i + 1];
+
+	        if (!(tok in obj)) {
+	            if (nextTok.match(/^(\d+|-)$/)) {
+	                obj[tok] = [];
+	            } else {
+	                obj[tok] = {};
+	            }
+	        }
+	        obj = obj[tok];
+	    }
+	    if (nextTok === '-' && Array.isArray(obj)) {
+	        nextTok = obj.length;
+	    }
+	    obj[nextTok] = value;
+	    return this;
+	};
+
+	/**
+	 * Removes an attribute
+	 *
+	 * @param {Object} obj
+	 * @param {String|Array} pointer
+	 */
+	api.remove = function (obj, pointer) {
+	    var refTokens = Array.isArray(pointer) ? pointer : api.parse(pointer);
+	    var finalToken = refTokens[refTokens.length - 1];
+	    if (finalToken === undefined) {
+	        throw new Error('Invalid JSON pointer for remove: "' + pointer + '"');
+	    }
+	    delete api.get(obj, refTokens.slice(0, -1))[finalToken];
+	};
+
+	/**
+	 * Returns a (pointer -> value) dictionary for an object
+	 *
+	 * @param obj
+	 * @param {function} descend
+	 * @returns {}
+	 */
+	api.dict = function dict(obj, descend) {
+	    var results = {};
+	    api.walk(obj, function (value, pointer) {
+	        results[pointer] = value;
+	    }, descend);
+	    return results;
+	};
+
+	/**
+	 * Iterates over an object
+	 * Iterator: function (value, pointer) {}
+	 *
+	 * @param obj
+	 * @param {function} iterator
+	 * @param {function} descend
+	 */
+	api.walk = function walk(obj, iterator, descend) {
+	    var refTokens = [];
+
+	    descend = descend || function (value) {
+	        var type = Object.prototype.toString.call(value);
+	        return type === '[object Object]' || type === '[object Array]';
+	    };
+
+	    (function next(cur) {
+	        each(cur, function (value, key) {
+	            refTokens.push(String(key));
+	            if (descend(value)) {
+	                next(value);
+	            } else {
+	                iterator(value, api.compile(refTokens));
+	            }
+	            refTokens.pop();
+	        });
+	    })(obj);
+	};
+
+	/**
+	 * Tests if an object has a value for a json pointer
+	 *
+	 * @param obj
+	 * @param pointer
+	 * @returns {boolean}
+	 */
+	api.has = function has(obj, pointer) {
+	    try {
+	        api.get(obj, pointer);
+	    } catch (e) {
+	        return false;
+	    }
+	    return true;
+	};
+
+	/**
+	 * Escapes a reference token
+	 *
+	 * @param str
+	 * @returns {string}
+	 */
+	api.escape = function escape(str) {
+	    return str.toString().replace(/~/g, '~0').replace(/\//g, '~1');
+	};
+
+	/**
+	 * Unescapes a reference token
+	 *
+	 * @param str
+	 * @returns {string}
+	 */
+	api.unescape = function unescape(str) {
+	    return str.replace(/~1/g, '/').replace(/~0/g, '~');
+	};
+
+	/**
+	 * Converts a json pointer into a array of reference tokens
+	 *
+	 * @param pointer
+	 * @returns {Array}
+	 */
+	api.parse = function parse(pointer) {
+	    if (pointer === '') {
+	        return [];
+	    }
+	    if (pointer.charAt(0) !== '/') {
+	        throw new Error('Invalid JSON pointer: ' + pointer);
+	    }
+	    return pointer.substring(1).split(/\//).map(api.unescape);
+	};
+
+	/**
+	 * Builds a json pointer from a array of reference tokens
+	 *
+	 * @param refTokens
+	 * @returns {string}
+	 */
+	api.compile = function compile(refTokens) {
+	    if (refTokens.length === 0) {
+	        return '';
+	    }
+	    return '/' + refTokens.map(api.escape).join('/');
+	};
+
+/***/ },
+/* 4 */
+/***/ function(module, exports) {
+
+	'use strict';
+
+	var hasOwn = Object.prototype.hasOwnProperty;
+	var toString = Object.prototype.toString;
+
+	module.exports = function forEach(obj, fn, ctx) {
+	    if (toString.call(fn) !== '[object Function]') {
+	        throw new TypeError('iterator must be a function');
+	    }
+	    var l = obj.length;
+	    if (l === +l) {
+	        for (var i = 0; i < l; i++) {
+	            fn.call(ctx, obj[i], i, obj);
+	        }
+	    } else {
+	        for (var k in obj) {
+	            if (hasOwn.call(obj, k)) {
+	                fn.call(ctx, obj[k], k, obj);
+	            }
+	        }
+	    }
+	};
 
 /***/ }
 /******/ ]);

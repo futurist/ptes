@@ -6,8 +6,8 @@
 import mTree from './mtree'
 import mOverlay from './overlay'
 
-// import pointer from 'json-pointer'
-// window.pointer = pointer
+import pointer from 'json-pointer'
+window.pointer = pointer
 
 const RECORDING = 'STAGE_RECORDING', PLAYING = 'STAGE_PLAYING', CLIPPING = 'STAGE_CLIPPING', SETUP = 'STAGE_SETUP'
 const INVALID_NAME = '<>:"\\|?*' // '<>:"/\\|?*'
@@ -74,6 +74,7 @@ ws.onopen = function (e) {
         flashTitle(msg.data === RUNNING ? 'PLAYING' : 'PAUSED', true)
       } else {
         clearTitle()
+        alert('Play back complete')
       }
 
       break
@@ -132,7 +133,10 @@ ws.onopen = function (e) {
   ws.onclose = function (code, reason, bClean) {
     console.log('ws error: ', code, reason)
   }
+
+  var heartbeat = setInterval(function () { ws._send({type:'ping'}) }, 10000)
   ws._send({type: 'connection', meta: 'server', name: 'client'})
+
 }
 
 const WS_CALLBACK = {}
@@ -180,7 +184,7 @@ function startStopRec (e, title) {
     // document.title = 'recording...'+title
     flashTitle('RECORDING')
     currentName = 'test' + (+new Date())
-    sc(' startRec("' + btoa(title) + '", "' + currentName + '") ')
+    sc(' startRec("' + btoa(encodeURIComponent(title)) + '", "' + currentName + '") ')
     stage = RECORDING
   } else if (stage == RECORDING) {
     return saveRec(null, true)
@@ -199,6 +203,7 @@ function saveRec(e, save, slient) {
 
 var oncloseSetup = function (arg) {
   hideSetup()
+  console.log(arg)
   const path =JSON.stringify(arg.path)
   if (arg.action=='add') {
     if(confirm('Confirm to begin record new test for path:\n\n    ' + path))

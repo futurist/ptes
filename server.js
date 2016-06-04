@@ -171,8 +171,9 @@ function startRec (title, name) {
     return client_console('cannot record when in playback')
   }
   try {
+    console.log(title)
     // title is base64+JSON-stringify, so decode it
-    title = JSON.parse(atob(title))
+    title = JSON.parse(querystring.unescape(atob(title)))
   } catch(e) { return console.log('startRec: bad title') }
   toPhantom({ type: 'command', meta: 'server', data: 'page.reload()' }, function (msg) {
     if (msg.result === 'success') {
@@ -224,7 +225,7 @@ function stopRec () {
   delete Config.unsaved.path
 
   // var objPath = [DATA_DIR].concat(testPath.split('/'))
-  var objPath = pointer.compile([DATA_DIR].concat(testPath))
+  var objPath = pointer.compile([DATA_DIR].concat(testPath, '', '-'))
   Config.unsaved.span = Date.now() - Config.unsaved.span
 
   // // object path
@@ -233,7 +234,7 @@ function stopRec () {
   // else while(p = a.shift()) b[p] = (b[p] || {}), a.length > 1 ? b = b[p] : b = b[p][a.shift()] = Config.unsaved
   // delete Config.unsaved
 
-  pointer.set(Config, objPath, Config.unsaved)
+  pointer.set(Config, objPath, Config.unsaved.name)
   delete Config.unsaved
 
   fs.writeFileSync(path.join(TEST_FOLDER, name + '.json'), JSON.stringify({ testPath: testPath, clip: PageClip, event: EventCache }))
@@ -262,7 +263,7 @@ wss.on('connection', function connection (ws) {
     ws.send(typeof msg == 'string' ? msg : JSON.stringify(msg))
   }
 
-  var heartbeat = setInterval(function () { ws.send('') }, 10000)
+  var heartbeat = setInterval(function () { ws._send({type:'ping'}) }, 10000)
   ws._send({type: 'ws', msg: 'connected to socket 8080'})
   // console.log('protocolVersion', ws.protocolVersion)
 
@@ -279,7 +280,7 @@ wss.on('connection', function connection (ws) {
     if (typeof msg !== 'object') return
 
     // beat heart ping to keep alive
-    if (msg.type === 'ping')return toPhantom(msg)
+    if (msg.type === 'ping')return
 
     var relay = function () {
       if (ws.name === 'client') {

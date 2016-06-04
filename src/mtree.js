@@ -27,7 +27,7 @@ const INVALID_NAME_REGEXP = new RegExp('[' + INVALID_NAME.replace('\\', '\\\\') 
 const isValidName = function isValidName (name) {
   return !INVALID_NAME_REGEXP.test(name)
 }
-const showInvalidMsg = function showInvalidMsg(v) {
+const showInvalidMsg = function showInvalidMsg (v) {
   v._invalid = true
   alert('invalid text, cannot contain: ' + INVALID_NAME)
 }
@@ -47,7 +47,7 @@ const ARRAY = '[object Array]'
  *
  format:
  {"a":{"b":{"c":{"":["leaf 1"]}}},"abc":123, f:null}
- *        1. every key is folder node;
+ *        1. every key is folder node
  *        2. "":[] is leaf node
  *        3. otherwise, array value is not allowed
  *        4. {abc:123} is shortcut for {abc:{"": [123]}}
@@ -61,22 +61,22 @@ function convertSimpleData (d, prop, path) {
   path = path || []
   if (!d || typeof d !== 'object') {
     // {abc:123} is shortcut for {abc:{"": [123]}}
-    return [Object.assign({text: d, _leaf:true}, prop&&prop(d, path))]
+    return [Object.assign({name: d, _leaf: true}, prop && prop(d, path))]
   }
   if (type.call(d) === ARRAY) {
-    return d.map(function (v,i) {
+    return d.map(function (v, i) {
       return convertSimpleData(v, prop, path.concat(i))
     })
   }
   if (type.call(d) === OBJECT) {
     var node = []
-    for(var k in d) {
-      if (k==='' && type.call(d[k])===ARRAY) {
-        node.push.apply(node, d[k].map(function(v,i) {
-          return type.call(v)===OBJECT ? v : Object.assign({text: v, _leaf:true}, prop&&prop(v, path.concat(['',i])))
+    for (var k in d) {
+      if (k === '' && type.call(d[k]) === ARRAY) {
+        node.push.apply(node, d[k].map(function (v, i) {
+          return type.call(v) === OBJECT ? v : Object.assign({name: v, _leaf: true}, prop && prop(v, path.concat(['', i])))
         }))
-      }else{
-        node.push(Object.assign({text: k, children: convertSimpleData(d[k], prop, path.concat(''+k))}, prop&&prop(k, path)))
+      } else {
+        node.push(Object.assign({name: k, children: convertSimpleData(d[k], prop, path.concat('' + k))}, prop && prop(k, path)))
       }
     }
     return node
@@ -111,7 +111,7 @@ function getArrayPath (arr, path) {
   var texts = []
   for (var i = 0; i < path.length; i++) {
     obj = type.call(obj) === ARRAY ? obj[path[i]] : obj && obj.children && obj.children[path[i]]
-    texts.push(obj.text)
+    texts.push(obj.name||obj.text)
   }
   return {obj, texts}
 }
@@ -196,31 +196,34 @@ var com = {
       return dest
     }
 
+    function oneAction (obj) {
+      return m('a[href=#]', {class: 'action', onmousedown: e => {
+        e.stopPropagation()
+        e.preventDefault()
+        args.onclose(obj)
+      }}, obj.text || obj.action)
+    }
 
-    function getAction(v){
-      if(!args.onclose) return
+    function getAction (v) {
+      if (!args.onclose) return
       const node = []
-      const emptyNode = !v.children || v.children.length==0
+      const emptyNode = !v.children || v.children.length == 0
       const leafNode = (!emptyNode) && v.children && v.children[0]._leaf
-      if(!leafNode && !emptyNode) return node
-      if(!v._leaf){
-        let path = getArrayPath(data, v._path).texts
-        node.push( m('a[href=#]', {class: 'action', onmousedown:e=>{
-          e.stopPropagation()
-          e.preventDefault()
-          if(emptyNode){
-            args.onclose({action:'add', path:path})
-          }else{
-            args.onclose({action:'play', path:path, file: v.children[0].name, url:result.url})
-          }
-        }}, emptyNode?'add':'play'))
-        return node
+      if (!leafNode && !emptyNode) return node
+      let path = getArrayPath(data, v._path).texts
+      if (!v._leaf) {
+        node.push({action: 'add', text: 'Add', path: path})
+      } else {
+        node.push({action: 'play', text: 'Play', path: path, file: v.name || v.text, url: result.url})
       }
+      return node.map(oneAction)
     }
 
     function getText (v) {
       let text = (v.text || '')
-      let node = v.name ? [m('span.name', '[' + v.name + ']'), m('br'), text] : [text]
+      let node = v.name
+            ? [m('span.name', '[' + v.name + ']'), getAction(v), m('br'), text]
+            : [text, getAction(v)]
       return node
     }
 
@@ -446,7 +449,7 @@ var com = {
               v.children ? m('a', v._close ? '+ ' : '- ') : [],
               v._edit
                 ? getInput(v)
-                : m(v._leaf ? 'pre.leaf' : 'span.node', [getText(v), getAction(v)])
+                : m(v._leaf ? 'pre.leaf' : 'span.node', [getText(v)])
             ].concat(v._close ? [] : interTree(v.children, v, path.concat(idx)))
           }
         })

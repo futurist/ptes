@@ -467,35 +467,36 @@
 	 *
 	 format:
 	 {"a":{"b":{"c":{"":["leaf 1"]}}},"abc":123, f:null}
-	 *        1. every key is folder node; "":[] is leaf node
-	 *        2. {abc:123} is shortcut for {abc:{"": [123]}}
+	 *        1. every key is folder node;
+	 *        2. "":[] is leaf node
+	 *        3. otherwise, array value is not allowed
+	 *        4. {abc:123} is shortcut for {abc:{"": [123]}}
 	 *
 	 * @param {object} d - simple object data
-	 * @param {function|any} prop - function(key,val){} to return {object} to merge into current node(s)
-	 * @param {number|any} recurse - recurse deep into level to apply prop()
+	 * @param {function} [prop] - function(key,val){} to return {object} to merge into current
+	 * @param {array} [path] - array path represent root to parent
 	 * @returns {object} tree data object
 	 */
-	function convertSimpleData(d, prop, recurse) {
-	  if (typeof recurse === 'undefined') recurse = 1e9;
-	  if (recurse < 1) prop = null;
+	function convertSimpleData(d, prop, path) {
+	  path = path || [];
 	  if (!d || (typeof d === 'undefined' ? 'undefined' : _typeof(d)) !== 'object') {
 	    // {abc:123} is shortcut for {abc:{"": [123]}}
-	    return [Object.assign({ text: d, _leaf: true }, prop && prop(d))];
+	    return [Object.assign({ text: d, _leaf: true }, prop && prop(d, path))];
 	  }
 	  if (type.call(d) === ARRAY) {
-	    return d.map(function (v) {
-	      return convertSimpleData(v, prop, --recurse);
+	    return d.map(function (v, i) {
+	      return convertSimpleData(v, prop, path.concat(i));
 	    });
 	  }
 	  if (type.call(d) === OBJECT) {
 	    var node = [];
 	    for (var k in d) {
 	      if (k === '' && type.call(d[k]) === ARRAY) {
-	        node.push.apply(node, d[k].map(function (v) {
-	          return type.call(v) === OBJECT ? v : Object.assign({ text: v, _leaf: true }, prop && prop(v));
+	        node.push.apply(node, d[k].map(function (v, i) {
+	          return type.call(v) === OBJECT ? v : Object.assign({ text: v, _leaf: true }, prop && prop(v, path.concat(['', i])));
 	        }));
 	      } else {
-	        node.push(Object.assign({ text: k, children: convertSimpleData(d[k], prop, --recurse) }, prop && prop(k, d[k])));
+	        node.push(Object.assign({ text: k, children: convertSimpleData(d[k], prop, path.concat('' + k)) }, prop && prop(k, path)));
 	      }
 	    }
 	    return node;

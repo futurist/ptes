@@ -236,7 +236,7 @@ function registerEvent () {
   Mousetrap.bind('ctrl+p', function (e) {
     e.preventDefault()
   })
-  Mousetrap.bind('ctrl+s', function (e) {
+  Mousetrap.bind('f4', function (e) {
     e.preventDefault()
     if (stage === SETUP) {
       hideSetup()
@@ -258,13 +258,15 @@ function registerEvent () {
     e.preventDefault()
     stage = CLIPPING
   })
-  Mousetrap.bind('f4', function (e) {
-    if (!currentPath || stage!==RECORDING) return
+  Mousetrap.bind('ctrl+s', function (e) {
     e.preventDefault()
+    if (!currentPath || stage!==RECORDING) return
     sc(' snapKeyFrame("' + currentName + '") ')
     keyframeCount++
   })
   Mousetrap.bind('ctrl+r', function (e) {
+    if (e) e.preventDefault()
+    if(stage!==RECORDING) return
     saveRec(e, false)
   })
 

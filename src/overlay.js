@@ -9,6 +9,9 @@
 }(this, function () {
   'use strict'
 
+
+  var debounce = require('lodash.debounce')
+
   /**
    * @fileOverview Popup toolkit using mithril
    * @name overlay.js
@@ -52,19 +55,18 @@
         root.style.height = ctrl.height + 'px'
         m.redraw()
       }
-      window.addEventListener('resize', onresize)
+      window.addEventListener('resize', debounce(onresize, 200))
       onresize()
     },
     view: function (ctrl, arg) {
       var popup = arg.popup
       popup = popup || {}
       popup.style = popup.style || {}
-
       /* below line for debug purpose */
       // popup.style.border = '1px solid red'
 
       return [
-        m('.overlay-bg',
+        m( '.overlay-bg',
           {
             config: function (e) {
               ctrl.root = e.parentElement
@@ -83,7 +85,7 @@
             }
           }
          ),
-        m('table.overlay',
+        m( 'table.overlay',
           {
             style: {
               'position': 'absolute',
@@ -99,8 +101,8 @@
               // 'background-color': 'rgba(0,0,0,0.5)'
             }
           },
-          m('tr',
-            m('td',
+          m( 'tr',
+             m( 'td',
               {
                 'align': 'center',
                 'valign': 'middle',
@@ -110,12 +112,13 @@
                 }
               },
               [
-                m('div.overlay-content',
+                m( 'div.overlay-content',
                   {
                     onclick: function (e) {
                       ctrl.close = true
                     },
-                    style: popup.style
+                    key: ctrl.height,
+                    style: Object.assign(popup.style||{}, {height:ctrl.height+'px'})
                   },
                   popup.com
                   ? m.component(popup.com, ctrl)

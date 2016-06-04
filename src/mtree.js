@@ -315,7 +315,7 @@ var com = {
     function getInput (v) {
       if (v._leaf) {
         return [
-          m('div', v.name),
+          v.name? m('div', v.name) : [],
           m('textarea', {
             config: el => el.focus(),
             oninput: function (e) {
@@ -333,14 +333,14 @@ var com = {
                 m.redraw()
               }
             }
-          }, v.text)
+          }, v.text||'')
         ]
       } else {
         return m('input', {
           config: el => {
             el.focus()
           },
-          value: v.text,
+          value: v.text||'',
           oninput: function (e) { v.text = this.value; },
           onkeydown: e => {
             if (e.keyCode == 13) return v._edit = false
@@ -435,7 +435,7 @@ var com = {
               ondblclick: function (e) {
                 e.stopPropagation()
                 v._edit = true
-                var oldVal = v.text
+                var oldVal = v.text||''
                 undoList.push(function () {
                   setTimeout(_ => {
                     v.text = oldVal
@@ -446,7 +446,7 @@ var com = {
               },
             }, v),
             children: [
-              v.children ? m('a', v._close ? '+ ' : '- ') : [],
+              v.children ? m('a.switch', v._close ? '+ ' : '- ') : [],
               v._edit
                 ? getInput(v)
                 : m(v._leaf ? 'pre.leaf' : 'span.node', [getText(v)])

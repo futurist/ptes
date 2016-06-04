@@ -468,20 +468,23 @@
 	 format:
 	 {"a":{"b":{"c":{"":["leaf 1"]}}},"abc":123, f:null}
 	 *        1. every key is folder node; "":[] is leaf node
-	 *        2. {abc:123} is shortcut for {abc:{"": 123}}
+	 *        2. {abc:123} is shortcut for {abc:{"": [123]}}
 	 *
 	 * @param {object} d - simple object data
-	 * @param {any} prop - prop to merged into current node
+	 * @param {function|any} prop - function(key,val){} to return {object} to merge into current node(s)
+	 * @param {number|any} recurse - recurse deep into level to apply prop()
 	 * @returns {object} tree data object
 	 */
-	function convertSimpleData(d, prop) {
+	function convertSimpleData(d, prop, recurse) {
+	  if (typeof recurse === 'undefined') recurse = 1e9;
+	  if (recurse < 1) prop = null;
 	  if (!d || (typeof d === 'undefined' ? 'undefined' : _typeof(d)) !== 'object') {
-	    // {abc:123} is shortcut for {abc:{"": 123}}
-	    return [Object.assign({ text: d, _leaf: true }, prop)];
+	    // {abc:123} is shortcut for {abc:{"": [123]}}
+	    return [Object.assign({ text: d, _leaf: true }, prop && prop(d))];
 	  }
 	  if (type.call(d) === ARRAY) {
 	    return d.map(function (v) {
-	      return convertSimpleData(v);
+	      return convertSimpleData(v, prop, --recurse);
 	    });
 	  }
 	  if (type.call(d) === OBJECT) {
@@ -489,10 +492,10 @@
 	    for (var k in d) {
 	      if (k === '' && type.call(d[k]) === ARRAY) {
 	        node.push.apply(node, d[k].map(function (v) {
-	          return type.call(v) === OBJECT ? v : { text: v, _leaf: true };
+	          return type.call(v) === OBJECT ? v : Object.assign({ text: v, _leaf: true }, prop && prop(v));
 	        }));
 	      } else {
-	        node.push({ text: k, children: convertSimpleData(d[k]) });
+	        node.push(Object.assign({ text: k, children: convertSimpleData(d[k], prop, --recurse) }, prop && prop(k, d[k])));
 	      }
 	    }
 	    return node;

@@ -237,7 +237,7 @@ function stopRec () {
   pointer.set(Config, objPath, Config.unsaved.name)
   delete Config.unsaved
 
-  fs.writeFileSync(path.join(TEST_FOLDER, name + '.json'), JSON.stringify({ testPath: testPath, clip: PageClip, event: EventCache }))
+  fs.writeFileSync(path.join(TEST_FOLDER, name + '.json'), JSON.stringify({url:DEFAULT_URL, testPath: testPath, clip: PageClip, event: EventCache }))
   writePtestConfig(Config)
   // reloadPhantom()
 }

@@ -9,7 +9,6 @@
 }(this, function () {
   'use strict'
 
-
   var debounce = require('lodash.debounce')
 
   /**
@@ -66,7 +65,7 @@
       // popup.style.border = '1px solid red'
 
       return [
-        m( '.overlay-bg',
+        m('.overlay-bg',
           {
             config: function (e) {
               ctrl.root = e.parentElement
@@ -85,7 +84,7 @@
             }
           }
          ),
-        m( 'table.overlay',
+        m('table.overlay',
           {
             style: {
               'position': 'absolute',
@@ -101,8 +100,8 @@
               // 'background-color': 'rgba(0,0,0,0.5)'
             }
           },
-          m( 'tr',
-             m( 'td',
+          m('tr',
+            m('td',
               {
                 'align': 'center',
                 'valign': 'middle',
@@ -112,13 +111,13 @@
                 }
               },
               [
-                m( 'div.overlay-content',
+                m('div.overlay-content',
                   {
                     onclick: function (e) {
                       ctrl.close = true
                     },
                     key: ctrl.height,
-                    style: Object.assign(popup.style||{}, {height:ctrl.height+'px'})
+                    style: Object.assign(popup.style || {}, {height: ctrl.height + 'px'})
                   },
                   popup.com
                   ? m.component(popup.com, ctrl)
@@ -131,7 +130,7 @@
     }
   }
 
-  function clearRoot(root) {
+  function clearRoot (root) {
     m.mount(root, null)
     root.classList.remove('overlay-root')
     root.style.display = 'none'
@@ -143,15 +142,15 @@
     if (root) {
       clearRoot(root)
       var callback = root.overlayStack.pop()
-      if(callback) callback.call(this, ret)
+      if (callback) callback.call(this, ret)
     }
   }
   function popupOverlay (root, popup) {
     if (arguments.length < 2) popup = root, root = null
     if (!root) root = '#overlay'
     root = typeof root == 'string' ? document.querySelector(root) : root
-    if (root){
-      root.overlayStack = root.overlayStack||[]
+    if (root) {
+      root.overlayStack = root.overlayStack || []
       root.overlayStack.push(popup.onclose)
       m.mount(root, m.component(overlay, {root: root, popup: popup}))
     }

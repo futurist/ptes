@@ -21,6 +21,7 @@
     "lodash.debounce": "^4.0.6",
     "mithril": "^0.2.0",
     "mkdirp": "^0.5.1",
+    "node-ansi": "^1.1.0",
     "split2": "^2.0.1",
     "util_debounce_throttle": "^1.0.0",
     "util_extend_exclude": "^1.0.4",

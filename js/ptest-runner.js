@@ -62,6 +62,7 @@ function readPtestConfig (toJSON) {
 // https://github.com/Marak/colors.js
 // https://www.linux.com/learn/docs/man/2752-consolecodes4
 // https://en.wikipedia.org/wiki/ANSI_escape_code
+var csi = '\033['
 var codes = {
   bold: [1, 22],
   underline: [4, 24],
@@ -75,10 +76,10 @@ var codes = {
   cyan: [36, 39],
   grey: [90, 39],
 
-  clear_screen: '\u001b[0J\r', // 0J = clear from cursor to bottom; 2J = entire screen
-  clear_line: '\u001b[2K\r',
-  save: '\u001b[s',
-  restore: '\u001b[u',
+  clear_screen: csi+'0J', // 0J = clear from cursor to bottom; 2J = entire screen
+  clear_line: csi+'2K',
+  save: csi+'s',
+  restore: csi+'u',
 }
 
 function _color (str, code) {
@@ -86,14 +87,16 @@ function _color (str, code) {
   var _close = []
   code.split(',').forEach(function (key) {
     var val = codes[key]
-    _open.push('\u001b[' + val[0] + 'm')
-    _close.unshift('\u001b[' + val[1] + 'm')
+    _open.push(csi + val[0] + 'm')
+    _close.unshift(csi + val[1] + 'm')
   })
   return _open.join('') + str + _close.join('')
 }
 
+// see : http://stackoverflow.com/questions/28874665/node-js-cannot-read-property-defaultencoding-of-undefined
+var _putcon = process.stdout.write.bind(process.stdout)  // process.stdout.write
 var _repeat = function (str, n) {return new Array(n + 1).join(str) }
-var _uplines = function (lines) { return '\u001b[' + lines + 'A' + codes.clear_screen }
+var _uplines = function (lines) { return csi + lines + 'A' + codes.clear_screen }
 var _output = []
 var _prevOutput = ''
 var _activeTests = []
@@ -106,20 +109,20 @@ var _statusColor = {
   'slow': 'yellow',
   'unknown': 'grey',
 }
-console.log('') // start test with newline
+// console.log('') // start test with newline
 function _logStatus (str, level, status) {
-  var out = _repeat('  ', level || 0) + _color(str, _statusColor[status || 'unknown'])
-  console.log(out)
+  var out = _repeat('  ', level || 0) + _color(str, _statusColor[status || 'unknown']) + os.EOL + codes.clear_line
+  _putcon(out)
   return out
 }
 var _report = function () {
   if (_prevOutput) {
-    // console.log( codes.restore + codes.clear_screen )
-    console.log(_uplines(_prevOutput.split(os.EOL).length))
+    // _putcon( codes.restore + codes.clear_screen )
+    _putcon(_uplines(_prevOutput.split(os.EOL).length-1))
   }
   _prevOutput = ''
   _output.forEach(function (v) {
-    _prevOutput += _logStatus(v.msg, v.level, v.status) + os.EOL
+    _prevOutput += _logStatus(v.msg, v.level, v.status)
   })
 }
 function afterEach (func) {
@@ -208,7 +211,7 @@ function arrayLast (arr) {
   if (arr.length) return arr[arr.length - 1]
 }
 
-function runTestFile (filename) {
+function runTestFile (filename, testname) {
   // if(!path.extname(filename)) filename+='.json'
   var data = fs.readFileSync(path.join(TEST_FOLDER, filename+'.json'), 'utf8')
   try{
@@ -217,12 +220,13 @@ function runTestFile (filename) {
 
   var testPath = obj.testPath
   if (typeof testPath == 'string') testPath = pointer.parse('/'+testPath)
-  testPath=arrayLast(testPath)
+  // var name = arrayLast(testPath)
+  var name = obj.text || ''
   var url = obj.url || (ptest && ptest.url)
   var span = arrayLast(obj.event).time - obj.event[0].time
   if(!url) return
 
-  it(testPath + '[' + filename + ']', function (done) {
+  it('[' + filename + ']' + name, function (done) {
     var self = this
     this.timeout(span * 2)
     this.slow(span * 1.1)
@@ -276,8 +280,10 @@ if(ptest)
     var iter = function (obj) {
       if (typeof obj != 'object' || !obj) return
       Object.keys(obj).forEach(function(v) {
-        if (obj[v].name) {
-          runTestFile(obj[v].name)
+        if (v==='') {
+          obj[v].forEach(function(f,i) {
+            runTestFile(f)
+          })
         } else {
           describe(v, function () {
             iter(obj[v])

@@ -38,18 +38,18 @@ const showInvalidMsg = function showInvalidMsg (v) {
 // ========================================
 
 // better type check
-const type = {}.toString
-const OBJECT = '[object Object]'
-const ARRAY = '[object Array]'
+var type = {}.toString
+var OBJECT = '[object Object]'
+var ARRAY = '[object Array]'
 
 /**
  * convert simple Object into tree data
  *
  format:
- {"a":{"b":{"c":{"":["leaf 1"]}}},"abc":123, f:null}
+ {"a":{"b":{"c":{"":["leaf 1"]}}},"abc":123, e:[2,3,4], f:null}
  *        1. every key is folder node
  *        2. "":[] is leaf node
- *        3. otherwise, array value is not allowed
+ *        3. except leaf node, array value will return as is
  *        4. {abc:123} is shortcut for {abc:{"": [123]}}
  *
  * @param {object} d - simple object data
@@ -64,9 +64,10 @@ function convertSimpleData (d, prop, path) {
     return [Object.assign({name: d, _leaf: true}, prop && prop(d, path))]
   }
   if (type.call(d) === ARRAY) {
-    return d.map(function (v, i) {
-      return convertSimpleData(v, prop, path.concat(i))
-    })
+    return d
+    // return d.map(function (v, i) {
+    //   return convertSimpleData(v, prop, path.concat(i))
+    // })
   }
   if (type.call(d) === OBJECT) {
     var node = []
@@ -161,7 +162,11 @@ var com = {
       m.request({method: 'GET', url: args.url})
         .then(function (ret) {
           result = ret
-          data = convertSimpleData(result.ptest_data)
+          data = result.map(v=>{
+            v.children=convertSimpleData(v.ptest_data)
+            delete v.ptest_data
+            return v
+          })
           console.log(data)
           m.redraw()
         })
@@ -319,8 +324,8 @@ var com = {
           m('textarea', {
             config: el => el.focus(),
             oninput: function (e) {
-              if (isValidName(this.value)) v.text = this.value
-              else showInvalidMsg(v)
+              // if (isValidName(this.value)) v.text = this.value
+              // else showInvalidMsg(v)
             },
             onkeydown: e => {
               if (e.keyCode == 13 && e.ctrlKey && !v._invalid) {
@@ -336,22 +341,25 @@ var com = {
           }, v.text||'')
         ]
       } else {
-        return m('input', {
-          config: el => {
-            el.focus()
-          },
-          value: v.text||'',
-          oninput: function (e) { v.text = this.value; },
-          onkeydown: e => {
-            if (e.keyCode == 13) return v._edit = false
-            if (e.keyCode == 27) {
-              var undo = undoList.pop()
-              if (undo) undo()
-              v._edit = false
-              m.redraw()
-            }
-          },
-        })
+        return Object.keys(v)
+          .filter(k=>k[0]!=='_' && k!=='children')
+          .map(k=>m('.editline', [
+            m('span', k),
+            m('input', {
+            // config: el => { el.focus() },
+            value: v[k]||'',
+            oninput: function (e) { v[k] = this.value; },
+            onkeydown: e => {
+              if (e.keyCode == 13) return v._edit = false
+              if (e.keyCode == 27) {
+                var undo = undoList.pop()
+                if (undo) undo()
+                v._edit = false
+                m.redraw()
+              }
+            },
+            })
+          ]))
       }
     }
     /**
@@ -385,8 +393,8 @@ var com = {
 
                 if (isInputActive(e.target)) return
                 else if (v._edit && !v._invalid) {
-                  v._edit = false
-                  return
+                  // v._edit = false
+                  // return
                 }
 
                 // Right then Right, do move/copy action

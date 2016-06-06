@@ -59,7 +59,7 @@
 
 	var _overlay2 = _interopRequireDefault(_overlay);
 
-	var _jsonPointer = __webpack_require__(3);
+	var _jsonPointer = __webpack_require__(4);
 
 	var _jsonPointer2 = _interopRequireDefault(_jsonPointer);
 
@@ -477,10 +477,10 @@
 	 * convert simple Object into tree data
 	 *
 	 format:
-	 {"a":{"b":{"c":{"":["leaf 1"]}}},"abc":123, f:null}
+	 {"a":{"b":{"c":{"":["leaf 1"]}}},"abc":123, e:[2,3,4], f:null}
 	 *        1. every key is folder node
 	 *        2. "":[] is leaf node
-	 *        3. otherwise, array value is not allowed
+	 *        3. except leaf node, array value will return as is
 	 *        4. {abc:123} is shortcut for {abc:{"": [123]}}
 	 *
 	 * @param {object} d - simple object data
@@ -495,9 +495,10 @@
 	    return [Object.assign({ name: d, _leaf: true }, prop && prop(d, path))];
 	  }
 	  if (type.call(d) === ARRAY) {
-	    return d.map(function (v, i) {
-	      return convertSimpleData(v, prop, path.concat(i));
-	    });
+	    return d;
+	    // return d.map(function (v, i) {
+	    //   return convertSimpleData(v, prop, path.concat(i))
+	    // })
 	  }
 	  if (type.call(d) === OBJECT) {
 	    var node = [];
@@ -591,7 +592,11 @@
 	    if (args.url) {
 	      m.request({ method: 'GET', url: args.url }).then(function (ret) {
 	        result = ret;
-	        data = convertSimpleData(result.ptest_data);
+	        data = result.map(function (v) {
+	          v.children = convertSimpleData(v.ptest_data);
+	          delete v.ptest_data;
+	          return v;
+	        });
 	        console.log(data);
 	        m.redraw();
 	      });
@@ -749,7 +754,8 @@
 	            return el.focus();
 	          },
 	          oninput: function oninput(e) {
-	            if (isValidName(this.value)) v.text = this.value;else showInvalidMsg(v);
+	            // if (isValidName(this.value)) v.text = this.value
+	            // else showInvalidMsg(v)
 	          },
 	          onkeydown: function onkeydown(e) {
 	            if (e.keyCode == 13 && e.ctrlKey && !v._invalid) {
@@ -764,23 +770,25 @@
 	          }
 	        }, v.text || '')];
 	      } else {
-	        return m('input', {
-	          config: function config(el) {
-	            el.focus();
-	          },
-	          value: v.text || '',
-	          oninput: function oninput(e) {
-	            v.text = this.value;
-	          },
-	          onkeydown: function onkeydown(e) {
-	            if (e.keyCode == 13) return v._edit = false;
-	            if (e.keyCode == 27) {
-	              var undo = undoList.pop();
-	              if (undo) undo();
-	              v._edit = false;
-	              m.redraw();
+	        return Object.keys(v).filter(function (k) {
+	          return k[0] !== '_' && k !== 'children';
+	        }).map(function (k) {
+	          return m('.editline', [m('span', k), m('input', {
+	            // config: el => { el.focus() },
+	            value: v[k] || '',
+	            oninput: function oninput(e) {
+	              v[k] = this.value;
+	            },
+	            onkeydown: function onkeydown(e) {
+	              if (e.keyCode == 13) return v._edit = false;
+	              if (e.keyCode == 27) {
+	                var undo = undoList.pop();
+	                if (undo) undo();
+	                v._edit = false;
+	                m.redraw();
+	              }
 	            }
-	          }
+	          })]);
 	        });
 	      }
 	    }
@@ -812,10 +820,10 @@
 	                // save parent _pos when select node
 	                if (parent) parent._pos = idx;
 
-	                if (isInputActive(e.target)) return;else if (v._edit && !v._invalid) {
-	                  v._edit = false;
-	                  return;
-	                }
+	                if (isInputActive(e.target)) return;else if (v._edit && !v._invalid) {}
+	                // v._edit = false
+	                // return
+
 
 	                // Right then Right, do move/copy action
 	                if (detectRightButton(e)) addGuesture('right');
@@ -1100,7 +1108,7 @@
 	})(undefined, function () {
 	  'use strict';
 
-	  var debounce = __webpack_require__(5);
+	  var debounce = __webpack_require__(3);
 
 	  /**
 	   * @fileOverview Popup toolkit using mithril
@@ -1233,255 +1241,6 @@
 
 /***/ },
 /* 3 */
-/***/ function(module, exports, __webpack_require__) {
-
-	'use strict';
-
-	var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol ? "symbol" : typeof obj; };
-
-	var each = __webpack_require__(4);
-	module.exports = api;
-
-	/**
-	 * Convenience wrapper around the api.
-	 * Calls `.get` when called with an `object` and a `pointer`.
-	 * Calls `.set` when also called with `value`.
-	 * If only supplied `object`, returns a partially applied function, mapped to the object.
-	 *
-	 * @param {Object} obj
-	 * @param {String|Array} pointer
-	 * @param value
-	 * @returns {*}
-	 */
-
-	function api(obj, pointer, value) {
-	    // .set()
-	    if (arguments.length === 3) {
-	        return api.set(obj, pointer, value);
-	    }
-	    // .get()
-	    if (arguments.length === 2) {
-	        return api.get(obj, pointer);
-	    }
-	    // Return a partially applied function on `obj`.
-	    var wrapped = api.bind(api, obj);
-
-	    // Support for oo style
-	    for (var name in api) {
-	        if (api.hasOwnProperty(name)) {
-	            wrapped[name] = api[name].bind(wrapped, obj);
-	        }
-	    }
-	    return wrapped;
-	}
-
-	/**
-	 * Lookup a json pointer in an object
-	 *
-	 * @param {Object} obj
-	 * @param {String|Array} pointer
-	 * @returns {*}
-	 */
-	api.get = function get(obj, pointer) {
-	    var refTokens = Array.isArray(pointer) ? pointer : api.parse(pointer);
-
-	    for (var i = 0; i < refTokens.length; ++i) {
-	        var tok = refTokens[i];
-	        if (!((typeof obj === 'undefined' ? 'undefined' : _typeof(obj)) == 'object' && tok in obj)) {
-	            throw new Error('Invalid reference token: ' + tok);
-	        }
-	        obj = obj[tok];
-	    }
-	    return obj;
-	};
-
-	/**
-	 * Sets a value on an object
-	 *
-	 * @param {Object} obj
-	 * @param {String|Array} pointer
-	 * @param value
-	 */
-	api.set = function set(obj, pointer, value) {
-	    var refTokens = Array.isArray(pointer) ? pointer : api.parse(pointer),
-	        nextTok = refTokens[0];
-
-	    for (var i = 0; i < refTokens.length - 1; ++i) {
-	        var tok = refTokens[i];
-	        if (tok === '-' && Array.isArray(obj)) {
-	            tok = obj.length;
-	        }
-	        nextTok = refTokens[i + 1];
-
-	        if (!(tok in obj)) {
-	            if (nextTok.match(/^(\d+|-)$/)) {
-	                obj[tok] = [];
-	            } else {
-	                obj[tok] = {};
-	            }
-	        }
-	        obj = obj[tok];
-	    }
-	    if (nextTok === '-' && Array.isArray(obj)) {
-	        nextTok = obj.length;
-	    }
-	    obj[nextTok] = value;
-	    return this;
-	};
-
-	/**
-	 * Removes an attribute
-	 *
-	 * @param {Object} obj
-	 * @param {String|Array} pointer
-	 */
-	api.remove = function (obj, pointer) {
-	    var refTokens = Array.isArray(pointer) ? pointer : api.parse(pointer);
-	    var finalToken = refTokens[refTokens.length - 1];
-	    if (finalToken === undefined) {
-	        throw new Error('Invalid JSON pointer for remove: "' + pointer + '"');
-	    }
-	    delete api.get(obj, refTokens.slice(0, -1))[finalToken];
-	};
-
-	/**
-	 * Returns a (pointer -> value) dictionary for an object
-	 *
-	 * @param obj
-	 * @param {function} descend
-	 * @returns {}
-	 */
-	api.dict = function dict(obj, descend) {
-	    var results = {};
-	    api.walk(obj, function (value, pointer) {
-	        results[pointer] = value;
-	    }, descend);
-	    return results;
-	};
-
-	/**
-	 * Iterates over an object
-	 * Iterator: function (value, pointer) {}
-	 *
-	 * @param obj
-	 * @param {function} iterator
-	 * @param {function} descend
-	 */
-	api.walk = function walk(obj, iterator, descend) {
-	    var refTokens = [];
-
-	    descend = descend || function (value) {
-	        var type = Object.prototype.toString.call(value);
-	        return type === '[object Object]' || type === '[object Array]';
-	    };
-
-	    (function next(cur) {
-	        each(cur, function (value, key) {
-	            refTokens.push(String(key));
-	            if (descend(value)) {
-	                next(value);
-	            } else {
-	                iterator(value, api.compile(refTokens));
-	            }
-	            refTokens.pop();
-	        });
-	    })(obj);
-	};
-
-	/**
-	 * Tests if an object has a value for a json pointer
-	 *
-	 * @param obj
-	 * @param pointer
-	 * @returns {boolean}
-	 */
-	api.has = function has(obj, pointer) {
-	    try {
-	        api.get(obj, pointer);
-	    } catch (e) {
-	        return false;
-	    }
-	    return true;
-	};
-
-	/**
-	 * Escapes a reference token
-	 *
-	 * @param str
-	 * @returns {string}
-	 */
-	api.escape = function escape(str) {
-	    return str.toString().replace(/~/g, '~0').replace(/\//g, '~1');
-	};
-
-	/**
-	 * Unescapes a reference token
-	 *
-	 * @param str
-	 * @returns {string}
-	 */
-	api.unescape = function unescape(str) {
-	    return str.replace(/~1/g, '/').replace(/~0/g, '~');
-	};
-
-	/**
-	 * Converts a json pointer into a array of reference tokens
-	 *
-	 * @param pointer
-	 * @returns {Array}
-	 */
-	api.parse = function parse(pointer) {
-	    if (pointer === '') {
-	        return [];
-	    }
-	    if (pointer.charAt(0) !== '/') {
-	        throw new Error('Invalid JSON pointer: ' + pointer);
-	    }
-	    return pointer.substring(1).split(/\//).map(api.unescape);
-	};
-
-	/**
-	 * Builds a json pointer from a array of reference tokens
-	 *
-	 * @param refTokens
-	 * @returns {string}
-	 */
-	api.compile = function compile(refTokens) {
-	    if (refTokens.length === 0) {
-	        return '';
-	    }
-	    return '/' + refTokens.map(api.escape).join('/');
-	};
-
-/***/ },
-/* 4 */
-/***/ function(module, exports) {
-
-	'use strict';
-
-	var hasOwn = Object.prototype.hasOwnProperty;
-	var toString = Object.prototype.toString;
-
-	module.exports = function forEach(obj, fn, ctx) {
-	    if (toString.call(fn) !== '[object Function]') {
-	        throw new TypeError('iterator must be a function');
-	    }
-	    var l = obj.length;
-	    if (l === +l) {
-	        for (var i = 0; i < l; i++) {
-	            fn.call(ctx, obj[i], i, obj);
-	        }
-	    } else {
-	        for (var k in obj) {
-	            if (hasOwn.call(obj, k)) {
-	                fn.call(ctx, obj[k], k, obj);
-	            }
-	        }
-	    }
-	};
-
-/***/ },
-/* 5 */
 /***/ function(module, exports) {
 
 	'use strict';
@@ -1878,6 +1637,255 @@
 	}
 
 	module.exports = debounce;
+
+/***/ },
+/* 4 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+
+	var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol ? "symbol" : typeof obj; };
+
+	var each = __webpack_require__(5);
+	module.exports = api;
+
+	/**
+	 * Convenience wrapper around the api.
+	 * Calls `.get` when called with an `object` and a `pointer`.
+	 * Calls `.set` when also called with `value`.
+	 * If only supplied `object`, returns a partially applied function, mapped to the object.
+	 *
+	 * @param {Object} obj
+	 * @param {String|Array} pointer
+	 * @param value
+	 * @returns {*}
+	 */
+
+	function api(obj, pointer, value) {
+	    // .set()
+	    if (arguments.length === 3) {
+	        return api.set(obj, pointer, value);
+	    }
+	    // .get()
+	    if (arguments.length === 2) {
+	        return api.get(obj, pointer);
+	    }
+	    // Return a partially applied function on `obj`.
+	    var wrapped = api.bind(api, obj);
+
+	    // Support for oo style
+	    for (var name in api) {
+	        if (api.hasOwnProperty(name)) {
+	            wrapped[name] = api[name].bind(wrapped, obj);
+	        }
+	    }
+	    return wrapped;
+	}
+
+	/**
+	 * Lookup a json pointer in an object
+	 *
+	 * @param {Object} obj
+	 * @param {String|Array} pointer
+	 * @returns {*}
+	 */
+	api.get = function get(obj, pointer) {
+	    var refTokens = Array.isArray(pointer) ? pointer : api.parse(pointer);
+
+	    for (var i = 0; i < refTokens.length; ++i) {
+	        var tok = refTokens[i];
+	        if (!((typeof obj === 'undefined' ? 'undefined' : _typeof(obj)) == 'object' && tok in obj)) {
+	            throw new Error('Invalid reference token: ' + tok);
+	        }
+	        obj = obj[tok];
+	    }
+	    return obj;
+	};
+
+	/**
+	 * Sets a value on an object
+	 *
+	 * @param {Object} obj
+	 * @param {String|Array} pointer
+	 * @param value
+	 */
+	api.set = function set(obj, pointer, value) {
+	    var refTokens = Array.isArray(pointer) ? pointer : api.parse(pointer),
+	        nextTok = refTokens[0];
+
+	    for (var i = 0; i < refTokens.length - 1; ++i) {
+	        var tok = refTokens[i];
+	        if (tok === '-' && Array.isArray(obj)) {
+	            tok = obj.length;
+	        }
+	        nextTok = refTokens[i + 1];
+
+	        if (!(tok in obj)) {
+	            if (nextTok.match(/^(\d+|-)$/)) {
+	                obj[tok] = [];
+	            } else {
+	                obj[tok] = {};
+	            }
+	        }
+	        obj = obj[tok];
+	    }
+	    if (nextTok === '-' && Array.isArray(obj)) {
+	        nextTok = obj.length;
+	    }
+	    obj[nextTok] = value;
+	    return this;
+	};
+
+	/**
+	 * Removes an attribute
+	 *
+	 * @param {Object} obj
+	 * @param {String|Array} pointer
+	 */
+	api.remove = function (obj, pointer) {
+	    var refTokens = Array.isArray(pointer) ? pointer : api.parse(pointer);
+	    var finalToken = refTokens[refTokens.length - 1];
+	    if (finalToken === undefined) {
+	        throw new Error('Invalid JSON pointer for remove: "' + pointer + '"');
+	    }
+	    delete api.get(obj, refTokens.slice(0, -1))[finalToken];
+	};
+
+	/**
+	 * Returns a (pointer -> value) dictionary for an object
+	 *
+	 * @param obj
+	 * @param {function} descend
+	 * @returns {}
+	 */
+	api.dict = function dict(obj, descend) {
+	    var results = {};
+	    api.walk(obj, function (value, pointer) {
+	        results[pointer] = value;
+	    }, descend);
+	    return results;
+	};
+
+	/**
+	 * Iterates over an object
+	 * Iterator: function (value, pointer) {}
+	 *
+	 * @param obj
+	 * @param {function} iterator
+	 * @param {function} descend
+	 */
+	api.walk = function walk(obj, iterator, descend) {
+	    var refTokens = [];
+
+	    descend = descend || function (value) {
+	        var type = Object.prototype.toString.call(value);
+	        return type === '[object Object]' || type === '[object Array]';
+	    };
+
+	    (function next(cur) {
+	        each(cur, function (value, key) {
+	            refTokens.push(String(key));
+	            if (descend(value)) {
+	                next(value);
+	            } else {
+	                iterator(value, api.compile(refTokens));
+	            }
+	            refTokens.pop();
+	        });
+	    })(obj);
+	};
+
+	/**
+	 * Tests if an object has a value for a json pointer
+	 *
+	 * @param obj
+	 * @param pointer
+	 * @returns {boolean}
+	 */
+	api.has = function has(obj, pointer) {
+	    try {
+	        api.get(obj, pointer);
+	    } catch (e) {
+	        return false;
+	    }
+	    return true;
+	};
+
+	/**
+	 * Escapes a reference token
+	 *
+	 * @param str
+	 * @returns {string}
+	 */
+	api.escape = function escape(str) {
+	    return str.toString().replace(/~/g, '~0').replace(/\//g, '~1');
+	};
+
+	/**
+	 * Unescapes a reference token
+	 *
+	 * @param str
+	 * @returns {string}
+	 */
+	api.unescape = function unescape(str) {
+	    return str.replace(/~1/g, '/').replace(/~0/g, '~');
+	};
+
+	/**
+	 * Converts a json pointer into a array of reference tokens
+	 *
+	 * @param pointer
+	 * @returns {Array}
+	 */
+	api.parse = function parse(pointer) {
+	    if (pointer === '') {
+	        return [];
+	    }
+	    if (pointer.charAt(0) !== '/') {
+	        throw new Error('Invalid JSON pointer: ' + pointer);
+	    }
+	    return pointer.substring(1).split(/\//).map(api.unescape);
+	};
+
+	/**
+	 * Builds a json pointer from a array of reference tokens
+	 *
+	 * @param refTokens
+	 * @returns {string}
+	 */
+	api.compile = function compile(refTokens) {
+	    if (refTokens.length === 0) {
+	        return '';
+	    }
+	    return '/' + refTokens.map(api.escape).join('/');
+	};
+
+/***/ },
+/* 5 */
+/***/ function(module, exports) {
+
+	'use strict';
+
+	var hasOwn = Object.prototype.hasOwnProperty;
+	var toString = Object.prototype.toString;
+
+	module.exports = function forEach(obj, fn, ctx) {
+	    if (toString.call(fn) !== '[object Function]') {
+	        throw new TypeError('iterator must be a function');
+	    }
+	    var l = obj.length;
+	    if (l === +l) {
+	        for (var i = 0; i < l; i++) {
+	            fn.call(ctx, obj[i], i, obj);
+	        }
+	    } else {
+	        for (var k in obj) {
+	            if (hasOwn.call(obj, k)) {
+	                fn.call(ctx, obj[k], k, obj);
+	            }
+	        }
+	    }
+	};
 
 /***/ }
 /******/ ]);

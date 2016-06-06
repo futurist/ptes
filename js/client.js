@@ -229,7 +229,7 @@
 	  });
 	}
 
-	function startStopRec(e, title) {
+	function startStopRec(e, title, folder) {
 	  if (e) e.preventDefault();
 	  // let title = ''
 	  if (stage == null) {
@@ -245,7 +245,7 @@
 	    // document.title = 'recording...'+title
 	    flashTitle('RECORDING');
 	    currentName = 'test' + +new Date();
-	    sc(' startRec("' + btoa(encodeURIComponent(title)) + '", "' + currentName + '") ');
+	    sc(' startRec("' + folder + '", "' + btoa(encodeURIComponent(title)) + '", "' + currentName + '") ');
 	    stage = RECORDING;
 	  } else if (stage == RECORDING) {
 	    return saveRec(null, true);
@@ -264,10 +264,9 @@
 
 	var oncloseSetup = function oncloseSetup(arg) {
 	  hideSetup();
-	  console.log(arg);
 	  var path = JSON.stringify(arg.path);
 	  if (arg.action == 'add') {
-	    if (confirm('Confirm to begin record new test for path:\n\n    ' + path)) startStopRec(null, path);
+	    if (confirm('Confirm to begin record new test for path:\n\n    ' + path + '\n    ' + arg.folder)) startStopRec(null, path, arg.folder);
 	  }
 	  if (arg.action == 'play') {
 	    stage = PLAYING;
@@ -549,6 +548,29 @@
 	}
 
 	/**
+	 * Search standard tree data, with key,val match
+	 * @param {} data
+	 * @param {} key
+	 * @param {} val
+	 * @returns {}
+	 */
+	function deepFindKV(data, key, val, path) {
+	  var i = 0,
+	      found,
+	      path = path || [];
+	  for (; i < data.length; i++) {
+	    if (data[i][key] === val) {
+	      return { path: path, item: data[i] };
+	    } else if (data[i].children) {
+	      found = deepFindKV(data[i].children, key, val, path.concat(i));
+	      if (found) {
+	        return found;
+	      }
+	    }
+	  }
+	}
+
+	/**
 	 * isInputactive - check whether user is editing
 	 * @returns {boolean}
 	 */
@@ -592,15 +614,23 @@
 	    if (args.url) {
 	      m.request({ method: 'GET', url: args.url }).then(function (ret) {
 	        result = ret;
-	        data = result.map(function (v) {
-	          v.children = convertSimpleData(v.ptest_data);
-	          delete v.ptest_data;
-	          return v;
-	        });
+
+	        // data = result.map(v => {
+	        //   v.children = convertSimpleData(v.ptest_data, (k, path)=>({desc:''}))
+	        //   delete v.ptest_data
+	        //   return v
+	        // })
+
+	        data = result;
 	        console.log(data);
 	        m.redraw();
 	      });
 	    }
+
+	    var getRootVar = function getRootVar(path, key) {
+	      return result[path[0]][key];
+	    };
+
 	    /**
 	     * selected =>{
 	     node {object} selected node object
@@ -647,10 +677,12 @@
 	      var leafNode = !emptyNode && v.children && v.children[0]._leaf;
 	      if (!leafNode && !emptyNode) return node;
 	      var path = getArrayPath(data, v._path).texts;
+	      var folder = getRootVar(v._path, 'folder');
+	      var url = getRootVar(v._path, 'url');
 	      if (!v._leaf) {
-	        node.push({ action: 'add', text: 'Add', path: path });
+	        node.push({ action: 'add', text: 'Add', path: path, folder: folder });
 	      } else {
-	        node.push({ action: 'play', text: 'Play', path: path, file: v.name, url: result.url });
+	        node.push({ action: 'play', text: 'Play', path: path, file: v.name, folder: folder, url: url });
 	      }
 	      return node.map(oneAction);
 	    }
@@ -719,7 +751,7 @@
 	      if (!parent) return;
 	      var arr = parent.children = parent.children || [];
 	      var idx = isAfter ? _idx + 1 : _idx;
-	      var insert = existsNode || { text: '', _edit: true };
+	      var insert = existsNode || { name: '', desc: '', _edit: true };
 	      arr.splice(idx, 0, insert);
 	      selected = { node: arr[idx], idx: idx, parent: parent };
 	      undoList.push(function () {
@@ -734,7 +766,7 @@
 	      v.children = v.children || [];
 	      var arr = v.children;
 	      var idx = isLast ? v.children.length : 0;
-	      var insert = existsNode || { text: '', _edit: true };
+	      var insert = existsNode || { name: '', desc: '', _edit: true };
 	      v._close = false;
 	      if (isLeaf) insert._leaf = true;
 	      v.children.splice(idx, 0, insert);
@@ -805,7 +837,7 @@
 	      return !arr ? [] : {
 	        tag: 'ul', attrs: {}, children: arr.map(function (v, idx) {
 	          v._path = path.concat(idx);
-	          v = typeof v == 'string' ? { text: v } : v;
+	          v = typeof v == 'string' ? { name: v, desc: '' } : v;
 	          if ({}.toString.call(v) != '[object Object]') return v;
 	          return {
 	            tag: 'li',
@@ -887,7 +919,7 @@
 	                });
 	              }
 	            }, v),
-	            children: [v.children ? m('a.switch', v._close ? '+ ' : '- ') : [], v._edit ? getInput(v) : m(v._leaf ? 'pre.leaf' : 'span.node', [getText(v)])].concat(v._close ? [] : interTree(v.children, v, path.concat(idx)))
+	            children: [v.children ? m('a.switch', v._close ? '+ ' : '- ') : [], v._edit ? getInput(v, path) : m(v._leaf ? 'pre.leaf' : 'span.node', [getText(v, path)])].concat(v._close ? [] : interTree(v.children, v, path.concat(idx)))
 	          };
 	        })
 	      };

@@ -13,31 +13,29 @@ var pointer = require('json-pointer')
 var commander = require('commander')
 var pkg = require('../package.json')
 
-var ptest
+var TEST_FOLDER = './'
 var testList
-var DATA_DIR = 'ptest_data/'
-var TEST_FOLDER = DATA_DIR = path.join(DATA_DIR, '.') // remove ending sep(/ or \\)
+var ptest = readPtestConfig(true)
 
 commander
   .version(pkg.version)
-  .option('-d, --dir [testDir]', 'read test data from dir, can be relative', '')
+  .option('-d, --dir [testDir]', 'read ptest.json file from dir, can be relative', '')
   .option('-l, --list', 'check test folder and list available tests', '')
   .parse(process.argv)
 
 var cmdArgs = (commander.args)
 
 if(commander.list){
-  console.log(readPtestConfig())
+  console.log(ptest)
   process.exit()
 }
 if(commander.dir){
-  TEST_FOLDER = path.join(commander.dir, DATA_DIR)
+  TEST_FOLDER = commander.dir
 }
 if(cmdArgs.length){
   testList = cmdArgs
-}else{
-  ptest = readPtestConfig(true)
 }
+
 
 function readPtestConfig (toJSON) {
   var content = ''
@@ -51,7 +49,7 @@ function readPtestConfig (toJSON) {
     } else {
       console.log('please run server from folder:', TEST_FOLDER)
     }
-    return process.exit()
+    return process.exit(1)
   }
   return toJSON ? json : content
 }
@@ -186,19 +184,19 @@ process.on('SIGINT', function () { clearTest() })
 process.on('exit', function (code) { clearTest() })
 
 // test part
-function getPath (file) {
-  return path.join(TEST_FOLDER, file)
+function getPath (testFolder, file) {
+  return path.join(testFolder, file)
 }
-function compareImage (imageID, done) {
+function compareImage (testFolder, imageID, done) {
   var a = imageID
   var b = imageID + '_test.png'
   var diff = imageID + '_diff.png'
   imageDiff({
-    actualImage: getPath(a),
-    expectedImage: getPath(b),
-    diffImage: getPath(diff),
+    actualImage: getPath(testFolder, a),
+    expectedImage: getPath(testFolder, b),
+    diffImage: getPath(testFolder, diff),
   }, function (err, imagesAreSame) {
-    err || !imagesAreSame ? done('failed compare ' + b) : done()
+    err || !imagesAreSame ? done('failed compare ' + testFolder + '/' + b) : done()
   })
 }
 
@@ -211,22 +209,25 @@ function arrayLast (arr) {
   if (arr.length) return arr[arr.length - 1]
 }
 
-function runTestFile (filename, testname) {
+function runTestFile (fileName) {
+  var root = getTestRoot(ptest, fileName)
+  var testFolder = path.join(TEST_FOLDER, root.folder)
+  var url = root.url
   // if(!path.extname(filename)) filename+='.json'
-  var data = fs.readFileSync(path.join(TEST_FOLDER, filename+'.json'), 'utf8')
+  var data = fs.readFileSync(path.join(testFolder, fileName+'.json'), 'utf8')
   try{
     var obj = JSON.parse(data)
-  }catch(e){ throw new Error('bad json from file:', filename)}
+  }catch(e){ throw new Error('bad json from file:', fileName)}
 
   var testPath = obj.testPath
   if (typeof testPath == 'string') testPath = pointer.parse('/'+testPath)
   // var name = arrayLast(testPath)
   var name = obj.text || ''
-  var url = obj.url || (ptest && ptest.url)
+  if(obj.url) url = obj.url
   var span = arrayLast(obj.event).time - obj.event[0].time
   if(!url) return
 
-  it('[' + filename + ']' + name, function (done) {
+  it('[' + fileName + ']' + name, function (done) {
     var self = this
     this.timeout(span * 2)
     this.slow(span * 1.1)
@@ -236,11 +237,11 @@ function runTestFile (filename, testname) {
     var phantom = spawn('phantomjs', [
       '--config',
       path.join('.', 'phantom.config'),
-      path.join('.', 'ptest-phantom.js'),
+      path.join(__dirname, 'ptest-phantom.js'),
       url,
-      filename
+      fileName
     ], {
-      cwd: path.join(TEST_FOLDER)
+      cwd: path.join(testFolder)
     })
 
     phantom.stdout.pipe(split2()).on('data', function (line) {
@@ -251,7 +252,7 @@ function runTestFile (filename, testname) {
           var msg = JSON.parse(line.substr(1))
           switch (msg.type) {
           case 'compareImage':
-            compareImage(msg.data, function (err) {
+            compareImage(testFolder, msg.data, function (err) {
               self.submsg(util.format('(%s / %s)', msg.cur, msg.total))
               if (err) return done(err)
               if (msg.meta == 'last') return done()
@@ -275,25 +276,6 @@ function runTestFile (filename, testname) {
 }
 
 
-if(ptest)
-  describe('ptest for ' + ptest.url, function () {
-    var iter = function (obj) {
-      if (typeof obj != 'object' || !obj) return
-      Object.keys(obj).forEach(function(v) {
-        if (v==='') {
-          obj[v].forEach(function(f,i) {
-            runTestFile(f)
-          })
-        } else {
-          describe(v, function () {
-            iter(obj[v])
-          })
-        }
-
-      })
-    }
-    iter(ptest[DATA_DIR])
-  })
 
 if(testList)
   describe('ptest for custom test files', function(){
@@ -301,3 +283,54 @@ if(testList)
       runTestFile(v)
     })
   })
+else
+  if(ptest)
+    ptest.forEach(function (p) {
+      describe('ptest for ' + p.name, function () {
+        var folder = p.folder
+        var iter = function (obj) {
+          if (typeof obj != 'object' || !obj) return
+          obj.forEach(function(v) {
+            if (v._leaf) {
+              runTestFile(v.name)
+            } else {
+              describe(v.name, function () {
+                iter(v.children)
+              })
+            }
+          })
+        }
+        iter(p['children'])
+      })
+    })
+
+
+//
+// Helper Function
+
+/**
+ * Search standard tree data, with key,val match
+ * @param {} data
+ * @param {} key
+ * @param {} val
+ * @returns {}
+ */
+function deepFindKV (data, key, val, path) {
+  var i = 0, found, path=path||[]
+  for (; i < data.length; i++) {
+    if (data[i][key] === val) {
+      return {path:path, item:data[i]}
+    } else if (data[i].children) {
+      found = deepFindKV(data[i].children, key, val, path.concat(i))
+      if (found) {
+        return found
+      }
+    }
+  }
+}
+
+function getTestRoot(data, filename) {
+  var found = deepFindKV(data, 'name', filename)
+  return found ? data[found.path[0]] : null
+}
+

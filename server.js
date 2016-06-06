@@ -30,9 +30,8 @@ var HTTP_HOST = '0.0.0.0'
 var HTTP_PORT = 8080
 var WS_PORT = 1280
 var DATA_DIR = 'ptest_data/'
-DATA_DIR = path.join(DATA_DIR, '.') // remove ending sep(/ or \\)
-var TEST_FOLDER = path.join(DATA_DIR)
-var TEST_FILE = ''
+var TEST_FOLDER = './'
+var TEST_FILE = ''              // test_dir/test12345.json
 
 commander
   .version(pkg.version)
@@ -48,13 +47,13 @@ if (!commander.list && !cmdArgs.length) {
 }
 if (cmdArgs[0] !== 'debug') DEFAULT_URL = cmdArgs[0]
 if (commander.list) { }
-if (commander.dir) TEST_FOLDER = path.join(commander.dir, DATA_DIR)
+if (commander.dir) TEST_FOLDER = commander.dir
 if (commander.play) {
   TEST_FILE = commander.play
   // TEST_FILE = path.join(TEST_FOLDER, TEST_FILE)
   // TEST_FILE = path.extname(TEST_FILE) ? TEST_FILE : TEST_FILE + '.json'
 }
-console.log(__dirname, __filename, process.cwd(), DEFAULT_URL, TEST_FOLDER, TEST_FILE)
+// console.log(__dirname, __filename, process.cwd(), DEFAULT_URL, TEST_FOLDER, TEST_FILE)
 
 // convert to absolute path
 // TEST_FOLDER = path.isAbsolute(TEST_FOLDER) ? TEST_FOLDER : path.join(process.cwd(), TEST_FOLDER)
@@ -63,7 +62,7 @@ mkdirp(TEST_FOLDER, function (err) {
   if (err) return console.log(err)
   // copyFileSync(path.join(__dirname, 'js/ptest-runner.js'), path.join(TEST_FOLDER, '../ptest-runner.js'))
   copyFileSync(path.join(__dirname, './phantom.config'), path.join(TEST_FOLDER, 'phantom.config'))
-  copyFileSync(path.join(__dirname, 'js/ptest-phantom.js'), path.join(TEST_FOLDER, 'ptest-phantom.js'))
+  // copyFileSync(path.join(__dirname, 'js/ptest-phantom.js'), path.join(TEST_FOLDER, 'ptest-phantom.js'))
 })
 
 var ROUTE = {
@@ -141,7 +140,6 @@ var EventCache = []
 var ViewportCache = []
 var PageClip = {}
 var Config = {url: DEFAULT_URL}
-Config[DATA_DIR] = {}
 
 var ImageName = ''
 var PlayCount = 0
@@ -154,27 +152,30 @@ var Options = {
 //
 // function begin
 function snapShot (name) {
-  toPhantom({ type: 'snapshot', data: path.join(TEST_FOLDER, name) })
+  toPhantom({ type: 'snapshot', data: path.join(TEST_FOLDER, DATA_DIR, name) })
 }
 function showDiff (a, b) {
+  var folder = path.join(TEST_FOLDER, DATA_DIR)
   imageDiff({
-    actualImage: path.join(TEST_FOLDER, (a || 'a.png')),
-    expectedImage: path.join(TEST_FOLDER, (b || 'b.png')),
-    diffImage: path.join(TEST_FOLDER, 'diff_' + b),
+    actualImage: path.join(folder, (a || 'a.png')),
+    expectedImage: path.join(folder, (b || 'b.png')),
+    diffImage: path.join(folder, 'diff_' + b),
   }, function (err, imagesAreSame) {
     console.log(err, imagesAreSame)
   })
 }
 
-function startRec (title, name) {
+function startRec (folder, title, name) {
   if (playBack.status != STOPPED) {
     return client_console('cannot record when in playback')
   }
   try {
-    console.log(title)
     // title is base64+JSON-stringify, so decode it
     title = JSON.parse(querystring.unescape(atob(title)))
   } catch(e) { return console.log('startRec: bad title') }
+
+  DATA_DIR = folder
+
   toPhantom({ type: 'command', meta: 'server', data: 'page.reload()' }, function (msg) {
     if (msg.result === 'success') {
       name = name || 'test' + (+new Date())
@@ -190,6 +191,7 @@ function startRec (title, name) {
 }
 
 function writePtestConfig (Config) {
+  console.log(Config)
   fs.writeFileSync(path.join(TEST_FOLDER , 'ptest.json'), JSON.stringify(Config, null, 2))
 }
 
@@ -215,7 +217,7 @@ function stopRec () {
   const name = Config.unsaved.name
   // var Config = {unsaved:{path:'a/b'}}
   try {
-    mkdirp.sync(path.join(TEST_FOLDER, name))
+    mkdirp.sync(path.join(TEST_FOLDER, DATA_DIR, name))
   } catch(e) {
     throw e
   }
@@ -224,8 +226,8 @@ function stopRec () {
   var testPath = Config.unsaved.path
   delete Config.unsaved.path
 
-  // var objPath = [DATA_DIR].concat(testPath.split('/'))
-  var objPath = pointer.compile([DATA_DIR].concat(testPath, '', '-'))
+  var objPath = pointer.compile(simplePathToStandardPath(Config, testPath, true).concat('-'))
+
   Config.unsaved.span = Date.now() - Config.unsaved.span
 
   // // object path
@@ -234,16 +236,33 @@ function stopRec () {
   // else while(p = a.shift()) b[p] = (b[p] || {}), a.length > 1 ? b = b[p] : b = b[p][a.shift()] = Config.unsaved
   // delete Config.unsaved
 
-  pointer.set(Config, objPath, Config.unsaved.name)
+  pointer.set(Config, objPath, {_leaf:true, name:Config.unsaved.name, desc:''})
   delete Config.unsaved
 
-  fs.writeFileSync(path.join(TEST_FOLDER, name + '.json'), JSON.stringify({url:DEFAULT_URL, testPath: testPath, clip: PageClip, event: EventCache }))
+  fs.writeFileSync(path.join(TEST_FOLDER, DATA_DIR, name + '.json'), JSON.stringify({url:DEFAULT_URL, testPath: testPath, clip: PageClip, event: EventCache }))
   writePtestConfig(Config)
   // reloadPhantom()
 }
 
-function snapKeyFrame (testPath) {
-  var name = path.join(testPath, String(+new Date()) + '.png')
+function simplePathToStandardPath(data, path, newIfNotFound) {
+  var newPath = []
+  path.forEach((p,idx)=>{
+    var i = data.findIndex(v=>v.name==p)
+    if(newIfNotFound && i===-1){
+      data.push({name:p, children:[]})
+      newPath.push(data.length-1)
+    }else{
+      newPath.push(i)
+    }
+    var d = data.find(v=>v.name==p)
+    data=d.children
+    newPath.push('children')
+  })
+  return newPath
+}
+
+function snapKeyFrame (testName) {
+  var name = path.join(testName, String(+new Date()) + '.png')
   console.log('------snapshot:', name)
   snapShot(name)
   EventCache.push({ time: Date.now(), msg: _util._extend({}, { type: 'snapshot', data: name }) })
@@ -422,7 +441,7 @@ class EventPlayBack {
             // client_console(e.time, e.msg.type, e.msg.data)
             if (e.msg) {
               if (e.msg.type === 'snapshot') {
-                console.log(e.msg.data)
+                console.log('msg:snapshot', e.msg.data)
                 snapShot(e.msg.data.replace('.png', '_last.png'))
               } else {
                 toPhantom(e.msg)
@@ -522,10 +541,39 @@ function stopPhantom () {
   if (phantom && phantom.connected) phantom.kill()
 }
 
+
+/**
+ * Search standard tree data, with key,val match
+ * @param {} data
+ * @param {} key
+ * @param {} val
+ * @returns {}
+ */
+function deepFindKV (data, key, val, path) {
+  var i = 0, found, path=path||[]
+  for (; i < data.length; i++) {
+    if (data[i][key] === val) {
+      return {path:path, item:data[i]}
+    } else if (data[i].children) {
+      found = deepFindKV(data[i].children, key, val, path.concat(i))
+      if (found) {
+        return found
+      }
+    }
+  }
+}
+
+function getTestRoot(filename) {
+  var found = deepFindKV(Config, 'name', filename)
+  return found ? Config[found.path[0]] : null
+}
+
 function playTestFile (filename, url) {
-  // console.log(path.join(TEST_FOLDER, filename))
+  var root = getTestRoot(filename)
+  if(!root) return
+  DATA_DIR = root.folder
   if (!path.extname(filename)) filename += '.json'
-  fs.readFile(path.join(TEST_FOLDER, filename), 'utf8', (err, data) => {
+  fs.readFile(path.join(TEST_FOLDER, DATA_DIR, filename), 'utf8', (err, data) => {
     if (err) {
       console.log('invalid json format', filename)
       return process.exit()

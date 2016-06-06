@@ -118,6 +118,27 @@ function getArrayPath (arr, path) {
 }
 
 /**
+ * Search standard tree data, with key,val match
+ * @param {} data
+ * @param {} key
+ * @param {} val
+ * @returns {}
+ */
+function deepFindKV (data, key, val, path) {
+  var i = 0, found, path=path||[]
+  for (; i < data.length; i++) {
+    if (data[i][key] === val) {
+      return {path:path, item:data[i]}
+    } else if (data[i].children) {
+      found = deepFindKV(data[i].children, key, val, path.concat(i))
+      if (found) {
+        return found
+      }
+    }
+  }
+}
+
+/**
  * isInputactive - check whether user is editing
  * @returns {boolean}
  */
@@ -162,15 +183,23 @@ var com = {
       m.request({method: 'GET', url: args.url})
         .then(function (ret) {
           result = ret
-          data = result.map(v=>{
-            v.children=convertSimpleData(v.ptest_data)
-            delete v.ptest_data
-            return v
-          })
+
+          // data = result.map(v => {
+          //   v.children = convertSimpleData(v.ptest_data, (k, path)=>({desc:''}))
+          //   delete v.ptest_data
+          //   return v
+          // })
+
+          data = result
           console.log(data)
           m.redraw()
         })
     }
+
+    var getRootVar = function (path, key) {
+      return result[path[0]][key]
+    }
+
     /**
      * selected =>{
      node {object} selected node object
@@ -216,10 +245,12 @@ var com = {
       const leafNode = (!emptyNode) && v.children && v.children[0]._leaf
       if (!leafNode && !emptyNode) return node
       let path = getArrayPath(data, v._path).texts
+      let folder = getRootVar(v._path, 'folder')
+      let url = getRootVar(v._path, 'url')
       if (!v._leaf) {
-        node.push({action: 'add', text: 'Add', path: path})
+        node.push({action: 'add', text: 'Add', path: path, folder:folder})
       } else {
-        node.push({action: 'play', text: 'Play', path: path, file: v.name, url: result.url})
+        node.push({action: 'play', text: 'Play', path: path, file: v.name, folder:folder, url: url})
       }
       return node.map(oneAction)
     }
@@ -289,7 +320,7 @@ var com = {
       if (!parent)return
       var arr = parent.children = parent.children || []
       var idx = isAfter ? _idx + 1 : _idx
-      var insert = existsNode || {text: '', _edit: true}
+      var insert = existsNode || {name: '', desc:'', _edit: true}
       arr.splice(idx, 0, insert)
       selected = { node: arr[idx], idx: idx, parent: parent }
       undoList.push(function () {
@@ -304,7 +335,7 @@ var com = {
       v.children = v.children || []
       var arr = v.children
       var idx = isLast ? v.children.length : 0
-      var insert = existsNode || {text: '', _edit: true}
+      var insert = existsNode || {name: '', desc:'', _edit: true}
       v._close = false
       if (isLeaf) insert._leaf = true
       v.children.splice(idx, 0, insert)
@@ -320,11 +351,11 @@ var com = {
     function getInput (v) {
       if (v._leaf) {
         return [
-          v.name? m('div', v.name) : [],
+          v.name ? m('div', v.name) : [],
           m('textarea', {
             config: el => el.focus(),
             oninput: function (e) {
-              v.desc=this.value
+              v.desc = this.value
               // if (isValidName(this.value)) v.desc = this.value
               // else showInvalidMsg(v)
             },
@@ -339,26 +370,26 @@ var com = {
                 m.redraw()
               }
             }
-          }, v.desc||'')
+          }, v.desc || '')
         ]
       } else {
         return Object.keys(v)
-          .filter(k=>k[0]!=='_' && k!=='children')
-          .map(k=>m('.editline', [
+          .filter(k => k[0] !== '_' && k !== 'children')
+          .map(k => m('.editline', [
             m('span', k),
             m('input', {
-            // config: el => { el.focus() },
-            value: v[k]||'',
-            oninput: function (e) { v[k] = this.value; },
-            onkeydown: e => {
-              if (e.keyCode == 13) return v._edit = false
-              if (e.keyCode == 27) {
-                var undo = undoList.pop()
-                if (undo) undo()
-                v._edit = false
-                m.redraw()
-              }
-            },
+              // config: el => { el.focus() },
+              value: v[k] || '',
+              oninput: function (e) { v[k] = this.value; },
+              onkeydown: e => {
+                if (e.keyCode == 13) return v._edit = false
+                if (e.keyCode == 27) {
+                  var undo = undoList.pop()
+                  if (undo) undo()
+                  v._edit = false
+                  m.redraw()
+                }
+              },
             })
           ]))
       }
@@ -375,7 +406,7 @@ var com = {
       return !arr ? [] : {
         tag: 'ul', attrs: {}, children: arr.map((v, idx) => {
           v._path = path.concat(idx)
-          v = typeof v == 'string' ? {text: v} : v
+          v = typeof v == 'string' ? {name: v, desc:''} : v
           if ({}.toString.call(v) != '[object Object]') return v
           return {
             tag: 'li',
@@ -446,8 +477,8 @@ var com = {
                 v._edit = true
                 var oldVal = {}
                 Object.keys(v)
-                  .filter(k=>k[0]!=='_'&&k!=='children')
-                  .forEach(k=>oldVal[k]=v[k])
+                  .filter(k => k[0] !== '_' && k !== 'children')
+                  .forEach(k => oldVal[k] = v[k])
                 undoList.push(function () {
                   setTimeout(_ => {
                     Object.assign(v, oldVal)
@@ -460,8 +491,8 @@ var com = {
             children: [
               v.children ? m('a.switch', v._close ? '+ ' : '- ') : [],
               v._edit
-                ? getInput(v)
-                : m(v._leaf ? 'pre.leaf' : 'span.node', [getText(v)])
+                ? getInput(v, path)
+                : m(v._leaf ? 'pre.leaf' : 'span.node', [getText(v, path)])
             ].concat(v._close ? [] : interTree(v.children, v, path.concat(idx)))
           }
         })

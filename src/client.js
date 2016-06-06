@@ -163,7 +163,7 @@ function cc (str, isPhantom) {
   })
 }
 
-function startStopRec (e, title) {
+function startStopRec (e, title, folder) {
   if (e) e.preventDefault()
   // let title = ''
   if (stage == null) {
@@ -184,7 +184,7 @@ function startStopRec (e, title) {
     // document.title = 'recording...'+title
     flashTitle('RECORDING')
     currentName = 'test' + (+new Date())
-    sc(' startRec("' + btoa(encodeURIComponent(title)) + '", "' + currentName + '") ')
+    sc(' startRec("'+folder+'", "' + btoa(encodeURIComponent(title)) + '", "' + currentName + '") ')
     stage = RECORDING
   } else if (stage == RECORDING) {
     return saveRec(null, true)
@@ -203,11 +203,10 @@ function saveRec(e, save, slient) {
 
 var oncloseSetup = function (arg) {
   hideSetup()
-  console.log(arg)
   const path =JSON.stringify(arg.path)
   if (arg.action=='add') {
-    if(confirm('Confirm to begin record new test for path:\n\n    ' + path))
-      startStopRec(null, path)
+    if(confirm('Confirm to begin record new test for path:\n\n    ' + path+'\n    '+ arg.folder))
+      startStopRec(null, path, arg.folder)
   }
   if(arg.action=='play'){
     stage = PLAYING

@@ -112,7 +112,7 @@ function getArrayPath (arr, path) {
   var texts = []
   for (var i = 0; i < path.length; i++) {
     obj = type.call(obj) === ARRAY ? obj[path[i]] : obj && obj.children && obj.children[path[i]]
-    texts.push(obj.name||obj.text)
+    texts.push(obj.name)
   }
   return {obj, texts}
 }
@@ -219,13 +219,13 @@ var com = {
       if (!v._leaf) {
         node.push({action: 'add', text: 'Add', path: path})
       } else {
-        node.push({action: 'play', text: 'Play', path: path, file: v.name || v.text, url: result.url})
+        node.push({action: 'play', text: 'Play', path: path, file: v.name, url: result.url})
       }
       return node.map(oneAction)
     }
 
     function getText (v) {
-      let text = (v.text || '')
+      let text = (v.desc || '')
       let node = v.name
             ? [m('span.name', '[' + v.name + ']'), getAction(v), m('br'), text]
             : [text, getAction(v)]
@@ -324,7 +324,8 @@ var com = {
           m('textarea', {
             config: el => el.focus(),
             oninput: function (e) {
-              // if (isValidName(this.value)) v.text = this.value
+              v.desc=this.value
+              // if (isValidName(this.value)) v.desc = this.value
               // else showInvalidMsg(v)
             },
             onkeydown: e => {
@@ -338,7 +339,7 @@ var com = {
                 m.redraw()
               }
             }
-          }, v.text||'')
+          }, v.desc||'')
         ]
       } else {
         return Object.keys(v)
@@ -443,10 +444,13 @@ var com = {
               ondblclick: function (e) {
                 e.stopPropagation()
                 v._edit = true
-                var oldVal = v.text||''
+                var oldVal = {}
+                Object.keys(v)
+                  .filter(k=>k[0]!=='_'&&k!=='children')
+                  .forEach(k=>oldVal[k]=v[k])
                 undoList.push(function () {
                   setTimeout(_ => {
-                    v.text = oldVal
+                    Object.assign(v, oldVal)
                     v._edit = false
                     m.redraw()
                   })

@@ -543,7 +543,7 @@
 	  var texts = [];
 	  for (var i = 0; i < path.length; i++) {
 	    obj = type.call(obj) === ARRAY ? obj[path[i]] : obj && obj.children && obj.children[path[i]];
-	    texts.push(obj.name || obj.text);
+	    texts.push(obj.name);
 	  }
 	  return { obj: obj, texts: texts };
 	}
@@ -650,13 +650,13 @@
 	      if (!v._leaf) {
 	        node.push({ action: 'add', text: 'Add', path: path });
 	      } else {
-	        node.push({ action: 'play', text: 'Play', path: path, file: v.name || v.text, url: result.url });
+	        node.push({ action: 'play', text: 'Play', path: path, file: v.name, url: result.url });
 	      }
 	      return node.map(oneAction);
 	    }
 
 	    function getText(v) {
-	      var text = v.text || '';
+	      var text = v.desc || '';
 	      var node = v.name ? [m('span.name', '[' + v.name + ']'), getAction(v), m('br'), text] : [text, getAction(v)];
 	      return node;
 	    }
@@ -754,7 +754,8 @@
 	            return el.focus();
 	          },
 	          oninput: function oninput(e) {
-	            // if (isValidName(this.value)) v.text = this.value
+	            v.desc = this.value;
+	            // if (isValidName(this.value)) v.desc = this.value
 	            // else showInvalidMsg(v)
 	          },
 	          onkeydown: function onkeydown(e) {
@@ -768,7 +769,7 @@
 	              m.redraw();
 	            }
 	          }
-	        }, v.text || '')];
+	        }, v.desc || '')];
 	      } else {
 	        return Object.keys(v).filter(function (k) {
 	          return k[0] !== '_' && k !== 'children';
@@ -871,10 +872,15 @@
 	              ondblclick: function ondblclick(e) {
 	                e.stopPropagation();
 	                v._edit = true;
-	                var oldVal = v.text || '';
+	                var oldVal = {};
+	                Object.keys(v).filter(function (k) {
+	                  return k[0] !== '_' && k !== 'children';
+	                }).forEach(function (k) {
+	                  return oldVal[k] = v[k];
+	                });
 	                undoList.push(function () {
 	                  setTimeout(function (_) {
-	                    v.text = oldVal;
+	                    Object.assign(v, oldVal);
 	                    v._edit = false;
 	                    m.redraw();
 	                  });

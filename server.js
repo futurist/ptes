@@ -618,3 +618,11 @@ function init () {
 init()
 
 
+//
+// Clear function
+function clearTest () {
+  if(phantom) phantom.kill()
+}
+
+process.on('SIGINT', function () { clearTest() })
+process.on('exit', function (code) { clearTest() })

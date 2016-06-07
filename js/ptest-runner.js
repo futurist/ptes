@@ -61,7 +61,7 @@ function readPtestConfig (toJSON) {
 // https://www.linux.com/learn/docs/man/2752-consolecodes4
 // https://en.wikipedia.org/wiki/ANSI_escape_code
 var csi = '\033['
-var codes = {
+var ansi = {
   bold: [1, 22],
   underline: [4, 24],
   inverse: [7, 27],
@@ -76,6 +76,11 @@ var codes = {
 
   clear_screen: csi+'0J', // 0J = clear from cursor to bottom; 2J = entire screen
   clear_line: csi+'2K',
+  cursor_column_0: csi+'0G',
+  cursor_up: function(n){ return csi + (n||1) + 'A'},
+  cursor_down: function(n){ return csi + (n||1) + 'B'},
+  scroll_up: function(n){return csi+(n||1)+'S'},           // scroll up n lines, new line add to bottom; NOT ANSI.SYS
+  scroll_down: function(n){return csi+(n||1)+'T'},           // scroll down n lines, new line add to top; NOT ANSI.SYS
   save: csi+'s',
   restore: csi+'u',
 }
@@ -84,7 +89,7 @@ function _color (str, code) {
   var _open = []
   var _close = []
   code.split(',').forEach(function (key) {
-    var val = codes[key]
+    var val = ansi[key]
     _open.push(csi + val[0] + 'm')
     _close.unshift(csi + val[1] + 'm')
   })
@@ -94,7 +99,6 @@ function _color (str, code) {
 // see : http://stackoverflow.com/questions/28874665/node-js-cannot-read-property-defaultencoding-of-undefined
 var _putcon = process.stdout.write.bind(process.stdout)  // process.stdout.write
 var _repeat = function (str, n) {return new Array(n + 1).join(str) }
-var _uplines = function (lines) { return csi + lines + 'A' + codes.clear_screen }
 var _output = []
 var _prevOutput = ''
 var _activeTests = []
@@ -107,16 +111,20 @@ var _statusColor = {
   'slow': 'yellow',
   'unknown': 'grey',
 }
-// console.log('') // start test with newline
+
 function _logStatus (str, level, status) {
-  var out = _repeat('  ', level || 0) + _color(str, _statusColor[status || 'unknown']) + os.EOL + codes.clear_line
+  var out = ansi.clear_line + _repeat('  ', level || 0) + _color(str, _statusColor[status || 'unknown']) + os.EOL
   _putcon(out)
   return out
 }
 var _report = function () {
   if (_prevOutput) {
-    // _putcon( codes.restore + codes.clear_screen )
-    _putcon(_uplines(_prevOutput.split(os.EOL).length-1))
+    var total = _prevOutput.split(os.EOL).length-1
+    var height = process.stdout.rows
+    var scroll = total - height
+    _putcon(ansi.cursor_up(Math.min(height, total)) + ansi.cursor_column_0)
+    // TODO: when total lines exceed term height, scroll down?
+    if(scroll>0) _putcon(ansi.scroll_down(scroll) + ansi.cursor_up(scroll))
   }
   _prevOutput = ''
   _output.forEach(function (v) {

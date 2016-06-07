@@ -22,10 +22,12 @@
 
 let css = {}
 
+import UndoManager from './undo-manager'
+
 const INVALID_NAME = '<>:"\\|?*\/' // '<>:"/\\|?*'
 const INVALID_NAME_REGEXP = new RegExp('[' + INVALID_NAME.replace('\\', '\\\\') + ']', 'g')
-const isValidName = function isValidName (name) {
-  return !INVALID_NAME_REGEXP.test(name)
+const isValidName = function isValidName (name, v) {
+  return name !== '' && !INVALID_NAME_REGEXP.test(name)
 }
 const showInvalidMsg = function showInvalidMsg (v) {
   v._invalid = true
@@ -125,10 +127,10 @@ function getArrayPath (arr, path) {
  * @returns {}
  */
 function deepFindKV (data, key, val, path) {
-  var i = 0, found, path=path||[]
+  var i = 0, found, path = path || []
   for (; i < data.length; i++) {
-    if (data[i][key] === val) {
-      return {path:path, item:data[i]}
+    if ((new RegExp(val)).test(data[i][key])) {
+      return {path: path, item: data[i]}
     } else if (data[i].children) {
       found = deepFindKV(data[i].children, key, val, path.concat(i))
       if (found) {
@@ -136,6 +138,24 @@ function deepFindKV (data, key, val, path) {
       }
     }
   }
+}
+
+function cleanData (data, store) {
+  store = store || []
+  data.forEach((v, i) => {
+    if (v && typeof v == 'object') {
+      const d = {}
+      store.push(d)
+      Object.keys(v).forEach(k => {
+        if (['_leaf'].indexOf(k) > -1 || k[0] !== '_' && k !== 'children') d[k] = v[k]
+      })
+      if (v.children && Array.isArray(v.children)) {
+        d.children = []
+        cleanData(v.children, d.children)
+      }
+    }
+  })
+  return store
 }
 
 /**
@@ -212,6 +232,23 @@ var com = {
     var target = null
     // undoList array for manage undo
     var undoList = []
+    var addToUndo = function(f) {
+      undoList.push(f)
+      return f
+    }
+    var undoManager = new UndoManager()
+    undoManager.setCallback(function() {
+      console.log(undoManager.getCommands())
+    })
+    var undoRedo = function(redo, undo) {
+      undoManager.add({redo, undo})
+      return redo
+    }
+    var redoList = []
+    var addToRedo = function(f) {
+      redoList.push(f)
+      return f
+    }
     // Mouse guesture store array
     var mouseGuesture = []
 
@@ -243,14 +280,14 @@ var com = {
       const node = []
       const emptyNode = !v.children || v.children.length == 0
       const leafNode = (!emptyNode) && v.children && v.children[0]._leaf
-      if (!leafNode && !emptyNode) return node
+      // if (!leafNode && !emptyNode) return node
       let path = getArrayPath(data, v._path).texts
       let folder = getRootVar(v._path, 'folder')
       let url = getRootVar(v._path, 'url')
       if (!v._leaf) {
-        node.push({action: 'add', text: 'Add', path: path, folder:folder})
+        node.push({action: 'add', text: 'Add', path: path, folder: folder})
       } else {
-        node.push({action: 'play', text: 'Play', path: path, file: v.name, folder:folder, url: url})
+        node.push({action: 'play', text: 'Play', path: path, file: v.name, folder: folder, url: url})
       }
       return node.map(oneAction)
     }
@@ -298,17 +335,34 @@ var com = {
      * @param {} idx
      */
     function deleteNode (parent, idx) {
-      if (!parent)return
+      if (!parent) {
+        var oldData = data[idx]
+        undoRedo(
+          function() {
+            data.splice(idx, 1)
+          },
+          function() {
+            data.splice(idx, 0, oldData)
+          }
+        )()
+        return
+      }
+
       var arr = parent.children = parent.children || []
-      var oldStack = [ arr[idx], parent.children, parent._close ]
-      undoList.push(function () {
-        parent._close = oldStack.pop()
-        parent.children = oldStack.pop()
-        parent.children.splice(idx, 0, oldStack.pop())
-      })
-      arr.splice(idx, 1)
-      // if it's no child, remove +/- symbol in parent
-      if (parent && !arr.length) delete parent.children, delete parent._close
+      var oldStack=[]
+      undoRedo(
+        function() {
+          oldStack.push(arr[idx], arr, parent._close)
+          arr.splice(idx, 1)
+          // if it's no child, remove +/- symbol in parent
+          if (parent && !arr.length) delete parent.children, delete parent._close
+        },
+        function () {
+          parent._close = oldStack.pop()
+          parent.children = oldStack.pop()
+          parent.children.splice(idx, 0, oldStack.pop())
+        }
+      )()
     }
     function insertNode (node, parent, _idx, isAfter) {
       return addNode(parent, _idx, isAfter, node)
@@ -317,17 +371,32 @@ var com = {
       return addChildNode(v, isLast, v._leaf, node)
     }
     function addNode (parent, _idx, isAfter, existsNode) {
-      if (!parent)return
-      var arr = parent.children = parent.children || []
       var idx = isAfter ? _idx + 1 : _idx
-      var insert = existsNode || {name: '', desc:'', _edit: true}
-      arr.splice(idx, 0, insert)
-      selected = { node: arr[idx], idx: idx, parent: parent }
-      undoList.push(function () {
+      if (!parent) {
+        var newNode = {name: '', url: '', folder: 'ptest_data', _edit: true}
+        undoRedo(
+          function() {
+            data.splice(idx, 0, newNode)
+          },
+          function () {
+            data.splice(idx, 1)
+          }
+        )()
+        return
+      }
+      var arr = parent.children = parent.children || []
+      var insert = existsNode || {name: '', desc: '', _edit: true}
+      undoRedo(
+        function() {
+        arr.splice(idx, 0, insert)
+        selected = { node: arr[idx], idx: idx, parent: parent }
+        },
+        function () {
         // cannot rely on stored index, coze it maybe changed, recalc again
         var idx = parent.children.indexOf(insert)
         parent.children.splice(idx, 1)
-      })
+        }
+      )()
       return selected
     }
     function addChildNode (v, isLast, isLeaf, existsNode) {
@@ -335,18 +404,34 @@ var com = {
       v.children = v.children || []
       var arr = v.children
       var idx = isLast ? v.children.length : 0
-      var insert = existsNode || {name: '', desc:'', _edit: true}
+      var insert = existsNode || {name: '', desc: '', _edit: true}
       v._close = false
       if (isLeaf) insert._leaf = true
-      v.children.splice(idx, 0, insert)
-      selected = { node: v.children[idx], idx: idx, parent: v }
-      undoList.push(function () {
+      var selected = {}
+      undoRedo(
+        function() {
+          v.children = arr
+        v.children.splice(idx, 0, insert)
+        selected.node = v.children[idx]
+        selected.idx = idx
+        selected.parent = v
+        },
+        function () {
         // cannot rely on stored index, coze it maybe changed, recalc again
         var idx = arr.indexOf(insert)
         arr.splice(idx, 1)
         if (!v.children.length) delete v.children, delete v._close
-      })
+        }
+      )()
       return selected
+    }
+
+    function invalidInput (v) {
+      if (!v.name) return v._invalid = 'name'
+      if ('folder' in v && !v.folder) return v._invalid = 'folder'
+      if ('url' in v && !v.url) return v._invalid = 'url'
+      delete v._invalid
+      return ''
     }
     function getInput (v) {
       if (v._leaf) {
@@ -360,12 +445,12 @@ var com = {
               // else showInvalidMsg(v)
             },
             onkeydown: e => {
-              if (e.keyCode == 13 && e.ctrlKey && !v._invalid) {
+              if (e.keyCode == 13 && e.ctrlKey) {
+                if (invalidInput(v)) return alert(v._invalid + ' cannot be empty')
                 return v._edit = false
               }
               if (e.keyCode == 27) {
-                var undo = undoList.pop()
-                if (undo) undo()
+                undoManager.undo()
                 v._edit = false
                 m.redraw()
               }
@@ -382,10 +467,12 @@ var com = {
               value: v[k] || '',
               oninput: function (e) { v[k] = this.value; },
               onkeydown: e => {
-                if (e.keyCode == 13) return v._edit = false
+                if (e.keyCode == 13) {
+                  if (invalidInput(v)) return alert(v._invalid + ' cannot be empty')
+                  return v._edit = false
+                }
                 if (e.keyCode == 27) {
-                  var undo = undoList.pop()
-                  if (undo) undo()
+                  undoManager.undo()
                   v._edit = false
                   m.redraw()
                 }
@@ -406,7 +493,7 @@ var com = {
       return !arr ? [] : {
         tag: 'ul', attrs: {}, children: arr.map((v, idx) => {
           v._path = path.concat(idx)
-          v = typeof v == 'string' ? {name: v, desc:''} : v
+          v = typeof v == 'string' ? {name: v, desc: ''} : v
           if ({}.toString.call(v) != '[object Object]') return v
           return {
             tag: 'li',
@@ -479,13 +566,17 @@ var com = {
                 Object.keys(v)
                   .filter(k => k[0] !== '_' && k !== 'children')
                   .forEach(k => oldVal[k] = v[k])
-                undoList.push(function () {
+                undoRedo(
+                  function() {
+                  },
+                  function () {
                   setTimeout(_ => {
                     Object.assign(v, oldVal)
                     v._edit = false
                     m.redraw()
                   })
-                })
+                  }
+                )()
               },
             }, v),
             children: [
@@ -499,8 +590,34 @@ var com = {
       }
     }
 
+    function saveConfig () {
+      var d = cleanData(data)
+      m.request({method: 'POST', url: '/config', data: d})
+        .then(function (ret) {
+          if (!ret.error) alert('Save success.')
+        },
+              function (e) {
+                alert('save failed!!!!' + e.message)
+              }
+             )
+    }
+
+    function getMenu () {
+      return m('a.button[href=#]',
+               {
+                 onclick: e => {
+                   e.preventDefault()
+                   saveConfig()
+                 }
+               },
+               'Save'
+              )
+    }
     ctrl.getDom = _ => {
-      return interTree(data)
+      return [
+        m('.menu', getMenu()),
+        interTree(data)
+      ]
     }
     ctrl.onunload = e => {
       for (var k in keyMap) {
@@ -595,10 +712,18 @@ var com = {
       addNode(selected.parent, selected.idx, true)
       m.redraw()
     }
+    function doRedo (e) {
+      if (isInputActive()) return
+      undoManager.redo()
+      // var redo = redoList.pop()
+      // if(redo) redo()
+      m.redraw(true)
+    }
     function doUndo (e) {
       if (isInputActive()) return
-      var undo = undoList.pop()
-      if (undo) undo()
+      undoManager.undo()
+      // var undo = undoList.pop()
+      // if (undo) undo()
       m.redraw(true)
     }
     function doMove (e) {
@@ -616,6 +741,10 @@ var com = {
       var isChild = !e.shiftKey
       if (!target || !selected || !target.parent || !selected.parent) return
       if (selected.node === target.node) return
+      if (selected.node._leaf) return
+      if (selected.node._path.length && selected.node._path[0] != target.node._path[0]) {
+        return alert('Cannot move test between pages!')
+      }
       if (target.type) {
         var insert = _clone(target.node)
         if (isChild) {
@@ -630,11 +759,8 @@ var com = {
         if (target.type == 'moving') {
           deleteNode(target.parent, target.idx)
           target = null
-          undoList.push(function () {
-            undoList.pop()()
-            undoList.pop()()
-          })
         }
+        undoManager.setGroup('moveNode',2)
       }
       m.redraw()
     }
@@ -663,6 +789,7 @@ var com = {
       'ctrl+enter': doAddChildLeaf,
       'shift+enter': doAddChildTrunk,
       'enter': doAddNode,
+      'ctrl+y': doRedo,
       'ctrl+z': doUndo,
       'ctrl+c': doCopy,
       'ctrl+x': doMove,

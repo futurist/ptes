@@ -60,7 +60,7 @@ function readPtestConfig (toJSON) {
 // https://github.com/Marak/colors.js
 // https://www.linux.com/learn/docs/man/2752-consolecodes4
 // https://en.wikipedia.org/wiki/ANSI_escape_code
-var csi = '\033['
+var CSI = '\033['
 var ansi = {
   bold: [1, 22],
   underline: [4, 24],
@@ -74,15 +74,15 @@ var ansi = {
   cyan: [36, 39],
   grey: [90, 39],
 
-  clear_screen: csi+'0J', // 0J = clear from cursor to bottom; 2J = entire screen
-  clear_line: csi+'2K',
-  cursor_column_0: csi+'0G',
-  cursor_up: function(n){ return csi + (n||1) + 'A'},
-  cursor_down: function(n){ return csi + (n||1) + 'B'},
-  scroll_up: function(n){return csi+(n||1)+'S'},           // scroll up n lines, new line add to bottom; NOT ANSI.SYS
-  scroll_down: function(n){return csi+(n||1)+'T'},           // scroll down n lines, new line add to top; NOT ANSI.SYS
-  save: csi+'s',
-  restore: csi+'u',
+  clear_screen: CSI+'0J', // 0J = clear from cursor to bottom; 2J = entire screen
+  clear_line: CSI+'2K',
+  cursor_column_0: CSI+'0G',
+  cursor_up: function(n){ return CSI + (n||1) + 'A'},
+  cursor_down: function(n){ return CSI + (n||1) + 'B'},
+  scroll_up: function(n){return CSI+(n||1)+'S'},           // scroll up n lines, new line add to bottom; NOT ANSI.SYS
+  scroll_down: function(n){return CSI+(n||1)+'T'},           // scroll down n lines, new line add to top; NOT ANSI.SYS
+  save: CSI+'s',
+  restore: CSI+'u',
 }
 
 function _color (str, code) {
@@ -90,8 +90,8 @@ function _color (str, code) {
   var _close = []
   code.split(',').forEach(function (key) {
     var val = ansi[key]
-    _open.push(csi + val[0] + 'm')
-    _close.unshift(csi + val[1] + 'm')
+    _open.push(CSI + val[0] + 'm')
+    _close.unshift(CSI + val[1] + 'm')
   })
   return _open.join('') + str + _close.join('')
 }

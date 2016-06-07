@@ -23,6 +23,7 @@
     "mkdirp": "^0.5.1",
     "node-ansi": "^1.1.0",
     "split2": "^2.0.1",
+    "undo-manager": "^1.0.5",
     "util_debounce_throttle": "^1.0.0",
     "util_extend_exclude": "^1.0.4",
     "ws": "^1.0.1"

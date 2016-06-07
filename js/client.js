@@ -418,7 +418,7 @@
 
 /***/ },
 /* 1 */
-/***/ function(module, exports) {
+/***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 
@@ -427,6 +427,12 @@
 	});
 
 	var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol ? "symbol" : typeof obj; };
+
+	var _undoManager = __webpack_require__(10);
+
+	var _undoManager2 = _interopRequireDefault(_undoManager);
+
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 	/**
 	 * DATA format:
@@ -454,8 +460,8 @@
 
 	var INVALID_NAME = '<>:"\\|?*\/'; // '<>:"/\\|?*'
 	var INVALID_NAME_REGEXP = new RegExp('[' + INVALID_NAME.replace('\\', '\\\\') + ']', 'g');
-	var isValidName = function isValidName(name) {
-	  return !INVALID_NAME_REGEXP.test(name);
+	var isValidName = function isValidName(name, v) {
+	  return name !== '' && !INVALID_NAME_REGEXP.test(name);
 	};
 	var showInvalidMsg = function showInvalidMsg(v) {
 	  v._invalid = true;
@@ -559,7 +565,7 @@
 	      found,
 	      path = path || [];
 	  for (; i < data.length; i++) {
-	    if (data[i][key] === val) {
+	    if (new RegExp(val).test(data[i][key])) {
 	      return { path: path, item: data[i] };
 	    } else if (data[i].children) {
 	      found = deepFindKV(data[i].children, key, val, path.concat(i));
@@ -568,6 +574,26 @@
 	      }
 	    }
 	  }
+	}
+
+	function cleanData(data, store) {
+	  store = store || [];
+	  data.forEach(function (v, i) {
+	    if (v && (typeof v === 'undefined' ? 'undefined' : _typeof(v)) == 'object') {
+	      (function () {
+	        var d = {};
+	        store.push(d);
+	        Object.keys(v).forEach(function (k) {
+	          if (['_leaf'].indexOf(k) > -1 || k[0] !== '_' && k !== 'children') d[k] = v[k];
+	        });
+	        if (v.children && Array.isArray(v.children)) {
+	          d.children = [];
+	          cleanData(v.children, d.children);
+	        }
+	      })();
+	    }
+	  });
+	  return store;
 	}
 
 	/**
@@ -643,6 +669,23 @@
 	    var target = null;
 	    // undoList array for manage undo
 	    var undoList = [];
+	    var addToUndo = function addToUndo(f) {
+	      undoList.push(f);
+	      return f;
+	    };
+	    var undoManager = new _undoManager2.default();
+	    undoManager.setCallback(function () {
+	      console.log(undoManager.getCommands());
+	    });
+	    var undoRedo = function undoRedo(redo, undo) {
+	      undoManager.add({ redo: redo, undo: undo });
+	      return redo;
+	    };
+	    var redoList = [];
+	    var addToRedo = function addToRedo(f) {
+	      redoList.push(f);
+	      return f;
+	    };
 	    // Mouse guesture store array
 	    var mouseGuesture = [];
 
@@ -675,7 +718,7 @@
 	      var node = [];
 	      var emptyNode = !v.children || v.children.length == 0;
 	      var leafNode = !emptyNode && v.children && v.children[0]._leaf;
-	      if (!leafNode && !emptyNode) return node;
+	      // if (!leafNode && !emptyNode) return node
 	      var path = getArrayPath(data, v._path).texts;
 	      var folder = getRootVar(v._path, 'folder');
 	      var url = getRootVar(v._path, 'url');
@@ -729,17 +772,28 @@
 	     * @param {} idx
 	     */
 	    function deleteNode(parent, idx) {
-	      if (!parent) return;
+	      if (!parent) {
+	        var oldData = data[idx];
+	        undoRedo(function () {
+	          data.splice(idx, 1);
+	        }, function () {
+	          data.splice(idx, 0, oldData);
+	        })();
+	        return;
+	      }
+
 	      var arr = parent.children = parent.children || [];
-	      var oldStack = [arr[idx], parent.children, parent._close];
-	      undoList.push(function () {
+	      var oldStack = [];
+	      undoRedo(function () {
+	        oldStack.push(arr[idx], arr, parent._close);
+	        arr.splice(idx, 1);
+	        // if it's no child, remove +/- symbol in parent
+	        if (parent && !arr.length) delete parent.children, delete parent._close;
+	      }, function () {
 	        parent._close = oldStack.pop();
 	        parent.children = oldStack.pop();
 	        parent.children.splice(idx, 0, oldStack.pop());
-	      });
-	      arr.splice(idx, 1);
-	      // if it's no child, remove +/- symbol in parent
-	      if (parent && !arr.length) delete parent.children, delete parent._close;
+	      })();
 	    }
 	    function insertNode(node, parent, _idx, isAfter) {
 	      return addNode(parent, _idx, isAfter, node);
@@ -748,17 +802,26 @@
 	      return addChildNode(v, isLast, v._leaf, node);
 	    }
 	    function addNode(parent, _idx, isAfter, existsNode) {
-	      if (!parent) return;
-	      var arr = parent.children = parent.children || [];
 	      var idx = isAfter ? _idx + 1 : _idx;
+	      if (!parent) {
+	        var newNode = { name: '', url: '', folder: 'ptest_data', _edit: true };
+	        undoRedo(function () {
+	          data.splice(idx, 0, newNode);
+	        }, function () {
+	          data.splice(idx, 1);
+	        })();
+	        return;
+	      }
+	      var arr = parent.children = parent.children || [];
 	      var insert = existsNode || { name: '', desc: '', _edit: true };
-	      arr.splice(idx, 0, insert);
-	      selected = { node: arr[idx], idx: idx, parent: parent };
-	      undoList.push(function () {
+	      undoRedo(function () {
+	        arr.splice(idx, 0, insert);
+	        selected = { node: arr[idx], idx: idx, parent: parent };
+	      }, function () {
 	        // cannot rely on stored index, coze it maybe changed, recalc again
 	        var idx = parent.children.indexOf(insert);
 	        parent.children.splice(idx, 1);
-	      });
+	      })();
 	      return selected;
 	    }
 	    function addChildNode(v, isLast, isLeaf, existsNode) {
@@ -769,15 +832,28 @@
 	      var insert = existsNode || { name: '', desc: '', _edit: true };
 	      v._close = false;
 	      if (isLeaf) insert._leaf = true;
-	      v.children.splice(idx, 0, insert);
-	      selected = { node: v.children[idx], idx: idx, parent: v };
-	      undoList.push(function () {
+	      var selected = {};
+	      undoRedo(function () {
+	        v.children = arr;
+	        v.children.splice(idx, 0, insert);
+	        selected.node = v.children[idx];
+	        selected.idx = idx;
+	        selected.parent = v;
+	      }, function () {
 	        // cannot rely on stored index, coze it maybe changed, recalc again
 	        var idx = arr.indexOf(insert);
 	        arr.splice(idx, 1);
 	        if (!v.children.length) delete v.children, delete v._close;
-	      });
+	      })();
 	      return selected;
+	    }
+
+	    function invalidInput(v) {
+	      if (!v.name) return v._invalid = 'name';
+	      if ('folder' in v && !v.folder) return v._invalid = 'folder';
+	      if ('url' in v && !v.url) return v._invalid = 'url';
+	      delete v._invalid;
+	      return '';
 	    }
 	    function getInput(v) {
 	      if (v._leaf) {
@@ -791,12 +867,12 @@
 	            // else showInvalidMsg(v)
 	          },
 	          onkeydown: function onkeydown(e) {
-	            if (e.keyCode == 13 && e.ctrlKey && !v._invalid) {
+	            if (e.keyCode == 13 && e.ctrlKey) {
+	              if (invalidInput(v)) return alert(v._invalid + ' cannot be empty');
 	              return v._edit = false;
 	            }
 	            if (e.keyCode == 27) {
-	              var undo = undoList.pop();
-	              if (undo) undo();
+	              undoManager.undo();
 	              v._edit = false;
 	              m.redraw();
 	            }
@@ -813,10 +889,12 @@
 	              v[k] = this.value;
 	            },
 	            onkeydown: function onkeydown(e) {
-	              if (e.keyCode == 13) return v._edit = false;
+	              if (e.keyCode == 13) {
+	                if (invalidInput(v)) return alert(v._invalid + ' cannot be empty');
+	                return v._edit = false;
+	              }
 	              if (e.keyCode == 27) {
-	                var undo = undoList.pop();
-	                if (undo) undo();
+	                undoManager.undo();
 	                v._edit = false;
 	                m.redraw();
 	              }
@@ -910,13 +988,13 @@
 	                }).forEach(function (k) {
 	                  return oldVal[k] = v[k];
 	                });
-	                undoList.push(function () {
+	                undoRedo(function () {}, function () {
 	                  setTimeout(function (_) {
 	                    Object.assign(v, oldVal);
 	                    v._edit = false;
 	                    m.redraw();
 	                  });
-	                });
+	                })();
 	              }
 	            }, v),
 	            children: [v.children ? m('a.switch', v._close ? '+ ' : '- ') : [], v._edit ? getInput(v, path) : m(v._leaf ? 'pre.leaf' : 'span.node', [getText(v, path)])].concat(v._close ? [] : interTree(v.children, v, path.concat(idx)))
@@ -925,8 +1003,25 @@
 	      };
 	    }
 
+	    function saveConfig() {
+	      var d = cleanData(data);
+	      m.request({ method: 'POST', url: '/config', data: d }).then(function (ret) {
+	        if (!ret.error) alert('Save success.');
+	      }, function (e) {
+	        alert('save failed!!!!' + e.message);
+	      });
+	    }
+
+	    function getMenu() {
+	      return m('a.button[href=#]', {
+	        onclick: function onclick(e) {
+	          e.preventDefault();
+	          saveConfig();
+	        }
+	      }, 'Save');
+	    }
 	    ctrl.getDom = function (_) {
-	      return interTree(data);
+	      return [m('.menu', getMenu()), interTree(data)];
 	    };
 	    ctrl.onunload = function (e) {
 	      for (var k in keyMap) {
@@ -1030,10 +1125,18 @@
 	      addNode(selected.parent, selected.idx, true);
 	      m.redraw();
 	    }
+	    function doRedo(e) {
+	      if (isInputActive()) return;
+	      undoManager.redo();
+	      // var redo = redoList.pop()
+	      // if(redo) redo()
+	      m.redraw(true);
+	    }
 	    function doUndo(e) {
 	      if (isInputActive()) return;
-	      var undo = undoList.pop();
-	      if (undo) undo();
+	      undoManager.undo();
+	      // var undo = undoList.pop()
+	      // if (undo) undo()
 	      m.redraw(true);
 	    }
 	    function doMove(e) {
@@ -1051,6 +1154,10 @@
 	      var isChild = !e.shiftKey;
 	      if (!target || !selected || !target.parent || !selected.parent) return;
 	      if (selected.node === target.node) return;
+	      if (selected.node._leaf) return;
+	      if (selected.node._path.length && selected.node._path[0] != target.node._path[0]) {
+	        return alert('Cannot move test between pages!');
+	      }
 	      if (target.type) {
 	        var insert = _clone(target.node);
 	        if (isChild) {
@@ -1065,11 +1172,8 @@
 	        if (target.type == 'moving') {
 	          deleteNode(target.parent, target.idx);
 	          target = null;
-	          undoList.push(function () {
-	            undoList.pop()();
-	            undoList.pop()();
-	          });
 	        }
+	        undoManager.setGroup('moveNode', 2);
 	      }
 	      m.redraw();
 	    }
@@ -1098,6 +1202,7 @@
 	      'ctrl+enter': doAddChildLeaf,
 	      'shift+enter': doAddChildTrunk,
 	      'enter': doAddNode,
+	      'ctrl+y': doRedo,
 	      'ctrl+z': doUndo,
 	      'ctrl+c': doCopy,
 	      'ctrl+x': doMove,
@@ -1924,6 +2029,197 @@
 	        }
 	    }
 	};
+
+/***/ },
+/* 6 */,
+/* 7 */,
+/* 8 */,
+/* 9 */
+/***/ function(module, exports) {
+
+	/* WEBPACK VAR INJECTION */(function(__webpack_amd_options__) {module.exports = __webpack_amd_options__;
+
+	/* WEBPACK VAR INJECTION */}.call(exports, {}))
+
+/***/ },
+/* 10 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var __WEBPACK_AMD_DEFINE_RESULT__;"use strict";
+
+	var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol ? "symbol" : typeof obj; };
+
+	/*
+	Simple Javascript undo and redo.
+	https://github.com/ArthurClemens/Javascript-Undo-Manager
+	*/
+
+	;(function () {
+
+	    'use strict';
+
+	    function removeFromTo(array, from, to) {
+	        array.splice(from, !to || 1 + to - from + (!(to < 0 ^ from >= 0) && (to < 0 || -1) * array.length));
+	        return array.length;
+	    }
+
+	    var UndoManager = function UndoManager() {
+
+	        var commands = [],
+	            index = -1,
+	            limit = 0,
+	            isExecuting = false,
+	            callback,
+
+
+	        // functions
+	        execute;
+
+	        execute = function execute(command, action) {
+	            if (!command || typeof command[action] !== "function") {
+	                return this;
+	            }
+	            isExecuting = true;
+
+	            command[action]();
+
+	            isExecuting = false;
+	            return this;
+	        };
+
+	        return {
+
+	            /*
+	            Add a command to the queue.
+	            */
+	            add: function add(command) {
+	                if (isExecuting) {
+	                    return this;
+	                }
+	                // if we are here after having called undo,
+	                // invalidate items higher on the stack
+	                commands.splice(index + 1, commands.length - index);
+
+	                commands.push(command);
+
+	                // if limit is set, remove items from the start
+	                if (limit && commands.length > limit) {
+	                    removeFromTo(commands, 0, -(limit + 1));
+	                }
+
+	                // set the current index to the end
+	                index = commands.length - 1;
+	                if (callback) {
+	                    callback();
+	                }
+	                return this;
+	            },
+
+	            /*
+	            Pass a function to be called on undo and redo actions.
+	            */
+	            setCallback: function setCallback(callbackFunc) {
+	                callback = callbackFunc;
+	            },
+
+	            /*
+	            Perform undo: call the undo function at the current index and decrease the index by 1.
+	            */
+	            undo: function undo() {
+	                var command = commands[index];
+	                if (!command) {
+	                    return this;
+	                }
+	                var group = command.group;
+	                while (command.group === group) {
+	                    execute(command, "undo");
+	                    index -= 1;
+	                    command = commands[index];
+	                    if (!command || !command.group) break;
+	                }
+	                if (callback) {
+	                    callback();
+	                }
+	                return this;
+	            },
+
+	            /*
+	            Perform redo: call the redo function at the next index and increase the index by 1.
+	            */
+	            redo: function redo() {
+	                var command = commands[index + 1];
+	                if (!command) {
+	                    return this;
+	                }
+	                var group = command.group;
+	                while (command.group === group) {
+	                    execute(command, "redo");
+	                    index += 1;
+	                    command = commands[index];
+	                    if (!command || !command.group) break;
+	                }
+	                if (callback) {
+	                    callback();
+	                }
+	                return this;
+	            },
+
+	            setGroup: function setGroup(group, step, idx) {
+	                idx = idx || index;
+	                step = step || 1;
+	                console.log(commands, group, step, idx);
+	                while (step-- && idx - step >= 0) {
+	                    commands[idx - step].group = group;
+	                }
+	            },
+
+	            /*
+	            Clears the memory, losing all stored states. Reset the index.
+	            */
+	            clear: function clear() {
+	                var prev_size = commands.length;
+
+	                commands = [];
+	                index = -1;
+
+	                if (callback && prev_size > 0) {
+	                    callback();
+	                }
+	            },
+
+	            hasUndo: function hasUndo() {
+	                return index !== -1;
+	            },
+
+	            hasRedo: function hasRedo() {
+	                return index < commands.length - 1;
+	            },
+
+	            getCommands: function getCommands() {
+	                return commands;
+	            },
+
+	            getIndex: function getIndex() {
+	                return index;
+	            },
+
+	            setLimit: function setLimit(l) {
+	                limit = l;
+	            }
+	        };
+	    };
+
+	    if ("function" === 'function' && _typeof(__webpack_require__(9)) === 'object' && __webpack_require__(9)) {
+	        // AMD. Register as an anonymous module.
+	        !(__WEBPACK_AMD_DEFINE_RESULT__ = function () {
+	            return UndoManager;
+	        }.call(exports, __webpack_require__, exports, module), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
+	    } else if (typeof module !== 'undefined' && module.exports) {
+	        module.exports = UndoManager;
+	    } else {
+	        window.UndoManager = UndoManager;
+	    }
+	})();
 
 /***/ }
 /******/ ]);

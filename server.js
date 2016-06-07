@@ -99,7 +99,7 @@ var HttpServer = http.createServer(function (req, res) {
     req.on('data', function (chunk) { body += chunk })
     req.on('end', function () {
       try {
-        JSON.parse(body)
+        body = JSON.parse(body)
         writePtestConfig(body)
         res.end(JSON.stringify({error: null}))
       } catch(e) {
@@ -624,5 +624,8 @@ function clearTest () {
   if(phantom) phantom.kill()
 }
 
-process.on('SIGINT', function () { clearTest() })
+process.on('SIGINT', function () {
+  clearTest()
+  process.exit()
+})
 process.on('exit', function (code) { clearTest() })

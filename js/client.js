@@ -432,6 +432,12 @@
 
 	var _undoManager2 = _interopRequireDefault(_undoManager);
 
+	var _treeHelper = __webpack_require__(8);
+
+	var treeHelper = _interopRequireWildcard(_treeHelper);
+
+	function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) newObj[key] = obj[key]; } } newObj.default = obj; return newObj; } }
+
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 	/**
@@ -478,49 +484,6 @@
 	var OBJECT = '[object Object]';
 	var ARRAY = '[object Array]';
 
-	/**
-	 * convert simple Object into tree data
-	 *
-	 format:
-	 {"a":{"b":{"c":{"":["leaf 1"]}}},"abc":123, e:[2,3,4], f:null}
-	 *        1. every key is folder node
-	 *        2. "":[] is leaf node
-	 *        3. except leaf node, array value will return as is
-	 *        4. {abc:123} is shortcut for {abc:{"": [123]}}
-	 *
-	 * @param {object} d - simple object data
-	 * @param {function} [prop] - function(key,val){} to return {object} to merge into current
-	 * @param {array} [path] - array path represent root to parent
-	 * @returns {object} tree data object
-	 */
-	function convertSimpleData(d, prop, path) {
-	  path = path || [];
-	  if (!d || (typeof d === 'undefined' ? 'undefined' : _typeof(d)) !== 'object') {
-	    // {abc:123} is shortcut for {abc:{"": [123]}}
-	    return [Object.assign({ name: d, _leaf: true }, prop && prop(d, path))];
-	  }
-	  if (type.call(d) === ARRAY) {
-	    return d;
-	    // return d.map(function (v, i) {
-	    //   return convertSimpleData(v, prop, path.concat(i))
-	    // })
-	  }
-	  if (type.call(d) === OBJECT) {
-	    var node = [];
-	    for (var k in d) {
-	      if (k === '' && type.call(d[k]) === ARRAY) {
-	        node.push.apply(node, d[k].map(function (v, i) {
-	          return type.call(v) === OBJECT ? v : Object.assign({ name: v, _leaf: true }, prop && prop(v, path.concat(['', i])));
-	        }));
-	      } else {
-	        node.push(Object.assign({ name: k, children: convertSimpleData(d[k], prop, path.concat('' + k)) }, prop && prop(k, path)));
-	      }
-	    }
-	    return node;
-	  }
-	  return [];
-	}
-
 	// disable right click
 	window.oncontextmenu = function () {
 	  return false;
@@ -533,47 +496,6 @@
 	  Array.prototype.last = function () {
 	    return this[this.length - 1];
 	  };
-	}
-
-	/**
-	 * getArraypath - get object using path array, from data object
-	 * @param {object} arr - root data object
-	 *									     if array, get index as target
-	 *                       if object, get index of object.children as target
-	 * @param {array} path - path to obtain using index array [0,1,0]
-	 * @returns {object} target object at path
-	 */
-	function getArrayPath(arr, path) {
-	  var obj = arr;
-	  var texts = [];
-	  for (var i = 0; i < path.length; i++) {
-	    obj = type.call(obj) === ARRAY ? obj[path[i]] : obj && obj.children && obj.children[path[i]];
-	    texts.push(obj.name);
-	  }
-	  return { obj: obj, texts: texts };
-	}
-
-	/**
-	 * Search standard tree data, with key,val match
-	 * @param {} data
-	 * @param {} key
-	 * @param {} val
-	 * @returns {}
-	 */
-	function deepFindKV(data, key, val, path) {
-	  var i = 0,
-	      found,
-	      path = path || [];
-	  for (; i < data.length; i++) {
-	    if (new RegExp(val).test(data[i][key])) {
-	      return { path: path, item: data[i] };
-	    } else if (data[i].children) {
-	      found = deepFindKV(data[i].children, key, val, path.concat(i));
-	      if (found) {
-	        return found;
-	      }
-	    }
-	  }
 	}
 
 	function cleanData(data, store) {
@@ -719,7 +641,7 @@
 	      var emptyNode = !v.children || v.children.length == 0;
 	      var leafNode = !emptyNode && v.children && v.children[0]._leaf;
 	      // if (!leafNode && !emptyNode) return node
-	      var path = getArrayPath(data, v._path).texts;
+	      var path = treeHelper.getArrayPath(data, v._path).texts;
 	      var folder = getRootVar(v._path, 'folder');
 	      var url = getRootVar(v._path, 'url');
 	      if (!v._leaf) {
@@ -772,7 +694,7 @@
 	     * @param {} idx
 	     */
 	    function deleteNode(parent, idx) {
-	      if (!parent) {
+	      if (!parent || !parent._path) {
 	        var oldData = data[idx];
 	        undoRedo(function () {
 	          data.splice(idx, 1);
@@ -796,14 +718,14 @@
 	      })();
 	    }
 	    function insertNode(node, parent, _idx, isAfter) {
-	      return addNode(parent, _idx, isAfter, node);
+	      return addNode(parent || data, _idx, isAfter, node);
 	    }
 	    function insertChildNode(node, v, isLast) {
 	      return addChildNode(v, isLast, v._leaf, node);
 	    }
 	    function addNode(parent, _idx, isAfter, existsNode) {
 	      var idx = isAfter ? _idx + 1 : _idx;
-	      if (!parent) {
+	      if (!parent || !parent._path) {
 	        var newNode = { name: '', url: '', folder: 'ptest_data', _edit: true };
 	        undoRedo(function () {
 	          data.splice(idx, 0, newNode);
@@ -910,8 +832,9 @@
 	     * @param {array} path - object path array
 	     * @returns {object} mithril dom object, it's ul tag object
 	     */
-	    function interTree(arr, parent, path) {
+	    function interTree(data, path) {
 	      path = path || [];
+	      var arr = path.length == 0 ? data : data.children;
 	      return !arr ? [] : {
 	        tag: 'ul', attrs: {}, children: arr.map(function (v, idx) {
 	          v._path = path.concat(idx);
@@ -926,10 +849,10 @@
 	              onmousedown: function onmousedown(e) {
 	                if (!e) e = window.event;
 	                e.stopPropagation();
-	                selected = { node: v, idx: idx, parent: parent };
+	                selected = { node: v, idx: idx, parent: data };
 
 	                // save parent _pos when select node
-	                if (parent) parent._pos = idx;
+	                if (path.length) data._pos = idx;
 
 	                if (isInputActive(e.target)) return;else if (v._edit && !v._invalid) {}
 	                // v._edit = false
@@ -962,12 +885,12 @@
 	                  // add node before selected
 	                  if (e.altKey) addChildNode(v);
 	                  // add child node as first child
-	                  else addNode(parent, idx);
+	                  else addNode(data, idx);
 	                  return;
 	                }
 	                // remove node
 	                if (isDown && e.altKey) {
-	                  deleteNode(parent, idx);
+	                  deleteNode(data, idx);
 	                  return;
 	                }
 	                // else if(v._edit) return v._edit = false
@@ -997,7 +920,7 @@
 	                })();
 	              }
 	            }, v),
-	            children: [v.children ? m('a.switch', v._close ? '+ ' : '- ') : [], v._edit ? getInput(v, path) : m(v._leaf ? 'pre.leaf' : 'span.node', [getText(v, path)])].concat(v._close ? [] : interTree(v.children, v, path.concat(idx)))
+	            children: [v.children ? m('a.switch', v._close ? '+ ' : '- ') : [], v._edit ? getInput(v, path) : m(v._leaf ? 'pre.leaf' : 'span.node', [getText(v, path)])].concat(v._close ? [] : interTree(v, path.concat(idx)))
 	          };
 	        })
 	      };
@@ -1054,7 +977,7 @@
 	          sel.node = newParent;
 	          sel.idx = newParent._path.last();
 	          // _path is data[0][2]... if there's only data[0], then it's first root, parent is null
-	          sel.parent = newParent._path.length > 1 ? getArrayPath(data, newParent._path.slice(0, -1)).obj : null;
+	          sel.parent = newParent._path.length > 1 ? treeHelper.getArrayPath(data, newParent._path.slice(0, -1)).obj : null;
 	          m.redraw();
 	        }
 	        if (/right/.test(key) && child && child.length) {
@@ -1152,7 +1075,8 @@
 	    }
 	    function doMoveCopy(e) {
 	      var isChild = !e.shiftKey;
-	      if (!target || !selected || !target.parent || !selected.parent) return;
+	      console.log('path', selected.node._path, treeHelper.getArrayPath(data, selected.node._path));
+	      if (!target || !selected) return;
 	      if (selected.node === target.node) return;
 	      if (selected.node._leaf) return;
 	      if (selected.node._path.length && selected.node._path[0] != target.node._path[0]) {
@@ -2222,6 +2146,130 @@
 	        }
 	    }
 	};
+
+/***/ },
+/* 8 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;'use strict';
+
+	var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol ? "symbol" : typeof obj; };
+
+	;(function (root, factory) {
+	  if (true) {
+	    !(__WEBPACK_AMD_DEFINE_ARRAY__ = [], __WEBPACK_AMD_DEFINE_FACTORY__ = (factory), __WEBPACK_AMD_DEFINE_RESULT__ = (typeof __WEBPACK_AMD_DEFINE_FACTORY__ === 'function' ? (__WEBPACK_AMD_DEFINE_FACTORY__.apply(exports, __WEBPACK_AMD_DEFINE_ARRAY__)) : __WEBPACK_AMD_DEFINE_FACTORY__), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__)); // define(['jquery'], factory)
+	  } else if ((typeof exports === 'undefined' ? 'undefined' : _typeof(exports)) === 'object') {
+	      module.exports = factory(); // factory(require('jquery'))
+	    } else {
+	        root.treeHelper = factory(); // should return obj in factory
+	      }
+	})(undefined, function () {
+	  /**
+	   * @fileOverview
+	   * @name tree-helper.js
+	   * @author yumji
+	   * @license MIT
+	   * @desc Helper for the standard tree format.
+	   * All the var data is for standard tree json format.
+	   * All the var d is for the simple tree json format.
+	   */
+
+	  // better type check
+	  var type = {}.toString;
+	  var OBJECT = '[object Object]';
+	  var ARRAY = '[object Array]';
+
+	  /**
+	   * Search standard tree data, with key,val match
+	   * @param {} data
+	   * @param {} key
+	   * @param {} val
+	   * @returns {}
+	   */
+	  function deepFindKV(data, key, val, path) {
+	    var i = 0,
+	        found,
+	        path = path || [];
+	    for (; i < data.length; i++) {
+	      if (new RegExp(val).test(data[i][key])) {
+	        return { path: path, item: data[i] };
+	      } else if (data[i].children) {
+	        found = deepFindKV(data[i].children, key, val, path.concat(i));
+	        if (found) {
+	          return found;
+	        }
+	      }
+	    }
+	  }
+
+	  /**
+	   * getArraypath - get object using path array, from data object
+	   * @param {object} data - root data object
+	   *                       if array, get index as target
+	   *                       if object, get index of object.children as target
+	   * @param {array} path - path to obtain using index array [0,1,0]
+	   * @returns {object} target object at path
+	   */
+	  function getArrayPath(data, path) {
+	    var obj = data;
+	    var texts = [];
+	    for (var i = 0; i < path.length; i++) {
+	      obj = type.call(obj) === ARRAY ? obj[path[i]] : obj && obj.children && obj.children[path[i]];
+	      texts.push(obj.name);
+	    }
+	    return { obj: obj, texts: texts };
+	  }
+
+	  /**
+	   * convert simple Object into tree data
+	   *
+	   format:
+	   {"a":{"b":{"c":{"":["leaf 1"]}}},"abc":123, e:[2,3,4], f:null}
+	   *        1. every key is folder node
+	   *        2. "":[] is leaf node
+	   *        3. except leaf node, array value will return as is
+	   *        4. {abc:123} is shortcut for {abc:{"": [123]}}
+	   *
+	   * @param {object} d - simple object data
+	   * @param {function} [prop] - function(key,val){} to return {object} to merge into current
+	   * @param {array} [path] - array path represent root to parent
+	   * @returns {object} tree data object
+	   */
+	  function convertSimpleData(d, prop, path) {
+	    path = path || [];
+	    if (!d || (typeof d === 'undefined' ? 'undefined' : _typeof(d)) !== 'object') {
+	      // {abc:123} is shortcut for {abc:{"": [123]}}
+	      return [Object.assign({ name: d, _leaf: true }, prop && prop(d, path))];
+	    }
+	    if (type.call(d) === ARRAY) {
+	      return d;
+	      // return d.map(function (v, i) {
+	      //   return convertSimpleData(v, prop, path.concat(i))
+	      // })
+	    }
+	    if (type.call(d) === OBJECT) {
+	      var node = [];
+	      for (var k in d) {
+	        if (k === '' && type.call(d[k]) === ARRAY) {
+	          node.push.apply(node, d[k].map(function (v, i) {
+	            return type.call(v) === OBJECT ? v : Object.assign({ name: v, _leaf: true }, prop && prop(v, path.concat(['', i])));
+	          }));
+	        } else {
+	          node.push(Object.assign({ name: k, children: convertSimpleData(d[k], prop, path.concat('' + k)) }, prop && prop(k, path)));
+	        }
+	      }
+	      return node;
+	    }
+	    return [];
+	  }
+
+	  // module exports
+	  return {
+	    fromSimple: convertSimpleData,
+	    getArrayPath: getArrayPath,
+	    deepFindKV: deepFindKV
+	  };
+	});
 
 /***/ }
 /******/ ]);

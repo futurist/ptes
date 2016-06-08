@@ -22,7 +22,8 @@
 
 let css = {}
 
-import UndoManager from './undo-manager'
+import UndoManager from './undo-manager.js'
+import * as treeHelper from './tree-helper.js'
 
 const INVALID_NAME = '<>:"\\|?*\/' // '<>:"/\\|?*'
 const INVALID_NAME_REGEXP = new RegExp('[' + INVALID_NAME.replace('\\', '\\\\') + ']', 'g')
@@ -44,49 +45,6 @@ var type = {}.toString
 var OBJECT = '[object Object]'
 var ARRAY = '[object Array]'
 
-/**
- * convert simple Object into tree data
- *
- format:
- {"a":{"b":{"c":{"":["leaf 1"]}}},"abc":123, e:[2,3,4], f:null}
- *        1. every key is folder node
- *        2. "":[] is leaf node
- *        3. except leaf node, array value will return as is
- *        4. {abc:123} is shortcut for {abc:{"": [123]}}
- *
- * @param {object} d - simple object data
- * @param {function} [prop] - function(key,val){} to return {object} to merge into current
- * @param {array} [path] - array path represent root to parent
- * @returns {object} tree data object
- */
-function convertSimpleData (d, prop, path) {
-  path = path || []
-  if (!d || typeof d !== 'object') {
-    // {abc:123} is shortcut for {abc:{"": [123]}}
-    return [Object.assign({name: d, _leaf: true}, prop && prop(d, path))]
-  }
-  if (type.call(d) === ARRAY) {
-    return d
-    // return d.map(function (v, i) {
-    //   return convertSimpleData(v, prop, path.concat(i))
-    // })
-  }
-  if (type.call(d) === OBJECT) {
-    var node = []
-    for (var k in d) {
-      if (k === '' && type.call(d[k]) === ARRAY) {
-        node.push.apply(node, d[k].map(function (v, i) {
-          return type.call(v) === OBJECT ? v : Object.assign({name: v, _leaf: true}, prop && prop(v, path.concat(['', i])))
-        }))
-      } else {
-        node.push(Object.assign({name: k, children: convertSimpleData(d[k], prop, path.concat('' + k))}, prop && prop(k, path)))
-      }
-    }
-    return node
-  }
-  return []
-}
-
 // disable right click
 window.oncontextmenu = function () {
   return false
@@ -98,45 +56,6 @@ window.oncontextmenu = function () {
 if (!Array.prototype.last) {
   Array.prototype.last = function () {
     return this[this.length - 1]
-  }
-}
-
-/**
- * getArraypath - get object using path array, from data object
- * @param {object} arr - root data object
- *									     if array, get index as target
- *                       if object, get index of object.children as target
- * @param {array} path - path to obtain using index array [0,1,0]
- * @returns {object} target object at path
- */
-function getArrayPath (arr, path) {
-  var obj = arr
-  var texts = []
-  for (var i = 0; i < path.length; i++) {
-    obj = type.call(obj) === ARRAY ? obj[path[i]] : obj && obj.children && obj.children[path[i]]
-    texts.push(obj.name)
-  }
-  return {obj, texts}
-}
-
-/**
- * Search standard tree data, with key,val match
- * @param {} data
- * @param {} key
- * @param {} val
- * @returns {}
- */
-function deepFindKV (data, key, val, path) {
-  var i = 0, found, path = path || []
-  for (; i < data.length; i++) {
-    if ((new RegExp(val)).test(data[i][key])) {
-      return {path: path, item: data[i]}
-    } else if (data[i].children) {
-      found = deepFindKV(data[i].children, key, val, path.concat(i))
-      if (found) {
-        return found
-      }
-    }
   }
 }
 
@@ -281,7 +200,7 @@ var com = {
       const emptyNode = !v.children || v.children.length == 0
       const leafNode = (!emptyNode) && v.children && v.children[0]._leaf
       // if (!leafNode && !emptyNode) return node
-      let path = getArrayPath(data, v._path).texts
+      let path = treeHelper.getArrayPath(data, v._path).texts
       let folder = getRootVar(v._path, 'folder')
       let url = getRootVar(v._path, 'url')
       if (!v._leaf) {
@@ -335,7 +254,7 @@ var com = {
      * @param {} idx
      */
     function deleteNode (parent, idx) {
-      if (!parent) {
+      if (!parent || !parent._path) {
         var oldData = data[idx]
         undoRedo(
           function() {
@@ -365,14 +284,14 @@ var com = {
       )()
     }
     function insertNode (node, parent, _idx, isAfter) {
-      return addNode(parent, _idx, isAfter, node)
+      return addNode(parent||data, _idx, isAfter, node)
     }
     function insertChildNode (node, v, isLast) {
       return addChildNode(v, isLast, v._leaf, node)
     }
     function addNode (parent, _idx, isAfter, existsNode) {
       var idx = isAfter ? _idx + 1 : _idx
-      if (!parent) {
+      if (!parent || !parent._path) {
         var newNode = {name: '', url: '', folder: 'ptest_data', _edit: true}
         undoRedo(
           function() {
@@ -488,8 +407,9 @@ var com = {
      * @param {array} path - object path array
      * @returns {object} mithril dom object, it's ul tag object
      */
-    function interTree (arr, parent, path) {
+    function interTree (data, path) {
       path = path || []
+      var arr = path.length == 0 ? data : data.children
       return !arr ? [] : {
         tag: 'ul', attrs: {}, children: arr.map((v, idx) => {
           v._path = path.concat(idx)
@@ -505,10 +425,10 @@ var com = {
               onmousedown: function (e) {
                 if (!e) e = window.event
                 e.stopPropagation()
-                selected = {node: v, idx: idx, parent: parent}
+                selected = {node: v, idx: idx, parent: data}
 
                 // save parent _pos when select node
-                if (parent) parent._pos = idx
+                if (path.length) data._pos = idx
 
                 if (isInputActive(e.target)) return
                 else if (v._edit && !v._invalid) {
@@ -542,12 +462,12 @@ var com = {
                   // add node before selected
                   if (e.altKey) addChildNode(v)
                   // add child node as first child
-                  else addNode(parent, idx)
+                  else addNode(data, idx)
                   return
                 }
                 // remove node
                 if (isDown && e.altKey) {
-                  deleteNode(parent, idx)
+                  deleteNode(data, idx)
                   return
                 }
                 // else if(v._edit) return v._edit = false
@@ -584,7 +504,7 @@ var com = {
               v._edit
                 ? getInput(v, path)
                 : m(v._leaf ? 'pre.leaf' : 'span.node', [getText(v, path)])
-            ].concat(v._close ? [] : interTree(v.children, v, path.concat(idx)))
+            ].concat(v._close ? [] : interTree(v, path.concat(idx)))
           }
         })
       }
@@ -646,7 +566,7 @@ var com = {
           sel.node = newParent
           sel.idx = newParent._path.last()
           // _path is data[0][2]... if there's only data[0], then it's first root, parent is null
-          sel.parent = newParent._path.length > 1 ? getArrayPath(data, newParent._path.slice(0, -1)).obj : null
+          sel.parent = newParent._path.length > 1 ? treeHelper.getArrayPath(data, newParent._path.slice(0, -1)).obj : null
           m.redraw()
         }
         if (/right/.test(key) && child && child.length) {
@@ -739,7 +659,8 @@ var com = {
     }
     function doMoveCopy (e) {
       var isChild = !e.shiftKey
-      if (!target || !selected || !target.parent || !selected.parent) return
+      console.log('path',selected.node._path, treeHelper.getArrayPath(data, selected.node._path))
+      if (!target || !selected) return
       if (selected.node === target.node) return
       if (selected.node._leaf) return
       if (selected.node._path.length && selected.node._path[0] != target.node._path[0]) {

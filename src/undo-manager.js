@@ -118,8 +118,9 @@ https://github.com/ArthurClemens/Javascript-Undo-Manager
             },
 
           group: function(step, idx){
+            if(!step) return groupIndex;
             idx = idx || index;
-            if(!step || step<1) step = 1;
+            if(step<1) step = 1;
             groupIndex += 1;
             while(step-- && idx-step>=0)
               commands[idx-step].group = groupIndex;

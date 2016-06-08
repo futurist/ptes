@@ -18,6 +18,7 @@ https://github.com/ArthurClemens/Javascript-Undo-Manager
 
         var commands = [],
             index = -1,
+            groupIndex = 0,
             limit = 0,
             isExecuting = false,
             callback,
@@ -82,6 +83,7 @@ https://github.com/ArthurClemens/Javascript-Undo-Manager
                 }
               var group = command.group;
               while(command.group === group){
+                console.log('undo',index, command)
                 execute(command, "undo");
                 index -= 1;
                 command = commands[index];
@@ -103,9 +105,10 @@ https://github.com/ArthurClemens/Javascript-Undo-Manager
                 }
               var group = command.group;
               while(command.group === group){
+                console.log('redo',index+1, command)
                 execute(command, "redo");
                 index += 1;
-                command = commands[index];
+                command = commands[index+1];
                 if(!command || !command.group) break;
               }
                 if (callback) {
@@ -114,12 +117,13 @@ https://github.com/ArthurClemens/Javascript-Undo-Manager
                 return this;
             },
 
-          setGroup: function(group, step, idx){
+          group: function(step, idx){
             idx = idx || index;
-            step = step || 1;
-            console.log(commands, group, step, idx)
+            if(!step || step<1) step = 1;
+            groupIndex++;
+            console.log(commands, groupIndex, step, idx)
             while(step-- && idx-step>=0)
-              commands[idx-step].group = group;
+              commands[idx-step].group = groupIndex;
           },
 
             /*
@@ -129,7 +133,8 @@ https://github.com/ArthurClemens/Javascript-Undo-Manager
                 var prev_size = commands.length;
 
                 commands = [];
-                index = -1;
+              index = -1;
+              groupIndex = 0;
 
                 if (callback && (prev_size > 0)) {
                     callback();

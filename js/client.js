@@ -55,11 +55,11 @@
 
 	var _mtree2 = _interopRequireDefault(_mtree);
 
-	var _overlay = __webpack_require__(2);
+	var _overlay = __webpack_require__(4);
 
 	var _overlay2 = _interopRequireDefault(_overlay);
 
-	var _jsonPointer = __webpack_require__(4);
+	var _jsonPointer = __webpack_require__(6);
 
 	var _jsonPointer2 = _interopRequireDefault(_jsonPointer);
 
@@ -428,7 +428,7 @@
 
 	var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol ? "symbol" : typeof obj; };
 
-	var _undoManager = __webpack_require__(10);
+	var _undoManager = __webpack_require__(2);
 
 	var _undoManager2 = _interopRequireDefault(_undoManager);
 
@@ -1140,7 +1140,7 @@
 	      m.redraw(true);
 	    }
 	    function doMove(e) {
-	      if (!selected.parent) return;
+	      if (!selected || !selected.parent) return;
 	      target = Object.assign({ type: 'moving' }, selected);
 	      m.redraw();
 	    }
@@ -1173,7 +1173,7 @@
 	          deleteNode(target.parent, target.idx);
 	          target = null;
 	        }
-	        undoManager.setGroup('moveNode', 2);
+	        undoManager.group(2);
 	      }
 	      m.redraw();
 	    }
@@ -1236,6 +1236,199 @@
 /* 2 */
 /***/ function(module, exports, __webpack_require__) {
 
+	var __WEBPACK_AMD_DEFINE_RESULT__;'use strict';
+
+	var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol ? "symbol" : typeof obj; };
+
+	/*
+	Simple Javascript undo and redo.
+	https://github.com/ArthurClemens/Javascript-Undo-Manager
+	*/
+
+	;(function () {
+
+	    'use strict';
+
+	    function removeFromTo(array, from, to) {
+	        array.splice(from, !to || 1 + to - from + (!(to < 0 ^ from >= 0) && (to < 0 || -1) * array.length));
+	        return array.length;
+	    }
+
+	    var UndoManager = function UndoManager() {
+
+	        var commands = [],
+	            index = -1,
+	            groupIndex = 0,
+	            limit = 0,
+	            isExecuting = false,
+	            callback,
+
+
+	        // functions
+	        execute;
+
+	        execute = function execute(command, action) {
+	            if (!command || typeof command[action] !== "function") {
+	                return this;
+	            }
+	            isExecuting = true;
+
+	            command[action]();
+
+	            isExecuting = false;
+	            return this;
+	        };
+
+	        return {
+
+	            /*
+	            Add a command to the queue.
+	            */
+	            add: function add(command) {
+	                if (isExecuting) {
+	                    return this;
+	                }
+	                // if we are here after having called undo,
+	                // invalidate items higher on the stack
+	                commands.splice(index + 1, commands.length - index);
+
+	                commands.push(command);
+
+	                // if limit is set, remove items from the start
+	                if (limit && commands.length > limit) {
+	                    removeFromTo(commands, 0, -(limit + 1));
+	                }
+
+	                // set the current index to the end
+	                index = commands.length - 1;
+	                if (callback) {
+	                    callback();
+	                }
+	                return this;
+	            },
+
+	            /*
+	            Pass a function to be called on undo and redo actions.
+	            */
+	            setCallback: function setCallback(callbackFunc) {
+	                callback = callbackFunc;
+	            },
+
+	            /*
+	            Perform undo: call the undo function at the current index and decrease the index by 1.
+	            */
+	            undo: function undo() {
+	                var command = commands[index];
+	                if (!command) {
+	                    return this;
+	                }
+	                var group = command.group;
+	                while (command.group === group) {
+	                    console.log('undo', index, command);
+	                    execute(command, "undo");
+	                    index -= 1;
+	                    command = commands[index];
+	                    if (!command || !command.group) break;
+	                }
+	                if (callback) {
+	                    callback();
+	                }
+	                return this;
+	            },
+
+	            /*
+	            Perform redo: call the redo function at the next index and increase the index by 1.
+	            */
+	            redo: function redo() {
+	                var command = commands[index + 1];
+	                if (!command) {
+	                    return this;
+	                }
+	                var group = command.group;
+	                while (command.group === group) {
+	                    console.log('redo', index + 1, command);
+	                    execute(command, "redo");
+	                    index += 1;
+	                    command = commands[index + 1];
+	                    if (!command || !command.group) break;
+	                }
+	                if (callback) {
+	                    callback();
+	                }
+	                return this;
+	            },
+
+	            group: function group(step, idx) {
+	                idx = idx || index;
+	                if (!step || step < 1) step = 1;
+	                groupIndex++;
+	                console.log(commands, groupIndex, step, idx);
+	                while (step-- && idx - step >= 0) {
+	                    commands[idx - step].group = groupIndex;
+	                }
+	            },
+
+	            /*
+	            Clears the memory, losing all stored states. Reset the index.
+	            */
+	            clear: function clear() {
+	                var prev_size = commands.length;
+
+	                commands = [];
+	                index = -1;
+	                groupIndex = 0;
+
+	                if (callback && prev_size > 0) {
+	                    callback();
+	                }
+	            },
+
+	            hasUndo: function hasUndo() {
+	                return index !== -1;
+	            },
+
+	            hasRedo: function hasRedo() {
+	                return index < commands.length - 1;
+	            },
+
+	            getCommands: function getCommands() {
+	                return commands;
+	            },
+
+	            getIndex: function getIndex() {
+	                return index;
+	            },
+
+	            setLimit: function setLimit(l) {
+	                limit = l;
+	            }
+	        };
+	    };
+
+	    if ("function" === 'function' && _typeof(__webpack_require__(3)) === 'object' && __webpack_require__(3)) {
+	        // AMD. Register as an anonymous module.
+	        !(__WEBPACK_AMD_DEFINE_RESULT__ = function () {
+	            return UndoManager;
+	        }.call(exports, __webpack_require__, exports, module), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
+	    } else if (typeof module !== 'undefined' && module.exports) {
+	        module.exports = UndoManager;
+	    } else {
+	        window.UndoManager = UndoManager;
+	    }
+	})();
+
+/***/ },
+/* 3 */
+/***/ function(module, exports) {
+
+	/* WEBPACK VAR INJECTION */(function(__webpack_amd_options__) {module.exports = __webpack_amd_options__;
+
+	/* WEBPACK VAR INJECTION */}.call(exports, {}))
+
+/***/ },
+/* 4 */
+/***/ function(module, exports, __webpack_require__) {
+
 	var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;'use strict';
 
 	var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol ? "symbol" : typeof obj; };
@@ -1251,7 +1444,7 @@
 	})(undefined, function () {
 	  'use strict';
 
-	  var debounce = __webpack_require__(3);
+	  var debounce = __webpack_require__(5);
 
 	  /**
 	   * @fileOverview Popup toolkit using mithril
@@ -1383,7 +1576,7 @@
 	});
 
 /***/ },
-/* 3 */
+/* 5 */
 /***/ function(module, exports) {
 
 	'use strict';
@@ -1782,14 +1975,14 @@
 	module.exports = debounce;
 
 /***/ },
-/* 4 */
+/* 6 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 
 	var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol ? "symbol" : typeof obj; };
 
-	var each = __webpack_require__(5);
+	var each = __webpack_require__(7);
 	module.exports = api;
 
 	/**
@@ -2004,7 +2197,7 @@
 	};
 
 /***/ },
-/* 5 */
+/* 7 */
 /***/ function(module, exports) {
 
 	'use strict';
@@ -2029,197 +2222,6 @@
 	        }
 	    }
 	};
-
-/***/ },
-/* 6 */,
-/* 7 */,
-/* 8 */,
-/* 9 */
-/***/ function(module, exports) {
-
-	/* WEBPACK VAR INJECTION */(function(__webpack_amd_options__) {module.exports = __webpack_amd_options__;
-
-	/* WEBPACK VAR INJECTION */}.call(exports, {}))
-
-/***/ },
-/* 10 */
-/***/ function(module, exports, __webpack_require__) {
-
-	var __WEBPACK_AMD_DEFINE_RESULT__;"use strict";
-
-	var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol ? "symbol" : typeof obj; };
-
-	/*
-	Simple Javascript undo and redo.
-	https://github.com/ArthurClemens/Javascript-Undo-Manager
-	*/
-
-	;(function () {
-
-	    'use strict';
-
-	    function removeFromTo(array, from, to) {
-	        array.splice(from, !to || 1 + to - from + (!(to < 0 ^ from >= 0) && (to < 0 || -1) * array.length));
-	        return array.length;
-	    }
-
-	    var UndoManager = function UndoManager() {
-
-	        var commands = [],
-	            index = -1,
-	            limit = 0,
-	            isExecuting = false,
-	            callback,
-
-
-	        // functions
-	        execute;
-
-	        execute = function execute(command, action) {
-	            if (!command || typeof command[action] !== "function") {
-	                return this;
-	            }
-	            isExecuting = true;
-
-	            command[action]();
-
-	            isExecuting = false;
-	            return this;
-	        };
-
-	        return {
-
-	            /*
-	            Add a command to the queue.
-	            */
-	            add: function add(command) {
-	                if (isExecuting) {
-	                    return this;
-	                }
-	                // if we are here after having called undo,
-	                // invalidate items higher on the stack
-	                commands.splice(index + 1, commands.length - index);
-
-	                commands.push(command);
-
-	                // if limit is set, remove items from the start
-	                if (limit && commands.length > limit) {
-	                    removeFromTo(commands, 0, -(limit + 1));
-	                }
-
-	                // set the current index to the end
-	                index = commands.length - 1;
-	                if (callback) {
-	                    callback();
-	                }
-	                return this;
-	            },
-
-	            /*
-	            Pass a function to be called on undo and redo actions.
-	            */
-	            setCallback: function setCallback(callbackFunc) {
-	                callback = callbackFunc;
-	            },
-
-	            /*
-	            Perform undo: call the undo function at the current index and decrease the index by 1.
-	            */
-	            undo: function undo() {
-	                var command = commands[index];
-	                if (!command) {
-	                    return this;
-	                }
-	                var group = command.group;
-	                while (command.group === group) {
-	                    execute(command, "undo");
-	                    index -= 1;
-	                    command = commands[index];
-	                    if (!command || !command.group) break;
-	                }
-	                if (callback) {
-	                    callback();
-	                }
-	                return this;
-	            },
-
-	            /*
-	            Perform redo: call the redo function at the next index and increase the index by 1.
-	            */
-	            redo: function redo() {
-	                var command = commands[index + 1];
-	                if (!command) {
-	                    return this;
-	                }
-	                var group = command.group;
-	                while (command.group === group) {
-	                    execute(command, "redo");
-	                    index += 1;
-	                    command = commands[index];
-	                    if (!command || !command.group) break;
-	                }
-	                if (callback) {
-	                    callback();
-	                }
-	                return this;
-	            },
-
-	            setGroup: function setGroup(group, step, idx) {
-	                idx = idx || index;
-	                step = step || 1;
-	                console.log(commands, group, step, idx);
-	                while (step-- && idx - step >= 0) {
-	                    commands[idx - step].group = group;
-	                }
-	            },
-
-	            /*
-	            Clears the memory, losing all stored states. Reset the index.
-	            */
-	            clear: function clear() {
-	                var prev_size = commands.length;
-
-	                commands = [];
-	                index = -1;
-
-	                if (callback && prev_size > 0) {
-	                    callback();
-	                }
-	            },
-
-	            hasUndo: function hasUndo() {
-	                return index !== -1;
-	            },
-
-	            hasRedo: function hasRedo() {
-	                return index < commands.length - 1;
-	            },
-
-	            getCommands: function getCommands() {
-	                return commands;
-	            },
-
-	            getIndex: function getIndex() {
-	                return index;
-	            },
-
-	            setLimit: function setLimit(l) {
-	                limit = l;
-	            }
-	        };
-	    };
-
-	    if ("function" === 'function' && _typeof(__webpack_require__(9)) === 'object' && __webpack_require__(9)) {
-	        // AMD. Register as an anonymous module.
-	        !(__WEBPACK_AMD_DEFINE_RESULT__ = function () {
-	            return UndoManager;
-	        }.call(exports, __webpack_require__, exports, module), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
-	    } else if (typeof module !== 'undefined' && module.exports) {
-	        module.exports = UndoManager;
-	    } else {
-	        window.UndoManager = UndoManager;
-	    }
-	})();
 
 /***/ }
 /******/ ]);

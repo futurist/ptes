@@ -727,7 +727,7 @@ var com = {
       m.redraw(true)
     }
     function doMove (e) {
-      if (!selected.parent) return
+      if (!selected || !selected.parent) return
       target = Object.assign({type: 'moving'}, selected)
       m.redraw()
     }
@@ -760,7 +760,7 @@ var com = {
           deleteNode(target.parent, target.idx)
           target = null
         }
-        undoManager.setGroup('moveNode',2)
+        undoManager.group(2)
       }
       m.redraw()
     }

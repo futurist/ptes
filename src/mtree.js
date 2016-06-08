@@ -247,7 +247,7 @@ var com = {
 
     /**
      * delete node of parent in idx
-     * @param {} parent node
+     * @param {object} parent node
      * @param {} idx
      */
     function deleteNode (parent, idx) {
@@ -677,7 +677,8 @@ var com = {
           deleteNode(target.parent, target.idx)
           target = null
         }
-        undoManager.group(2)
+        var g = undoManager.group(2)
+        window.undo = undoManager
       }
       m.redraw()
     }

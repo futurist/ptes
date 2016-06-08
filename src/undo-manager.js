@@ -81,8 +81,8 @@ https://github.com/ArthurClemens/Javascript-Undo-Manager
                 if (!command) {
                     return this;
                 }
-              var group = command.group;
-              while(command.group === group){
+              var g = command.group;
+              while(command.group === g){
                 console.log('undo',index, command)
                 execute(command, "undo");
                 index -= 1;
@@ -103,8 +103,8 @@ https://github.com/ArthurClemens/Javascript-Undo-Manager
                 if (!command) {
                     return this;
                 }
-              var group = command.group;
-              while(command.group === group){
+              var g = command.group;
+              while(command.group === g){
                 console.log('redo',index+1, command)
                 execute(command, "redo");
                 index += 1;
@@ -120,9 +120,10 @@ https://github.com/ArthurClemens/Javascript-Undo-Manager
           group: function(step, idx){
             idx = idx || index;
             if(!step || step<1) step = 1;
-            groupIndex++;
+            groupIndex += 1;
             while(step-- && idx-step>=0)
               commands[idx-step].group = groupIndex;
+            return groupIndex;
           },
 
             /*
@@ -155,6 +156,14 @@ https://github.com/ArthurClemens/Javascript-Undo-Manager
             getIndex: function() {
                 return index;
             },
+
+          getGroup: function(g) {
+            var G = [];
+            for(var i = 0, len = commands.length; i < len; i++) {
+              if( commands[i].group === g ) G.push( {index:i, command:commands[i]} );
+            }
+            return G;
+          },
 
             setLimit: function (l) {
                 limit = l;

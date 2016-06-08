@@ -12,6 +12,7 @@ var imageDiff = require('image-diff')
 var pointer = require('json-pointer')
 var commander = require('commander')
 var pkg = require('../package.json')
+var treeHelper = require('../src/tree-helper')
 
 var TEST_FOLDER = './'
 var testList
@@ -316,29 +317,9 @@ else
 //
 // Helper Function
 
-/**
- * Search standard tree data, with key,val match
- * @param {} data
- * @param {} key
- * @param {} val
- * @returns {}
- */
-function deepFindKV (data, key, val, path) {
-  var i = 0, found, path=path||[]
-  for (; i < data.length; i++) {
-    if (data[i][key] === val) {
-      return {path:path, item:data[i]}
-    } else if (data[i].children) {
-      found = deepFindKV(data[i].children, key, val, path.concat(i))
-      if (found) {
-        return found
-      }
-    }
-  }
-}
 
 function getTestRoot(data, filename) {
-  var found = deepFindKV(data, 'name', filename)
+  var found = treeHelper.deepFindKV(data, 'name', filename)
   return found ? data[found.path[0]] : null
 }
 

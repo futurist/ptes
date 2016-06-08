@@ -596,9 +596,6 @@
 	      return f;
 	    };
 	    var undoManager = new _undoManager2.default();
-	    undoManager.setCallback(function () {
-	      console.log(undoManager.getCommands());
-	    });
 	    var undoRedo = function undoRedo(redo, undo) {
 	      undoManager.add({ redo: redo, undo: undo });
 	      return redo;
@@ -1075,7 +1072,6 @@
 	    }
 	    function doMoveCopy(e) {
 	      var isChild = !e.shiftKey;
-	      console.log('path', selected.node._path, treeHelper.getArrayPath(data, selected.node._path));
 	      if (!target || !selected) return;
 	      if (selected.node === target.node) return;
 	      if (selected.node._leaf) return;
@@ -1286,7 +1282,6 @@
 	                idx = idx || index;
 	                if (!step || step < 1) step = 1;
 	                groupIndex++;
-	                console.log(commands, groupIndex, step, idx);
 	                while (step-- && idx - step >= 0) {
 	                    commands[idx - step].group = groupIndex;
 	                }

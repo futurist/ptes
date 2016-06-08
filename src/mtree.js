@@ -156,9 +156,6 @@ var com = {
       return f
     }
     var undoManager = new UndoManager()
-    undoManager.setCallback(function() {
-      console.log(undoManager.getCommands())
-    })
     var undoRedo = function(redo, undo) {
       undoManager.add({redo, undo})
       return redo
@@ -659,7 +656,6 @@ var com = {
     }
     function doMoveCopy (e) {
       var isChild = !e.shiftKey
-      console.log('path',selected.node._path, treeHelper.getArrayPath(data, selected.node._path))
       if (!target || !selected) return
       if (selected.node === target.node) return
       if (selected.node._leaf) return

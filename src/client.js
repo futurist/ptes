@@ -9,7 +9,7 @@ import mOverlay from './overlay'
 import pointer from 'json-pointer'
 window.pointer = pointer
 
-const RECORDING = 'STAGE_RECORDING', PLAYING = 'STAGE_PLAYING', CLIPPING = 'STAGE_CLIPPING', SETUP = 'STAGE_SETUP'
+const RECORDING = 'STAGE_RECORDING', PLAYING = 'STAGE_PLAYING', CLIPPING = 'STAGE_CLIPPING', SETUP = 'STAGE_SETUP', TESTING = 'STAGE_TESTING'
 const INVALID_NAME = '<>:"\\|?*' // '<>:"/\\|?*'
 const INVALID_NAME_REGEXP = new RegExp('[' + INVALID_NAME.replace('\\', '\\\\') + ']', 'g')
 const MODIFIER = {
@@ -99,6 +99,11 @@ ws.onopen = function (e) {
 
       break
     case 'client_console':
+      console.log(msg.data)
+
+      break
+    case 'test_output':
+    case 'test_error':
       console.log(msg.data)
 
       break
@@ -202,7 +207,7 @@ function saveRec(e, save, slient) {
 }
 
 var oncloseSetup = function (arg) {
-  hideSetup()
+  if (!arg.retain) hideSetup()
   const path =JSON.stringify(arg.path)
   if (arg.action=='add') {
     if(confirm('Confirm to begin record new test for path:\n\n    ' + path+'\n    '+ arg.folder))
@@ -214,6 +219,10 @@ var oncloseSetup = function (arg) {
     setTimeout(function(arg) {
       // window.reload()
     })
+  }
+  if(arg.action=='test'){
+    stage = TESTING
+    sc(' runTestFile(' + JSON.stringify([arg.file]) + ') ')
   }
 }
 

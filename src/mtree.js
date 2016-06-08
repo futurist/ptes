@@ -201,9 +201,15 @@ var com = {
       let folder = getRootVar(v._path, 'folder')
       let url = getRootVar(v._path, 'url')
       if (!v._leaf) {
-        node.push({action: 'add', text: 'Add', path: path, folder: folder})
+        node.push(
+          {action: 'add', text: 'Add', path: path, folder: folder},
+          {action: 'test', text: 'Test', path: path, folder: folder},
+        )
       } else {
-        node.push({action: 'play', text: 'Play', path: path, file: v.name, folder: folder, url: url})
+        node.push(
+          {action: 'play', text: 'Play', path: path, file: v.name, folder: folder, url: url},
+          {action: 'test', text: 'Test', path: path, file: v.name, folder: folder, url: url, retain:true},
+        )
       }
       return node.map(oneAction)
     }

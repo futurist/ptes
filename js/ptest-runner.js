@@ -17,6 +17,7 @@ var treeHelper = require('../src/tree-helper')
 var TEST_FOLDER = './'
 var testList
 var ptest = readPtestConfig(true)
+var isTTY = process.stdout.isTTY
 
 commander
   .version(pkg.version)
@@ -119,6 +120,9 @@ function _logStatus (str, level, status) {
   return out
 }
 var _report = function () {
+  if(!isTTY){
+    return console.log(JSON.stringify(_output))
+  }
   if (_prevOutput) {
     var total = _prevOutput.split(os.EOL).length-1
     var height = process.stdout.rows
@@ -129,24 +133,25 @@ var _report = function () {
   }
   _prevOutput = ''
   _output.forEach(function (v) {
-    _prevOutput += _logStatus(v.msg, v.level, v.status)
+    _prevOutput += _logStatus(v.msg + v.submsg, v.level, v.status)
   })
 }
 function afterEach (func) {
   _afterEach = func
 }
 function describe (msg, func) {
-  var _stat = {msg: msg, level: _level}
+  var _stat = {msg: msg, submsg:'', level: _level}
   _output.push(_stat)
   _report()
   _level++
   var _this = new func()
   _level--
 }
-function it (msg, func) {
-  var indent = '⋅ '
+function it (file, func) {
+  var indent = isTTY ? '⋅ ' : ''
+  var msg = '[' + file + ']'
   var _this_level = _level
-  var _stat = {msg: indent + msg, level: _this_level}
+  var _stat = {msg: indent + msg, submsg:'', test:file, level: _this_level}
   func.prototype._timeout = 2000
   func.prototype._slow = 2000
   func.prototype.level = function () {
@@ -158,9 +163,12 @@ function it (msg, func) {
   func.prototype.slow = function (val) {
     this._slow = val
   }
+  func.prototype.setTest = function (val) {
+    _stat.test = val
+  }
   func.prototype.submsg = function (val) {
     this._submsg = val
-    _stat.msg = indent + msg + val
+    _stat.submsg = val
     _report()
   }
   var callback = function (err) {
@@ -171,7 +179,11 @@ function it (msg, func) {
       _stat.status = 'fail'
       _report()
       clearTest()
-      assert(false, err)
+      if(isTTY) assert(false, err)
+      else{
+        console.error(err)
+        process.exit(1)
+      }
       return
     }
     _stat.status = 'success'
@@ -205,7 +217,11 @@ function compareImage (testFolder, imageID, done) {
     expectedImage: getPath(testFolder, b),
     diffImage: getPath(testFolder, diff),
   }, function (err, imagesAreSame) {
-    err || !imagesAreSame ? done('failed compare ' + testFolder + '/' + b) : done()
+    err || !imagesAreSame
+      ? done(isTTY
+             ? 'failed compare ' + testFolder + '/' + b
+             : JSON.stringify({folder:testFolder, a:a,b:b,diff:diff}))
+    : done()
   })
 }
 
@@ -236,8 +252,9 @@ function runTestFile (fileName) {
   var span = arrayLast(obj.event).time - obj.event[0].time
   if(!url) return
 
-  it('[' + fileName + ']' + name, function (done) {
+  it(fileName, function (done) {
     var self = this
+    this.setTest(fileName)
     this.timeout(span * 2)
     this.slow(span * 1.1)
     // var cmd = 'phantomjs --config=phantom.config ptest-phantom.js '+ ptest.url +' '+obj[v].name

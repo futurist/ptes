@@ -10,6 +10,7 @@ var DEBUG_MODE = true
 var fs = require('fs')
 var atob = require('atob')
 var querystring = require('querystring')
+var split2 = require('split2')
 var mkdirp = require('mkdirp')
 var http = require('http')
 var path = require('path')
@@ -509,6 +510,25 @@ function broadcast (data) {
     client._send(data)
   })
 }
+
+var runner
+function runTestFile(filenames) {
+  runner = spawn('node', [path.join(__dirname, 'js', 'ptest-runner.js')].concat(filenames), {cwd: process.cwd()})
+  console.log(process.cwd(), filenames)
+  runner.stdout.pipe(split2()).on('data', function (line) {
+    console.log('----'+line+'----')
+    var ret = JSON.parse(line)
+    // var filenames = ret.filter(v=>v.test).map(v=>v.test)
+    toClient({type:'test_output', data: ret.filter(v=>v.test)})
+  })
+  runner.stderr.pipe(split2()).on('data', function (line) {
+    console.log('runner stderr', line)
+    var ret = JSON.parse(line)
+    toClient({type:'test_error', data: ret})
+  })
+}
+
+// runTestFile(['test1465218312129', 'test1465218335247'])
 
 // Phantom
 var phantom

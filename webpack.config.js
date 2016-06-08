@@ -1,7 +1,10 @@
 var webpack = require('webpack')
 
 var loaders = [
-  {test:/\.js$/, loader:'babel', exclude:'node_modules', query:{presets:['es2015']}}
+  {test:/\.js$/, loader:'babel', exclude:'node_modules', query:{
+    presets:['es2015'],
+    plugins:['syntax-trailing-function-commas']
+  }}
 ]
 
 var config={

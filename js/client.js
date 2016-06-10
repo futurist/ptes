@@ -55,6 +55,10 @@
 
 	var _mtree2 = _interopRequireDefault(_mtree);
 
+	var _reporter = __webpack_require__(9);
+
+	var _reporter2 = _interopRequireDefault(_reporter);
+
 	var _overlay = __webpack_require__(5);
 
 	var _overlay2 = _interopRequireDefault(_overlay);
@@ -295,8 +299,10 @@
 	function showSetup(arg) {
 	  if (stage == RECORDING && !startStopRec()) return;
 	  stage = SETUP;
-	  _overlay2.default.show({ com: m.component(_mtree2.default, { url: '/config', onclose: oncloseSetup }) });
+	  _overlay2.default.show('#overlay', { com: m.component(_mtree2.default, { url: '/config', onclose: oncloseSetup }) });
 	}
+
+	_overlay2.default.show('#result', { com: m.component(_reporter2.default, {}) });
 
 	//
 	// setup keyboard event
@@ -1076,7 +1082,7 @@
 	    }
 
 	    function doCopy(e) {
-	      if (!selected.parent) return;
+	      if (!selected || !selected.parent) return;
 	      target = Object.assign({ type: 'copying' }, selected);
 	      m.redraw();
 	    }
@@ -1623,8 +1629,8 @@
 	    }
 	  }
 	  function popupOverlay(root, popup) {
-	    if (arguments.length < 2) popup = root, root = null;
-	    if (!root) root = '#overlay';
+	    // if (arguments.length < 2) popup = root, root = null
+	    if (!root) return;
 	    root = typeof root == 'string' ? document.querySelector(root) : root;
 	    if (root) {
 	      root.overlayStack = root.overlayStack || [];
@@ -2285,6 +2291,1258 @@
 	        }
 	    }
 	};
+
+/***/ },
+/* 9 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+
+	var _mithrilJ2c = __webpack_require__(15);
+
+	var _mithrilJ2c2 = _interopRequireDefault(_mithrilJ2c);
+
+	var _util = __webpack_require__(11);
+
+	var _util2 = _interopRequireDefault(_util);
+
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+	/**
+	 * @fileOverview Render html view from ptest-runner reporter
+	 * @requires ptest-runner output JSON format file/response
+	 * @name ptest-resu@lt.js
+	 * @author Micheal Yang
+	 * @license MIT
+	 */
+
+	var s = _mithrilJ2c2.default.bindMithril();
+
+	var style = _mithrilJ2c2.default.sheet({
+	  '.reporter': {
+	    margin_left: '20px'
+	  },
+	  '.item': {
+	    color: 'grey'
+	  },
+	  '.success': {
+	    color: 'green'
+	  },
+	  '.fail': {
+	    color: 'red'
+	  },
+	  '.footer': { color: 'blue' },
+	  '.abc': { color: 'blue' }
+	});
+
+	var footer = {
+	  view: function view(ctrl, arg) {
+	    return m('.footerContent', _util2.default.format('total:%s, success:%s, fail:%s', arg.total.length, arg.success.length, arg.fail.length));
+	  }
+	};
+
+	var reporter = {
+	  controller: function controller(arg) {
+	    this.data = arg.data || data;
+	  },
+	  view: function view(ctrl, arg) {
+	    return m('.runner-result', { style: { textAlign: 'left', padding: '30px' } }, [m.style(style), s('h3', { style: { marginBottom: '10px' } }, 'Result for ptest-runner'), s('.reporter', ctrl.data.map(function (v) {
+	      return s('.item', {
+	        class: style[v.status],
+	        style: {
+	          marginLeft: v.level * 20 + 'px'
+	        }
+	      }, v.test ? _util2.default.format('%s %s %s', v.msg, v.submsg, v.status) : s('strong', v.msg));
+	    })), s('.footer', m(footer, {
+	      total: ctrl.data.filter(function (v) {
+	        return v.test;
+	      }),
+	      success: ctrl.data.filter(function (v) {
+	        return v.status == 'success';
+	      }),
+	      fail: ctrl.data.filter(function (v) {
+	        return v.status == 'fail';
+	      })
+	    }))]);
+	  }
+	};
+
+	var data = [{ "msg": "ptest for custom test files", "submsg": "", "level": 0 }, { "msg": "[test1465218312129]", "submsg": "(1 / 1)", "test": "test1465218312129", "level": 1, "status": "success" }, { "msg": "[test1465218335247]", "submsg": "(1 / 1)", "test": "test1465218335247", "level": 1, "status": "fail" }];
+
+	module.exports = reporter;
+
+/***/ },
+/* 10 */
+/***/ function(module, exports) {
+
+	'use strict';
+
+	var emptyObject = {};
+	var emptyArray = [];
+	var type = emptyObject.toString;
+	var own = emptyObject.hasOwnProperty;
+	var OBJECT = type.call(emptyObject);
+	var ARRAY = type.call(emptyArray);
+	var STRING = type.call('');
+	/*/-inline-/*/
+	// function cartesian(a, b, res, i, j) {
+	//   res = [];
+	//   for (j in b) if (own.call(b, j))
+	//     for (i in a) if (own.call(a, i))
+	//       res.push(a[i] + b[j]);
+	//   return res;
+	// }
+	/*/-inline-/*/
+
+	/* /-statements-/*/
+	function cartesian(a, b, selectorP, res, i, j) {
+	  res = [];
+	  for (j in b) {
+	    if (own.call(b, j)) for (i in a) {
+	      if (own.call(a, i)) res.push(concat(a[i], b[j], selectorP));
+	    }
+	  }return res;
+	}
+
+	function concat(a, b, selectorP) {
+	  // `b.replace(/&/g, a)` is never falsy, since the
+	  // 'a' of cartesian can't be the empty string
+	  // in selector mode.
+	  return selectorP && (/^[-\w$]+$/.test(b) && ':-error-bad-sub-selector-' + b || /&/.test(b) && /* never falsy */b.replace(/&/g, a)) || a + b;
+	}
+
+	function decamelize(match) {
+	  return '-' + match.toLowerCase();
+	}
+
+	/**
+	 * Handles the property:value; pairs.
+	 *
+	 * @param {array|object|string} o - the declarations.
+	 * @param {string[]} buf - the buffer in which the final style sheet is built.
+	 * @param {string} prefix - the current property or a prefix in case of nested
+	 *                          sub-properties.
+	 * @param {string} vendors - a list of vendor prefixes.
+	 * @Param {boolean} local - are we in @local or in @global scope.
+	 * @param {object} ns - helper functions to populate or create the @local namespace
+	 *                      and to @extend classes.
+	 * @param {function} ns.e - @extend helper.
+	 * @param {function} ns.l - @local helper.
+	 */
+
+	function declarations(o, buf, prefix, vendors, local, ns, /*var*/k, v, kk) {
+	  if (o == null) return;
+	  if (/\$/.test(prefix)) {
+	    for (kk in prefix = prefix.split('$')) {
+	      if (own.call(prefix, kk)) {
+	        declarations(o, buf, prefix[kk], vendors, local, ns);
+	      }
+	    }return;
+	  }
+	  switch (type.call(o = o.valueOf())) {
+	    case ARRAY:
+	      for (k = 0; k < o.length; k++) {
+	        declarations(o[k], buf, prefix, vendors, local, ns);
+	      }break;
+	    case OBJECT:
+	      // prefix is falsy iif it is the empty string, which means we're at the root
+	      // of the declarations list.
+	      prefix = prefix && prefix + '-';
+	      for (k in o) {
+	        if (own.call(o, k)) {
+	          v = o[k];
+	          if (/\$/.test(k)) {
+	            for (kk in k = k.split('$')) {
+	              if (own.call(k, kk)) declarations(v, buf, prefix + k[kk], vendors, local, ns);
+	            }
+	          } else {
+	            declarations(v, buf, prefix + k, vendors, local, ns);
+	          }
+	        }
+	      }break;
+	    default:
+	      // prefix is falsy when it is "", which means that we're
+	      // at the top level.
+	      // `o` is then treated as a `property:value` pair.
+	      // otherwise, `prefix` is the property name, and
+	      // `o` is the value.
+	      k = prefix.replace(/_/g, '-').replace(/[A-Z]/g, decamelize);
+
+	      if (local && (k == 'animation-name' || k == 'animation')) {
+	        o = o.split(',').map(function (o) {
+	          return o.replace(/()(?::global\(\s*([-\w]+)\s*\)|()([-\w]+))/, ns.l);
+	        }).join(',');
+	      }
+	      if (/^animation|^transition/.test(k)) vendors = ['webkit'];
+	      // '@' in properties also triggers the *ielte7 hack
+	      // Since plugins dispatch on the /^@/ for at-rules
+	      // we swap the at for an asterisk
+	      // http://browserhacks.com/#hack-6d49e92634f26ae6d6e46b3ebc10019a
+
+	      k = k.replace(/^@/, '*');
+
+	      /*/-statements-/*/
+	      // vendorify
+	      for (kk = 0; kk < vendors.length; kk++) {
+	        buf.push('-', vendors[kk], '-', k, k ? ':' : '', o, ';\n');
+	      } /*/-statements-/*/
+
+	      buf.push(k, k ? ':' : '', o, ';\n');
+
+	  }
+	}
+
+	var findClass = /()(?::global\(\s*(\.[-\w]+)\s*\)|(\.)([-\w]+))/g;
+
+	/**
+	 * Hanldes at-rules
+	 *
+	 * @param {string} k - The at-rule name, and, if takes both parameters and a
+	 *                     block, the parameters.
+	 * @param {string[]} buf - the buffer in which the final style sheet is built
+	 * @param {string[]} v - Either parameters for block-less rules or their block
+	 *                       for the others.
+	 * @param {string} prefix - the current selector or a prefix in case of nested rules
+	 * @param {string} rawPrefix - as above, but without localization transformations
+	 * @param {string} vendors - a list of vendor prefixes
+	 * @Param {boolean} local - are we in @local or in @global scope?
+	 * @param {object} ns - helper functions to populate or create the @local namespace
+	 *                      and to @extend classes
+	 * @param {function} ns.e - @extend helper
+	 * @param {function} ns.l - @local helper
+	 */
+
+	function at(k, v, buf, prefix, rawPrefix, vendors, local, ns) {
+	  var kk;
+	  if (/^@(?:namespace|import|charset)$/.test(k)) {
+	    if (type.call(v) == ARRAY) {
+	      for (kk = 0; kk < v.length; kk++) {
+	        buf.push(k, ' ', v[kk], ';\n');
+	      }
+	    } else {
+	      buf.push(k, ' ', v, ';\n');
+	    }
+	  } else if (/^@keyframes /.test(k)) {
+	    k = local ? k.replace(
+	    // generated by script/regexps.js
+	    /( )(?::global\(\s*([-\w]+)\s*\)|()([-\w]+))/, ns.l) : k;
+	    // add a @-webkit-keyframes block too.
+
+	    buf.push('@-webkit-', k.slice(1), ' {\n');
+	    sheet(v, buf, '', '', ['webkit']);
+	    buf.push('}\n');
+
+	    buf.push(k, ' {\n');
+	    sheet(v, buf, '', '', vendors, local, ns);
+	    buf.push('}\n');
+	  } else if (/^@extends?$/.test(k)) {
+
+	    /*eslint-disable no-cond-assign*/
+	    // pick the last class to be extended
+	    while (kk = findClass.exec(rawPrefix)) {
+	      k = kk[4];
+	    } /*eslint-enable no-cond-assign*/
+	    if (k == null || !local) {
+	      // we're in a @global{} block
+	      buf.push('@-error-cannot-extend-in-global-context ', JSON.stringify(rawPrefix), ';\n');
+	      return;
+	    } else if (/^@extends?$/.test(k)) {
+	      // no class in the selector
+	      buf.push('@-error-no-class-to-extend-in ', JSON.stringify(rawPrefix), ';\n');
+	      return;
+	    }
+	    ns.e(type.call(v) == ARRAY ? v.map(function (parent) {
+	      return parent.replace(/()(?::global\(\s*(\.[-\w]+)\s*\)|()\.([-\w]+))/, ns.l);
+	    }).join(' ') : v.replace(/()(?::global\(\s*(\.[-\w]+)\s*\)|()\.([-\w]+))/, ns.l), k);
+	  } else if (/^@(?:font-face$|viewport$|page )/.test(k)) {
+	    sheet(v, buf, k, k, emptyArray);
+	  } else if (/^@global$/.test(k)) {
+	    sheet(v, buf, prefix, rawPrefix, vendors, 0, ns);
+	  } else if (/^@local$/.test(k)) {
+	    sheet(v, buf, prefix, rawPrefix, vendors, 1, ns);
+	  } else if (/^@(?:media |supports |document )./.test(k)) {
+	    buf.push(k, ' {\n');
+	    sheet(v, buf, prefix, rawPrefix, vendors, local, ns);
+	    buf.push('}\n');
+	  } else {
+	    buf.push('@-error-unsupported-at-rule ', JSON.stringify(k), ';\n');
+	  }
+	}
+
+	/**
+	 * Add rulesets and other CSS statements to the sheet.
+	 *
+	 * @param {array|string|object} statements - a source object or sub-object.
+	 * @param {string[]} buf - the buffer in which the final style sheet is built
+	 * @param {string} prefix - the current selector or a prefix in case of nested rules
+	 * @param {string} rawPrefix - as above, but without localization transformations
+	 * @param {string} vendors - a list of vendor prefixes
+	 * @Param {boolean} local - are we in @local or in @global scope?
+	 * @param {object} ns - helper functions to populate or create the @local namespace
+	 *                      and to @extend classes
+	 * @param {function} ns.e - @extend helper
+	 * @param {function} ns.l - @local helper
+	 */
+	function sheet(statements, buf, prefix, rawPrefix, vendors, local, ns) {
+	  var k, kk, v, inDeclaration;
+
+	  switch (type.call(statements)) {
+
+	    case ARRAY:
+	      for (k = 0; k < statements.length; k++) {
+	        sheet(statements[k], buf, prefix, rawPrefix, vendors, local, ns);
+	      }break;
+
+	    case OBJECT:
+	      for (k in statements) {
+	        v = statements[k];
+	        if (prefix && /^[-\w$]+$/.test(k)) {
+	          if (!inDeclaration) {
+	            inDeclaration = 1;
+	            buf.push(prefix || '*', ' {\n');
+	          }
+	          declarations(v, buf, k, vendors, local, ns);
+	        } else if (/^@/.test(k)) {
+	          // Handle At-rules
+	          inDeclaration = inDeclaration && buf.push('}\n') && 0;
+
+	          at(k, v, buf, prefix, rawPrefix, vendors, local, ns);
+	        } else {
+	          // selector or nested sub-selectors
+
+	          inDeclaration = inDeclaration && buf.push('}\n') && 0;
+
+	          sheet(v, buf, (kk = /,/.test(prefix) || prefix && /,/.test(k)) ? cartesian(prefix.split(','), (local ? k.replace(/()(?::global\(\s*(\.[-\w]+)\s*\)|(\.)([-\w]+))/g, ns.l) : k).split(','), prefix).join(',') : concat(prefix, local ? k.replace(/()(?::global\(\s*(\.[-\w]+)\s*\)|(\.)([-\w]+))/g, ns.l) : k, prefix), kk ? cartesian(rawPrefix.split(','), k.split(','), rawPrefix).join(',') : concat(rawPrefix, k, rawPrefix), vendors, local, ns);
+	        }
+	      }
+	      if (inDeclaration) buf.push('}\n');
+	      break;
+	    case STRING:
+	      buf.push(prefix || ':-error-no-selector', ' {\n');
+	      declarations(statements, buf, '', vendors, local, ns);
+	      buf.push('}\n');
+	  }
+	}
+
+	var scope_root = '_j2c_' + Math.floor(Math.random() * 0x100000000).toString(36) + '_' + Math.floor(Math.random() * 0x100000000).toString(36) + '_' + Math.floor(Math.random() * 0x100000000).toString(36) + '_' + Math.floor(Math.random() * 0x100000000).toString(36) + '_';
+	var counter = 0;
+	function j2c(res) {
+	  res = res || {};
+	  var extensions = [];
+
+	  function finalize(buf, i) {
+	    for (i = 0; i < extensions.length; i++) {
+	      buf = extensions[i](buf) || buf;
+	    }return buf.join('');
+	  }
+
+	  res.use = function () {
+	    var args = arguments;
+	    for (var i = 0; i < args.length; i++) {
+	      extensions.push(args[i]);
+	    }
+	    return res;
+	  };
+	  /*/-statements-/*/
+	  res.sheet = function (ns, statements) {
+	    if (arguments.length === 1) {
+	      statements = ns;ns = {};
+	    }
+	    var suffix = scope_root + counter++,
+	        locals = {},
+	        k,
+	        buf = [];
+	    // pick only non-numeric keys since `(NaN != NaN) === true`
+	    for (k in ns) {
+	      if (k - 0 != k - 0 && own.call(ns, k)) {
+	        locals[k] = ns[k];
+	      }
+	    }sheet(statements, buf, '', '', emptyArray /*vendors*/
+	    , 1, // local
+	    {
+	      e: function extend(parent, child) {
+	        var nameList = locals[child];
+	        locals[child] = nameList.slice(0, nameList.lastIndexOf(' ') + 1) + parent + ' ' + nameList.slice(nameList.lastIndexOf(' ') + 1);
+	      },
+	      l: function localize(match, space, global, dot, name) {
+	        if (global) {
+	          return space + global;
+	        }
+	        if (!locals[name]) locals[name] = name + suffix;
+	        return space + dot + locals[name].match(/\S+$/);
+	      }
+	    });
+	    /*jshint -W053 */
+	    buf = new String(finalize(buf));
+	    /*jshint +W053 */
+	    for (k in locals) {
+	      if (own.call(locals, k)) buf[k] = locals[k];
+	    }return buf;
+	  };
+	  /*/-statements-/*/
+	  res.inline = function (locals, decl, buf) {
+	    if (arguments.length === 1) {
+	      decl = locals;locals = {};
+	    }
+	    declarations(decl, buf = [], '', // prefix
+	    emptyArray, // vendors
+	    1, {
+	      l: function localize(match, space, global, dot, name) {
+	        if (global) return space + global;
+	        if (!locals[name]) return name;
+	        return space + dot + locals[name];
+	      }
+	    });
+	    return finalize(buf);
+	  };
+
+	  res.prefix = function (val, vendors) {
+	    return cartesian(vendors.map(function (p) {
+	      return '-' + p + '-';
+	    }).concat(['']), [val]);
+	  };
+	  return res;
+	}
+
+	j2c.global = function (x) {
+	  return ':global(' + x + ')';
+	};
+
+	j2c.kv = kv;
+	function kv(k, v, o) {
+	  o = {};
+	  o[k] = v;
+	  return o;
+	}
+
+	j2c.at = function at(rule, params, block) {
+	  if (arguments.length < 3) {
+	    var _at = at.bind.apply(at, [null].concat([].slice.call(arguments, 0)));
+	    _at.toString = function () {
+	      return '@' + rule + ' ' + params;
+	    };
+	    return _at;
+	  } else return kv('@' + rule + ' ' + params, block);
+	};
+
+	j2c(j2c);
+	delete j2c.use;
+
+	module.exports = j2c;
+
+/***/ },
+/* 11 */
+/***/ function(module, exports, __webpack_require__) {
+
+	/* WEBPACK VAR INJECTION */(function(global, process) {'use strict';
+
+	var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol ? "symbol" : typeof obj; };
+
+	// Copyright Joyent, Inc. and other Node contributors.
+	//
+	// Permission is hereby granted, free of charge, to any person obtaining a
+	// copy of this software and associated documentation files (the
+	// "Software"), to deal in the Software without restriction, including
+	// without limitation the rights to use, copy, modify, merge, publish,
+	// distribute, sublicense, and/or sell copies of the Software, and to permit
+	// persons to whom the Software is furnished to do so, subject to the
+	// following conditions:
+	//
+	// The above copyright notice and this permission notice shall be included
+	// in all copies or substantial portions of the Software.
+	//
+	// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+	// OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+	// MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN
+	// NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+	// DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+	// OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
+	// USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+	var formatRegExp = /%[sdj%]/g;
+	exports.format = function (f) {
+	  if (!isString(f)) {
+	    var objects = [];
+	    for (var i = 0; i < arguments.length; i++) {
+	      objects.push(inspect(arguments[i]));
+	    }
+	    return objects.join(' ');
+	  }
+
+	  var i = 1;
+	  var args = arguments;
+	  var len = args.length;
+	  var str = String(f).replace(formatRegExp, function (x) {
+	    if (x === '%%') return '%';
+	    if (i >= len) return x;
+	    switch (x) {
+	      case '%s':
+	        return String(args[i++]);
+	      case '%d':
+	        return Number(args[i++]);
+	      case '%j':
+	        try {
+	          return JSON.stringify(args[i++]);
+	        } catch (_) {
+	          return '[Circular]';
+	        }
+	      default:
+	        return x;
+	    }
+	  });
+	  for (var x = args[i]; i < len; x = args[++i]) {
+	    if (isNull(x) || !isObject(x)) {
+	      str += ' ' + x;
+	    } else {
+	      str += ' ' + inspect(x);
+	    }
+	  }
+	  return str;
+	};
+
+	// Mark that a method should not be used.
+	// Returns a modified function which warns once by default.
+	// If --no-deprecation is set, then it is a no-op.
+	exports.deprecate = function (fn, msg) {
+	  // Allow for deprecating things in the process of starting up.
+	  if (isUndefined(global.process)) {
+	    return function () {
+	      return exports.deprecate(fn, msg).apply(this, arguments);
+	    };
+	  }
+
+	  if (process.noDeprecation === true) {
+	    return fn;
+	  }
+
+	  var warned = false;
+	  function deprecated() {
+	    if (!warned) {
+	      if (process.throwDeprecation) {
+	        throw new Error(msg);
+	      } else if (process.traceDeprecation) {
+	        console.trace(msg);
+	      } else {
+	        console.error(msg);
+	      }
+	      warned = true;
+	    }
+	    return fn.apply(this, arguments);
+	  }
+
+	  return deprecated;
+	};
+
+	var debugs = {};
+	var debugEnviron;
+	exports.debuglog = function (set) {
+	  if (isUndefined(debugEnviron)) debugEnviron = process.env.NODE_DEBUG || '';
+	  set = set.toUpperCase();
+	  if (!debugs[set]) {
+	    if (new RegExp('\\b' + set + '\\b', 'i').test(debugEnviron)) {
+	      var pid = process.pid;
+	      debugs[set] = function () {
+	        var msg = exports.format.apply(exports, arguments);
+	        console.error('%s %d: %s', set, pid, msg);
+	      };
+	    } else {
+	      debugs[set] = function () {};
+	    }
+	  }
+	  return debugs[set];
+	};
+
+	/**
+	 * Echos the value of a value. Trys to print the value out
+	 * in the best way possible given the different types.
+	 *
+	 * @param {Object} obj The object to print out.
+	 * @param {Object} opts Optional options object that alters the output.
+	 */
+	/* legacy: obj, showHidden, depth, colors*/
+	function inspect(obj, opts) {
+	  // default options
+	  var ctx = {
+	    seen: [],
+	    stylize: stylizeNoColor
+	  };
+	  // legacy...
+	  if (arguments.length >= 3) ctx.depth = arguments[2];
+	  if (arguments.length >= 4) ctx.colors = arguments[3];
+	  if (isBoolean(opts)) {
+	    // legacy...
+	    ctx.showHidden = opts;
+	  } else if (opts) {
+	    // got an "options" object
+	    exports._extend(ctx, opts);
+	  }
+	  // set default options
+	  if (isUndefined(ctx.showHidden)) ctx.showHidden = false;
+	  if (isUndefined(ctx.depth)) ctx.depth = 2;
+	  if (isUndefined(ctx.colors)) ctx.colors = false;
+	  if (isUndefined(ctx.customInspect)) ctx.customInspect = true;
+	  if (ctx.colors) ctx.stylize = stylizeWithColor;
+	  return formatValue(ctx, obj, ctx.depth);
+	}
+	exports.inspect = inspect;
+
+	// http://en.wikipedia.org/wiki/ANSI_escape_code#graphics
+	inspect.colors = {
+	  'bold': [1, 22],
+	  'italic': [3, 23],
+	  'underline': [4, 24],
+	  'inverse': [7, 27],
+	  'white': [37, 39],
+	  'grey': [90, 39],
+	  'black': [30, 39],
+	  'blue': [34, 39],
+	  'cyan': [36, 39],
+	  'green': [32, 39],
+	  'magenta': [35, 39],
+	  'red': [31, 39],
+	  'yellow': [33, 39]
+	};
+
+	// Don't use 'blue' not visible on cmd.exe
+	inspect.styles = {
+	  'special': 'cyan',
+	  'number': 'yellow',
+	  'boolean': 'yellow',
+	  'undefined': 'grey',
+	  'null': 'bold',
+	  'string': 'green',
+	  'date': 'magenta',
+	  // "name": intentionally not styling
+	  'regexp': 'red'
+	};
+
+	function stylizeWithColor(str, styleType) {
+	  var style = inspect.styles[styleType];
+
+	  if (style) {
+	    return '\u001b[' + inspect.colors[style][0] + 'm' + str + '\u001b[' + inspect.colors[style][1] + 'm';
+	  } else {
+	    return str;
+	  }
+	}
+
+	function stylizeNoColor(str, styleType) {
+	  return str;
+	}
+
+	function arrayToHash(array) {
+	  var hash = {};
+
+	  array.forEach(function (val, idx) {
+	    hash[val] = true;
+	  });
+
+	  return hash;
+	}
+
+	function formatValue(ctx, value, recurseTimes) {
+	  // Provide a hook for user-specified inspect functions.
+	  // Check that value is an object with an inspect function on it
+	  if (ctx.customInspect && value && isFunction(value.inspect) &&
+	  // Filter out the util module, it's inspect function is special
+	  value.inspect !== exports.inspect &&
+	  // Also filter out any prototype objects using the circular check.
+	  !(value.constructor && value.constructor.prototype === value)) {
+	    var ret = value.inspect(recurseTimes, ctx);
+	    if (!isString(ret)) {
+	      ret = formatValue(ctx, ret, recurseTimes);
+	    }
+	    return ret;
+	  }
+
+	  // Primitive types cannot have properties
+	  var primitive = formatPrimitive(ctx, value);
+	  if (primitive) {
+	    return primitive;
+	  }
+
+	  // Look up the keys of the object.
+	  var keys = Object.keys(value);
+	  var visibleKeys = arrayToHash(keys);
+
+	  if (ctx.showHidden) {
+	    keys = Object.getOwnPropertyNames(value);
+	  }
+
+	  // IE doesn't make error fields non-enumerable
+	  // http://msdn.microsoft.com/en-us/library/ie/dww52sbt(v=vs.94).aspx
+	  if (isError(value) && (keys.indexOf('message') >= 0 || keys.indexOf('description') >= 0)) {
+	    return formatError(value);
+	  }
+
+	  // Some type of object without properties can be shortcutted.
+	  if (keys.length === 0) {
+	    if (isFunction(value)) {
+	      var name = value.name ? ': ' + value.name : '';
+	      return ctx.stylize('[Function' + name + ']', 'special');
+	    }
+	    if (isRegExp(value)) {
+	      return ctx.stylize(RegExp.prototype.toString.call(value), 'regexp');
+	    }
+	    if (isDate(value)) {
+	      return ctx.stylize(Date.prototype.toString.call(value), 'date');
+	    }
+	    if (isError(value)) {
+	      return formatError(value);
+	    }
+	  }
+
+	  var base = '',
+	      array = false,
+	      braces = ['{', '}'];
+
+	  // Make Array say that they are Array
+	  if (isArray(value)) {
+	    array = true;
+	    braces = ['[', ']'];
+	  }
+
+	  // Make functions say that they are functions
+	  if (isFunction(value)) {
+	    var n = value.name ? ': ' + value.name : '';
+	    base = ' [Function' + n + ']';
+	  }
+
+	  // Make RegExps say that they are RegExps
+	  if (isRegExp(value)) {
+	    base = ' ' + RegExp.prototype.toString.call(value);
+	  }
+
+	  // Make dates with properties first say the date
+	  if (isDate(value)) {
+	    base = ' ' + Date.prototype.toUTCString.call(value);
+	  }
+
+	  // Make error with message first say the error
+	  if (isError(value)) {
+	    base = ' ' + formatError(value);
+	  }
+
+	  if (keys.length === 0 && (!array || value.length == 0)) {
+	    return braces[0] + base + braces[1];
+	  }
+
+	  if (recurseTimes < 0) {
+	    if (isRegExp(value)) {
+	      return ctx.stylize(RegExp.prototype.toString.call(value), 'regexp');
+	    } else {
+	      return ctx.stylize('[Object]', 'special');
+	    }
+	  }
+
+	  ctx.seen.push(value);
+
+	  var output;
+	  if (array) {
+	    output = formatArray(ctx, value, recurseTimes, visibleKeys, keys);
+	  } else {
+	    output = keys.map(function (key) {
+	      return formatProperty(ctx, value, recurseTimes, visibleKeys, key, array);
+	    });
+	  }
+
+	  ctx.seen.pop();
+
+	  return reduceToSingleString(output, base, braces);
+	}
+
+	function formatPrimitive(ctx, value) {
+	  if (isUndefined(value)) return ctx.stylize('undefined', 'undefined');
+	  if (isString(value)) {
+	    var simple = '\'' + JSON.stringify(value).replace(/^"|"$/g, '').replace(/'/g, "\\'").replace(/\\"/g, '"') + '\'';
+	    return ctx.stylize(simple, 'string');
+	  }
+	  if (isNumber(value)) return ctx.stylize('' + value, 'number');
+	  if (isBoolean(value)) return ctx.stylize('' + value, 'boolean');
+	  // For some reason typeof null is "object", so special case here.
+	  if (isNull(value)) return ctx.stylize('null', 'null');
+	}
+
+	function formatError(value) {
+	  return '[' + Error.prototype.toString.call(value) + ']';
+	}
+
+	function formatArray(ctx, value, recurseTimes, visibleKeys, keys) {
+	  var output = [];
+	  for (var i = 0, l = value.length; i < l; ++i) {
+	    if (hasOwnProperty(value, String(i))) {
+	      output.push(formatProperty(ctx, value, recurseTimes, visibleKeys, String(i), true));
+	    } else {
+	      output.push('');
+	    }
+	  }
+	  keys.forEach(function (key) {
+	    if (!key.match(/^\d+$/)) {
+	      output.push(formatProperty(ctx, value, recurseTimes, visibleKeys, key, true));
+	    }
+	  });
+	  return output;
+	}
+
+	function formatProperty(ctx, value, recurseTimes, visibleKeys, key, array) {
+	  var name, str, desc;
+	  desc = Object.getOwnPropertyDescriptor(value, key) || { value: value[key] };
+	  if (desc.get) {
+	    if (desc.set) {
+	      str = ctx.stylize('[Getter/Setter]', 'special');
+	    } else {
+	      str = ctx.stylize('[Getter]', 'special');
+	    }
+	  } else {
+	    if (desc.set) {
+	      str = ctx.stylize('[Setter]', 'special');
+	    }
+	  }
+	  if (!hasOwnProperty(visibleKeys, key)) {
+	    name = '[' + key + ']';
+	  }
+	  if (!str) {
+	    if (ctx.seen.indexOf(desc.value) < 0) {
+	      if (isNull(recurseTimes)) {
+	        str = formatValue(ctx, desc.value, null);
+	      } else {
+	        str = formatValue(ctx, desc.value, recurseTimes - 1);
+	      }
+	      if (str.indexOf('\n') > -1) {
+	        if (array) {
+	          str = str.split('\n').map(function (line) {
+	            return '  ' + line;
+	          }).join('\n').substr(2);
+	        } else {
+	          str = '\n' + str.split('\n').map(function (line) {
+	            return '   ' + line;
+	          }).join('\n');
+	        }
+	      }
+	    } else {
+	      str = ctx.stylize('[Circular]', 'special');
+	    }
+	  }
+	  if (isUndefined(name)) {
+	    if (array && key.match(/^\d+$/)) {
+	      return str;
+	    }
+	    name = JSON.stringify('' + key);
+	    if (name.match(/^"([a-zA-Z_][a-zA-Z_0-9]*)"$/)) {
+	      name = name.substr(1, name.length - 2);
+	      name = ctx.stylize(name, 'name');
+	    } else {
+	      name = name.replace(/'/g, "\\'").replace(/\\"/g, '"').replace(/(^"|"$)/g, "'");
+	      name = ctx.stylize(name, 'string');
+	    }
+	  }
+
+	  return name + ': ' + str;
+	}
+
+	function reduceToSingleString(output, base, braces) {
+	  var numLinesEst = 0;
+	  var length = output.reduce(function (prev, cur) {
+	    numLinesEst++;
+	    if (cur.indexOf('\n') >= 0) numLinesEst++;
+	    return prev + cur.replace(/\u001b\[\d\d?m/g, '').length + 1;
+	  }, 0);
+
+	  if (length > 60) {
+	    return braces[0] + (base === '' ? '' : base + '\n ') + ' ' + output.join(',\n  ') + ' ' + braces[1];
+	  }
+
+	  return braces[0] + base + ' ' + output.join(', ') + ' ' + braces[1];
+	}
+
+	// NOTE: These type checking functions intentionally don't use `instanceof`
+	// because it is fragile and can be easily faked with `Object.create()`.
+	function isArray(ar) {
+	  return Array.isArray(ar);
+	}
+	exports.isArray = isArray;
+
+	function isBoolean(arg) {
+	  return typeof arg === 'boolean';
+	}
+	exports.isBoolean = isBoolean;
+
+	function isNull(arg) {
+	  return arg === null;
+	}
+	exports.isNull = isNull;
+
+	function isNullOrUndefined(arg) {
+	  return arg == null;
+	}
+	exports.isNullOrUndefined = isNullOrUndefined;
+
+	function isNumber(arg) {
+	  return typeof arg === 'number';
+	}
+	exports.isNumber = isNumber;
+
+	function isString(arg) {
+	  return typeof arg === 'string';
+	}
+	exports.isString = isString;
+
+	function isSymbol(arg) {
+	  return (typeof arg === 'undefined' ? 'undefined' : _typeof(arg)) === 'symbol';
+	}
+	exports.isSymbol = isSymbol;
+
+	function isUndefined(arg) {
+	  return arg === void 0;
+	}
+	exports.isUndefined = isUndefined;
+
+	function isRegExp(re) {
+	  return isObject(re) && objectToString(re) === '[object RegExp]';
+	}
+	exports.isRegExp = isRegExp;
+
+	function isObject(arg) {
+	  return (typeof arg === 'undefined' ? 'undefined' : _typeof(arg)) === 'object' && arg !== null;
+	}
+	exports.isObject = isObject;
+
+	function isDate(d) {
+	  return isObject(d) && objectToString(d) === '[object Date]';
+	}
+	exports.isDate = isDate;
+
+	function isError(e) {
+	  return isObject(e) && (objectToString(e) === '[object Error]' || e instanceof Error);
+	}
+	exports.isError = isError;
+
+	function isFunction(arg) {
+	  return typeof arg === 'function';
+	}
+	exports.isFunction = isFunction;
+
+	function isPrimitive(arg) {
+	  return arg === null || typeof arg === 'boolean' || typeof arg === 'number' || typeof arg === 'string' || (typeof arg === 'undefined' ? 'undefined' : _typeof(arg)) === 'symbol' || // ES6 symbol
+	  typeof arg === 'undefined';
+	}
+	exports.isPrimitive = isPrimitive;
+
+	exports.isBuffer = __webpack_require__(13);
+
+	function objectToString(o) {
+	  return Object.prototype.toString.call(o);
+	}
+
+	function pad(n) {
+	  return n < 10 ? '0' + n.toString(10) : n.toString(10);
+	}
+
+	var months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+	// 26 Feb 16:19:34
+	function timestamp() {
+	  var d = new Date();
+	  var time = [pad(d.getHours()), pad(d.getMinutes()), pad(d.getSeconds())].join(':');
+	  return [d.getDate(), months[d.getMonth()], time].join(' ');
+	}
+
+	// log is just a thin wrapper to console.log that prepends a timestamp
+	exports.log = function () {
+	  console.log('%s - %s', timestamp(), exports.format.apply(exports, arguments));
+	};
+
+	/**
+	 * Inherit the prototype methods from one constructor into another.
+	 *
+	 * The Function.prototype.inherits from lang.js rewritten as a standalone
+	 * function (not on Function.prototype). NOTE: If this file is to be loaded
+	 * during bootstrapping this function needs to be rewritten using some native
+	 * functions as prototype setup using normal JavaScript does not work as
+	 * expected during bootstrapping (see mirror.js in r114903).
+	 *
+	 * @param {function} ctor Constructor function which needs to inherit the
+	 *     prototype.
+	 * @param {function} superCtor Constructor function to inherit prototype from.
+	 */
+	exports.inherits = __webpack_require__(14);
+
+	exports._extend = function (origin, add) {
+	  // Don't do anything if add isn't an object
+	  if (!add || !isObject(add)) return origin;
+
+	  var keys = Object.keys(add);
+	  var i = keys.length;
+	  while (i--) {
+	    origin[keys[i]] = add[keys[i]];
+	  }
+	  return origin;
+	};
+
+	function hasOwnProperty(obj, prop) {
+	  return Object.prototype.hasOwnProperty.call(obj, prop);
+	}
+	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }()), __webpack_require__(12)))
+
+/***/ },
+/* 12 */
+/***/ function(module, exports) {
+
+	'use strict';
+
+	// shim for using process in browser
+
+	var process = module.exports = {};
+	var queue = [];
+	var draining = false;
+	var currentQueue;
+	var queueIndex = -1;
+
+	function cleanUpNextTick() {
+	    if (!draining || !currentQueue) {
+	        return;
+	    }
+	    draining = false;
+	    if (currentQueue.length) {
+	        queue = currentQueue.concat(queue);
+	    } else {
+	        queueIndex = -1;
+	    }
+	    if (queue.length) {
+	        drainQueue();
+	    }
+	}
+
+	function drainQueue() {
+	    if (draining) {
+	        return;
+	    }
+	    var timeout = setTimeout(cleanUpNextTick);
+	    draining = true;
+
+	    var len = queue.length;
+	    while (len) {
+	        currentQueue = queue;
+	        queue = [];
+	        while (++queueIndex < len) {
+	            if (currentQueue) {
+	                currentQueue[queueIndex].run();
+	            }
+	        }
+	        queueIndex = -1;
+	        len = queue.length;
+	    }
+	    currentQueue = null;
+	    draining = false;
+	    clearTimeout(timeout);
+	}
+
+	process.nextTick = function (fun) {
+	    var args = new Array(arguments.length - 1);
+	    if (arguments.length > 1) {
+	        for (var i = 1; i < arguments.length; i++) {
+	            args[i - 1] = arguments[i];
+	        }
+	    }
+	    queue.push(new Item(fun, args));
+	    if (queue.length === 1 && !draining) {
+	        setTimeout(drainQueue, 0);
+	    }
+	};
+
+	// v8 likes predictible objects
+	function Item(fun, array) {
+	    this.fun = fun;
+	    this.array = array;
+	}
+	Item.prototype.run = function () {
+	    this.fun.apply(null, this.array);
+	};
+	process.title = 'browser';
+	process.browser = true;
+	process.env = {};
+	process.argv = [];
+	process.version = ''; // empty string to avoid regexp issues
+	process.versions = {};
+
+	function noop() {}
+
+	process.on = noop;
+	process.addListener = noop;
+	process.once = noop;
+	process.off = noop;
+	process.removeListener = noop;
+	process.removeAllListeners = noop;
+	process.emit = noop;
+
+	process.binding = function (name) {
+	    throw new Error('process.binding is not supported');
+	};
+
+	process.cwd = function () {
+	    return '/';
+	};
+	process.chdir = function (dir) {
+	    throw new Error('process.chdir is not supported');
+	};
+	process.umask = function () {
+	    return 0;
+	};
+
+/***/ },
+/* 13 */
+/***/ function(module, exports) {
+
+	'use strict';
+
+	var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol ? "symbol" : typeof obj; };
+
+	module.exports = function isBuffer(arg) {
+	  return arg && (typeof arg === 'undefined' ? 'undefined' : _typeof(arg)) === 'object' && typeof arg.copy === 'function' && typeof arg.fill === 'function' && typeof arg.readUInt8 === 'function';
+	};
+
+/***/ },
+/* 14 */
+/***/ function(module, exports) {
+
+	'use strict';
+
+	if (typeof Object.create === 'function') {
+	  // implementation from standard node.js 'util' module
+	  module.exports = function inherits(ctor, superCtor) {
+	    ctor.super_ = superCtor;
+	    ctor.prototype = Object.create(superCtor.prototype, {
+	      constructor: {
+	        value: ctor,
+	        enumerable: false,
+	        writable: true,
+	        configurable: true
+	      }
+	    });
+	  };
+	} else {
+	  // old school shim for old browsers
+	  module.exports = function inherits(ctor, superCtor) {
+	    ctor.super_ = superCtor;
+	    var TempCtor = function TempCtor() {};
+	    TempCtor.prototype = superCtor.prototype;
+	    ctor.prototype = new TempCtor();
+	    ctor.prototype.constructor = ctor;
+	  };
+	}
+
+/***/ },
+/* 15 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+
+	var j2c = __webpack_require__(10);
+
+	var hasOwn = {}.hasOwnProperty;
+	var type = {}.toString;
+
+	function isObject(object) {
+	  return type.call(object) === '[object Object]';
+	}
+
+	function isString(object) {
+	  return type.call(object) === '[object String]';
+	}
+
+	function bindMithril(M) {
+	  M = M || m;
+	  if (!M) throw new Error('cannot find mithril, make sure you have `m` available in this scope.');
+
+	  var style = {};
+
+	  M.style = function (j2cObject) {
+	    if (!isString(j2cObject)) {
+	      style = {};
+	      return [];
+	    }
+	    style = j2cObject;
+	    return M('style', { type: 'text/css' }, style);
+	  };
+
+	  M.c = function (tag, pairs) {
+	    var args = [];
+
+	    for (var i = 1, length = arguments.length; i < length; i++) {
+	      args[i - 1] = arguments[i];
+	    }
+
+	    if (isObject(tag)) {
+	      var classAttr = 'class' in tag.attrs ? 'class' : 'className';
+	      var classObj = tag.attrs && tag.attrs[classAttr];
+	      if (classObj) tag.attrs[classAttr] = classObj.split(/ +/).map(function (c) {
+	        return style[c] || c;
+	      }).join(' ');
+	      return M.apply(null, tag);
+	    }
+
+	    var hasAttrs = pairs != null && isObject(pairs) && !('tag' in pairs || 'view' in pairs || 'subtree' in pairs);
+
+	    var attrs = hasAttrs ? pairs : {};
+	    var cell = {
+	      tag: 'div',
+	      attrs: {}
+	    };
+
+	    assignAttrs(cell.attrs, attrs, parseTagAttrs(cell, tag, style), style);
+	    console.log(hasAttrs, cell, args);
+
+	    return M.apply(null, [cell.tag, cell.attrs].concat(hasAttrs ? args.slice(1) : args));
+	  };
+
+	  return M.c;
+	}
+
+	j2c.bindMithril = bindMithril;
+
+	module.exports = j2c;
+
+	// get from mithril.js, which not exposed
+	function getCell() {}
+
+	function parseTagAttrs(cell, tag, style) {
+	  var classes = [];
+	  var parser = /(?:(^|#|\.)([^#\.\[\]]+))|(\[.+?\])/g;
+	  var match;
+
+	  while (match = parser.exec(tag)) {
+	    if (match[1] === '' && match[2]) {
+	      cell.tag = match[2];
+	    } else if (match[1] === '#') {
+	      cell.attrs.id = match[2];
+	    } else if (match[1] === '.') {
+	      classes.push(style[match[2]] || match[2]);
+	    } else if (match[3][0] === '[') {
+	      var pair = /\[(.+?)(?:=("|'|)(.*?)\2)?\]/.exec(match[3]);
+	      cell.attrs[pair[1]] = pair[3] || '';
+	    }
+	  }
+
+	  return classes;
+	}
+
+	function assignAttrs(target, attrs, classes, style) {
+	  var classAttr = "class" in attrs ? "class" : "className";
+
+	  for (var attrName in attrs) {
+	    if (hasOwn.call(attrs, attrName)) {
+	      if (attrName === classAttr && attrs[attrName] != null && attrs[attrName] !== "") {
+	        classes.push(style[attrs[attrName]] || attrs[attrName]);
+	        // create key in correct iteration order
+	        target[attrName] = "";
+	      } else {
+	        target[attrName] = attrs[attrName];
+	      }
+	    }
+	  }
+
+	  if (classes.length) target[classAttr] = classes.join(" ");
+	}
 
 /***/ }
 /******/ ]);

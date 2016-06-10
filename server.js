@@ -528,7 +528,7 @@ function runTestFile(filenames) {
   })
 }
 
-// runTestFile(['test1465218312129', 'test1465218335247'])
+runTestFile(['test1465218312129', 'test1465218335247'])
 
 // Phantom
 var phantom

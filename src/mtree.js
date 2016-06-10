@@ -656,7 +656,7 @@ var com = {
     }
 
     function doCopy (e) {
-      if (!selected.parent) return
+      if (!selected || !selected.parent) return
       target = Object.assign({type: 'copying'}, selected)
       m.redraw()
     }

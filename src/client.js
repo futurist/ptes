@@ -4,6 +4,7 @@
  */
 
 import mTree from './mtree'
+import reporter from './reporter'
 import mOverlay from './overlay'
 
 import pointer from 'json-pointer'
@@ -234,8 +235,10 @@ function hideSetup (arg) {
 function showSetup (arg) {
   if(stage == RECORDING && !startStopRec() ) return
   stage = SETUP
-  mOverlay.show({com: m.component(mTree, {url: '/config', onclose: oncloseSetup })})
+  mOverlay.show('#overlay', {com: m.component(mTree, {url: '/config', onclose: oncloseSetup })})
 }
+
+mOverlay.show('#result', {com: m.component(reporter, {})})
 
 //
 // setup keyboard event

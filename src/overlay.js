@@ -146,8 +146,8 @@
     }
   }
   function popupOverlay (root, popup) {
-    if (arguments.length < 2) popup = root, root = null
-    if (!root) root = '#overlay'
+    // if (arguments.length < 2) popup = root, root = null
+    if (!root) return
     root = typeof root == 'string' ? document.querySelector(root) : root
     if (root) {
       root.overlayStack = root.overlayStack || []

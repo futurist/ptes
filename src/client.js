@@ -5,6 +5,7 @@
 
 import mTree from './mtree'
 import reporter from './reporter'
+import testImage from './test-image'
 import mOverlay from './overlay'
 
 import pointer from 'json-pointer'
@@ -239,6 +240,7 @@ function showSetup (arg) {
 }
 
 mOverlay.show('#result', {com: m.component(reporter, {})})
+mOverlay.show('#testimage', {com: m.component(testImage, {})})
 
 //
 // setup keyboard event

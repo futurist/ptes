@@ -9,7 +9,7 @@
 import mj2c from './mithril-j2c.js'
 import util from 'util'
 
-var mc = mj2c.bindM()
+const mc = mj2c.bindM()
 
 const style = mj2c.sheet({
   '.reporter': {
@@ -65,11 +65,11 @@ const testItem = {
 
 const reporter = {
   controller: function (arg) {
-    this.data = arg.data || data
+    this.data = arg.data || testdata
   },
   view: function (ctrl, arg) {
-    return m('.runner-result', {style: {textAlign: 'left', padding: '2em'}}, [
-      m.style(style),
+    return mc('.runner-result', {style: {textAlign: 'left', padding: '2em'}}, [
+      mc.styleSheet(style),
       mc('h3', {style: {marginBottom: '1em'}}, 'Result for ptest-runner'),
       mc('.reporter',
          ctrl.data.map(v => {
@@ -96,6 +96,6 @@ const reporter = {
   }
 }
 
-var data = [{'msg': 'ptest for custom test files','submsg': '','level': 0}, {'msg': '[test1465218312129]','submsg': '(1 / 1)','test': 'test1465218312129','level': 1,'status': 'success'}, {'msg': '[test1465218335247]','submsg': '(1 / 1)','test': 'test1465218335247','level': 1,"error":{"test":"test1465218335247","folder":"ptest_data","a":"test1465218335247/1465218058523.png","b":"test1465218335247/1465218058523.png_test.png","diff":"test1465218335247/1465218058523.png_diff.png"},'status': 'fail'}, {'msg': '[test1465218335247]','submsg': '(1 / 1)','test': 'test1465218335247','level': 1}]
+var testdata = [{'msg': 'ptest for custom test files','submsg': '','level': 0}, {'msg': '[test1465218312129]','submsg': '(1 / 1)','test': 'test1465218312129','level': 1,'status': 'success'}, {'msg': '[test1465218335247]','submsg': '(1 / 1)','test': 'test1465218335247','level': 1,"error":{"test":"test1465218335247","folder":"ptest_data","a":"test1465218335247/1465218058523.png","b":"test1465218335247/1465218058523.png_test.png","diff":"test1465218335247/1465218058523.png_diff.png"},'status': 'fail'}, {'msg': '[test1465218335247]','submsg': '(1 / 1)','test': 'test1465218335247','level': 1}]
 
 module.exports = reporter

@@ -86,6 +86,9 @@ function arrayLast (arr) {
   if (arr.length) return arr[arr.length - 1]
 }
 
+// req.url to match ptest folder
+var PTEST_PATH = '/ptestfolder/'
+
 // create Http Server
 var HttpServer = http.createServer(function (req, res) {
   console.log((new Date).toLocaleString(), req.method, req.url)
@@ -118,13 +121,19 @@ var HttpServer = http.createServer(function (req, res) {
     return res.end()
   }
 
+  var ROOT = __dirname
+  if(req.url.indexOf(PTEST_PATH)===0){
+    ROOT = './'
+    req.url = req.url.replace(PTEST_PATH, '/')
+  }
+
   var filePath = req.url
-  filePath = '.' + (ROUTE[filePath] || filePath)
+  filePath = (ROUTE[filePath] || filePath)
 
   var ext = path.extname(filePath)
   var contentType = MIME[ext] || 'text/html'
 
-  fs.readFile(path.join(__dirname, filePath), function (err, data) {
+  fs.readFile(path.join(ROOT, filePath), function (err, data) {
     if (err) {
       res.statusCode = 404
       return res.end()

@@ -59,6 +59,10 @@
 
 	var _reporter2 = _interopRequireDefault(_reporter);
 
+	var _testImage = __webpack_require__(16);
+
+	var _testImage2 = _interopRequireDefault(_testImage);
+
 	var _overlay = __webpack_require__(12);
 
 	var _overlay2 = _interopRequireDefault(_overlay);
@@ -303,6 +307,7 @@
 	}
 
 	_overlay2.default.show('#result', { com: m.component(_reporter2.default, {}) });
+	_overlay2.default.show('#testimage', { com: m.component(_testImage2.default, {}) });
 
 	//
 	// setup keyboard event
@@ -1564,10 +1569,10 @@
 
 	var reporter = {
 	  controller: function controller(arg) {
-	    this.data = arg.data || data;
+	    this.data = arg.data || testdata;
 	  },
 	  view: function view(ctrl, arg) {
-	    return m('.runner-result', { style: { textAlign: 'left', padding: '2em' } }, [m.style(style), mc('h3', { style: { marginBottom: '1em' } }, 'Result for ptest-runner'), mc('.reporter', ctrl.data.map(function (v) {
+	    return mc('.runner-result', { style: { textAlign: 'left', padding: '2em' } }, [mc.styleSheet(style), mc('h3', { style: { marginBottom: '1em' } }, 'Result for ptest-runner'), mc('.reporter', ctrl.data.map(function (v) {
 	      return mc('.item', {
 	        class: style[v.status],
 	        style: {
@@ -1588,7 +1593,7 @@
 	  }
 	};
 
-	var data = [{ 'msg': 'ptest for custom test files', 'submsg': '', 'level': 0 }, { 'msg': '[test1465218312129]', 'submsg': '(1 / 1)', 'test': 'test1465218312129', 'level': 1, 'status': 'success' }, { 'msg': '[test1465218335247]', 'submsg': '(1 / 1)', 'test': 'test1465218335247', 'level': 1, "error": { "test": "test1465218335247", "folder": "ptest_data", "a": "test1465218335247/1465218058523.png", "b": "test1465218335247/1465218058523.png_test.png", "diff": "test1465218335247/1465218058523.png_diff.png" }, 'status': 'fail' }, { 'msg': '[test1465218335247]', 'submsg': '(1 / 1)', 'test': 'test1465218335247', 'level': 1 }];
+	var testdata = [{ 'msg': 'ptest for custom test files', 'submsg': '', 'level': 0 }, { 'msg': '[test1465218312129]', 'submsg': '(1 / 1)', 'test': 'test1465218312129', 'level': 1, 'status': 'success' }, { 'msg': '[test1465218335247]', 'submsg': '(1 / 1)', 'test': 'test1465218335247', 'level': 1, "error": { "test": "test1465218335247", "folder": "ptest_data", "a": "test1465218335247/1465218058523.png", "b": "test1465218335247/1465218058523.png_test.png", "diff": "test1465218335247/1465218058523.png_diff.png" }, 'status': 'fail' }, { 'msg': '[test1465218335247]', 'submsg': '(1 / 1)', 'test': 'test1465218335247', 'level': 1 }];
 
 	module.exports = reporter;
 
@@ -1617,15 +1622,6 @@
 
 	  var style = {};
 
-	  M.style = function (j2cObject) {
-	    if (!isString(j2cObject)) {
-	      style = {};
-	      return [];
-	    }
-	    style = j2cObject;
-	    return M('style', { type: 'text/css' }, style);
-	  };
-
 	  M.c = function (tag, pairs) {
 	    var args = [];
 
@@ -1651,9 +1647,18 @@
 	    };
 
 	    assignAttrs(cell.attrs, attrs, parseTagAttrs(cell, tag, style), style);
-	    console.log(hasAttrs, cell, args);
+	    // console.log(hasAttrs, cell, args)
 
 	    return M.apply(null, [cell.tag, cell.attrs].concat(hasAttrs ? args.slice(1) : args));
+	  };
+
+	  M.c.styleSheet = function (j2cObject) {
+	    if (!isString(j2cObject)) {
+	      style = {};
+	      return [];
+	    }
+	    style = j2cObject;
+	    return M('style', { type: 'text/css' }, style);
 	  };
 
 	  return M.c;
@@ -1663,8 +1668,16 @@
 
 	module.exports = j2c;
 
+	function getStyle(style, cls) {
+	  var globalRe = /:global\(([^)]+)\)/i;
+	  var classes = cls.split(/\s+/);
+	  return classes.map(function (v) {
+	    var match = v.match(globalRe);
+	    if (match) return match.pop();else return style[v] || v;
+	  }).join(' ');
+	}
+
 	// get from mithril.js, which not exposed
-	function getCell() {}
 
 	function parseTagAttrs(cell, tag, style) {
 	  var classes = [];
@@ -1677,7 +1690,7 @@
 	    } else if (match[1] === '#') {
 	      cell.attrs.id = match[2];
 	    } else if (match[1] === '.') {
-	      classes.push(style[match[2]] || match[2]);
+	      classes.push(getStyle(style, match[2]));
 	    } else if (match[3][0] === '[') {
 	      var pair = /\[(.+?)(?:=("|'|)(.*?)\2)?\]/.exec(match[3]);
 	      cell.attrs[pair[1]] = pair[3] || '';
@@ -1693,7 +1706,7 @@
 	  for (var attrName in attrs) {
 	    if (hasOwn.call(attrs, attrName)) {
 	      if (attrName === classAttr && attrs[attrName] != null && attrs[attrName] !== "") {
-	        classes.push(style[attrs[attrName]] || attrs[attrName]);
+	        classes.push(getStyle(style, attrs[attrName]));
 	        // create key in correct iteration order
 	        target[attrName] = "";
 	      } else {
@@ -3562,6 +3575,71 @@
 	        }
 	    }
 	};
+
+/***/ },
+/* 16 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+
+	var _mithrilJ2c = __webpack_require__(6);
+
+	var _mithrilJ2c2 = _interopRequireDefault(_mithrilJ2c);
+
+	var _util = __webpack_require__(8);
+
+	var _util2 = _interopRequireDefault(_util);
+
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+	/**
+	 * @fileOverview Display test images for ptest.
+	 * @global Mousetrap.js, mithril.js
+	 * @name test-image.js
+	 * @author Micheal Yang
+	 * @license MIT
+	 */
+
+	var mc = _mithrilJ2c2.default.bindM();
+
+	var PTEST_PATH = '/ptestfolder/';
+
+	var style = _mithrilJ2c2.default.sheet({
+	  '.imageBox': {
+	    ' .image': {
+	      position: 'absolute'
+	    }
+	  },
+	  '.hide': {
+	    display: 'none'
+	  }
+	});
+
+	var current = 0;
+
+	var gallary = {
+	  controller: function controller(arg) {
+	    var _this = this;
+
+	    this.data = arg.data || testdata;
+	    this.keys = ['a', 'b', 'diff'];
+	    this.cycleVisible = function () {
+	      current++;
+	      current = current % _this.keys.length;
+	    };
+	  },
+	  view: function view(ctrl, arg) {
+	    return mc('.imageBox', { onclick: function onclick(e) {
+	        return ctrl.cycleVisible();
+	      } }, [mc.styleSheet(style), ctrl.keys.map(function (v, i) {
+	      return mc('.image', { class: current !== i ? '  :global(hide)   hide  ' : '' }, mc('img', { src: PTEST_PATH + ctrl.data.folder + '/' + ctrl.data[v] }));
+	    })]);
+	  }
+	};
+
+	module.exports = gallary;
+
+	var testdata = { "test": "test1465218335247", "folder": "ptest_data", "a": "test1465218335247/1465218058523.png", "b": "test1465218335247/1465218058523.png_test.png", "diff": "test1465218335247/1465218058523.png_diff.png" };
 
 /***/ }
 /******/ ]);

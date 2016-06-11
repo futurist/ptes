@@ -166,6 +166,9 @@ function it (file, func) {
   func.prototype.setTest = function (val) {
     _stat.test = val
   }
+  func.prototype.error = function (val) {
+    _stat.error = val
+  }
   func.prototype.submsg = function (val) {
     this._submsg = val
     _stat.submsg = val
@@ -208,7 +211,7 @@ process.on('exit', function (code) { clearTest() })
 function getPath (testFolder, file) {
   return path.join(testFolder, file)
 }
-function compareImage (testFolder, imageID, done) {
+function compareImage (testName, testFolder, imageID, done) {
   var a = imageID
   var b = imageID + '_test.png'
   var diff = imageID + '_diff.png'
@@ -219,8 +222,8 @@ function compareImage (testFolder, imageID, done) {
   }, function (err, imagesAreSame) {
     err || !imagesAreSame
       ? done(isTTY
-             ? 'failed compare ' + testFolder + '/' + b
-             : JSON.stringify({folder:testFolder, a:a,b:b,diff:diff}))
+             ? util.format('test %s failed compare image %s/%s ', testName, testFolder, b)
+             : {test:testName, folder:testFolder, a:a,b:b,diff:diff})
     : done()
   })
 }
@@ -278,9 +281,10 @@ function runTestFile (fileName) {
           var msg = JSON.parse(line.substr(1))
           switch (msg.type) {
           case 'compareImage':
-            compareImage(testFolder, msg.data, function (err) {
+            compareImage(fileName, testFolder, msg.data, function (err) {
               self.submsg(util.format('(%s / %s)', msg.cur, msg.total))
-              if (err) return done(err)
+              if(!isTTY) self.error(err)
+              if (err) return done(isTTY? err : JSON.stringify(err))
               if (msg.meta == 'last') return done()
             })
             break

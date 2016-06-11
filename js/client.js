@@ -55,15 +55,15 @@
 
 	var _mtree2 = _interopRequireDefault(_mtree);
 
-	var _reporter = __webpack_require__(9);
+	var _reporter = __webpack_require__(5);
 
 	var _reporter2 = _interopRequireDefault(_reporter);
 
-	var _overlay = __webpack_require__(5);
+	var _overlay = __webpack_require__(12);
 
 	var _overlay2 = _interopRequireDefault(_overlay);
 
-	var _jsonPointer = __webpack_require__(7);
+	var _jsonPointer = __webpack_require__(14);
 
 	var _jsonPointer2 = _interopRequireDefault(_jsonPointer);
 
@@ -1498,811 +1498,13 @@
 /* 5 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;'use strict';
-
-	var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol ? "symbol" : typeof obj; };
-
-	(function (_global, factory) {
-	  if (true) {
-	    !(__WEBPACK_AMD_DEFINE_ARRAY__ = [], __WEBPACK_AMD_DEFINE_FACTORY__ = (factory), __WEBPACK_AMD_DEFINE_RESULT__ = (typeof __WEBPACK_AMD_DEFINE_FACTORY__ === 'function' ? (__WEBPACK_AMD_DEFINE_FACTORY__.apply(exports, __WEBPACK_AMD_DEFINE_ARRAY__)) : __WEBPACK_AMD_DEFINE_FACTORY__), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__)); // define(['jquery'], factory)
-	  } else if ((typeof exports === 'undefined' ? 'undefined' : _typeof(exports)) === 'object') {
-	      module.exports = factory(); // factory(require('jquery'))
-	    } else {
-	        _global.mOverlay = factory(); // should return obj in factory
-	      }
-	})(undefined, function () {
-	  'use strict';
-
-	  var debounce = __webpack_require__(6);
-
-	  /**
-	   * @fileOverview Popup toolkit using mithril
-	   * @name overlay.js
-	   * @author micheal.yang
-	   * @license MIT
-	   */
-
-	  // require js/broswerutil.js file
-
-	  /**
-	   * get browser window size
-	   * @returns [w,h] windows width and height
-	   */
-	  function _getWindowSize() {
-	    if (window.innerWidth) {
-	      return [window.innerWidth, window.innerHeight];
-	    } else if (document.documentElement && document.documentElement.clientHeight) {
-	      return [document.documentElement.clientWidth, document.documentElement.clientHeight];
-	    } else if (document.body) {
-	      return [document.body.clientWidth, document.body.clientHeight];
-	    }
-	    return 0;
-	  }
-
-	  var overlay = {
-	    controller: function controller(arg) {
-	      var root = arg.root;
-	      var ctrl = this;
-	      root.classList.add('overlay-root');
-	      root.style.position = 'fixed';
-	      root.style.display = 'block';
-	      root.style.left = 0;
-	      root.style.top = 0;
-	      root.style.zIndex = 99999;
-	      var onresize = function onresize(e) {
-	        ctrl.width = _getWindowSize()[0];
-	        ctrl.height = _getWindowSize()[1];
-	        root.style.width = ctrl.width + 'px';
-	        root.style.height = ctrl.height + 'px';
-	        m.redraw();
-	      };
-	      window.addEventListener('resize', debounce(onresize, 200));
-	      onresize();
-	    },
-	    view: function view(ctrl, arg) {
-	      var popup = arg.popup;
-	      popup = popup || {};
-	      popup.style = popup.style || {};
-	      /* below line for debug purpose */
-	      // popup.style.border = '1px solid red'
-
-	      return [m('.overlay-bg', {
-	        config: function config(e) {
-	          ctrl.root = e.parentElement;
-	        },
-	        style: {
-	          'display': 'block',
-	          'height': '100%',
-	          'width': '100%'
-
-	        }
-	      }), /* below try to fix IE8 render problem, but not work:(  */
-	      // backgroundColor: '#000000',
-	      // filter: 'none !important',
-	      // filter: 'progid:DXImageTransform.Microsoft.Alpha(Opacity=50)',
-	      // filter: 'alpha(opacity=50)',
-	      // 'zoom':1
-	      m('table.overlay', {
-	        style: {
-	          'position': 'absolute',
-	          top: 0,
-	          left: 0,
-	          // 'z-index': 99999,
-	          // 'border': 1 + 'px',
-	          'padding': 0 + 'px',
-	          'margin': 0 + 'px',
-	          'width': '100%',
-	          'height': '100%'
-	          // using below format to supress error in IE8, rgba color
-	          // 'background-color': 'rgba(0,0,0,0.5)'
-	        }
-	      }, m('tr', m('td', {
-	        'align': 'center',
-	        'valign': 'middle',
-	        'style': {
-	          'position': 'relative'
-	        }
-	      }, // 'vertical-align': 'middle'
-	      [m('div.overlay-content', {
-	        onclick: function onclick(e) {
-	          ctrl.close = true;
-	        },
-	        key: ctrl.height,
-	        style: Object.assign(popup.style || {}, { height: ctrl.height + 'px' })
-	      }, popup.com ? m.component(popup.com, ctrl) : popup.text || m.trust(popup.html))])))];
-	    }
-	  };
-
-	  function clearRoot(root) {
-	    m.mount(root, null);
-	    root.classList.remove('overlay-root');
-	    root.style.display = 'none';
-	  }
-
-	  function closeOverlay(root, ret) {
-	    if (!root) return;
-	    root = typeof root == 'string' ? document.querySelector(root) : root.closest('.overlay-root');
-	    if (root) {
-	      clearRoot(root);
-	      var callback = root.overlayStack.pop();
-	      if (callback) callback.call(this, ret);
-	    }
-	  }
-	  function popupOverlay(root, popup) {
-	    // if (arguments.length < 2) popup = root, root = null
-	    if (!root) return;
-	    root = typeof root == 'string' ? document.querySelector(root) : root;
-	    if (root) {
-	      root.overlayStack = root.overlayStack || [];
-	      root.overlayStack.push(popup.onclose);
-	      m.mount(root, m.component(overlay, { root: root, popup: popup }));
-	    }
-	  }
-
-	  // export function
-
-	  return { open: popupOverlay, show: popupOverlay, close: closeOverlay, hide: closeOverlay };
-	});
-
-/***/ },
-/* 6 */
-/***/ function(module, exports) {
-
 	'use strict';
 
-	var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol ? "symbol" : typeof obj; };
-
-	/**
-	 * lodash 4.0.6 (Custom Build) <https://lodash.com/>
-	 * Build: `lodash modularize exports="npm" -o ./`
-	 * Copyright jQuery Foundation and other contributors <https://jquery.org/>
-	 * Released under MIT license <https://lodash.com/license>
-	 * Based on Underscore.js 1.8.3 <http://underscorejs.org/LICENSE>
-	 * Copyright Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
-	 */
-
-	/** Used as the `TypeError` message for "Functions" methods. */
-	var FUNC_ERROR_TEXT = 'Expected a function';
-
-	/** Used as references for various `Number` constants. */
-	var NAN = 0 / 0;
-
-	/** `Object#toString` result references. */
-	var funcTag = '[object Function]',
-	    genTag = '[object GeneratorFunction]',
-	    symbolTag = '[object Symbol]';
-
-	/** Used to match leading and trailing whitespace. */
-	var reTrim = /^\s+|\s+$/g;
-
-	/** Used to detect bad signed hexadecimal string values. */
-	var reIsBadHex = /^[-+]0x[0-9a-f]+$/i;
-
-	/** Used to detect binary string values. */
-	var reIsBinary = /^0b[01]+$/i;
-
-	/** Used to detect octal string values. */
-	var reIsOctal = /^0o[0-7]+$/i;
-
-	/** Built-in method references without a dependency on `root`. */
-	var freeParseInt = parseInt;
-
-	/** Used for built-in method references. */
-	var objectProto = Object.prototype;
-
-	/**
-	 * Used to resolve the
-	 * [`toStringTag`](http://ecma-international.org/ecma-262/6.0/#sec-object.prototype.tostring)
-	 * of values.
-	 */
-	var objectToString = objectProto.toString;
-
-	/* Built-in method references for those with the same name as other `lodash` methods. */
-	var nativeMax = Math.max,
-	    nativeMin = Math.min;
-
-	/**
-	 * Gets the timestamp of the number of milliseconds that have elapsed since
-	 * the Unix epoch (1 January 1970 00:00:00 UTC).
-	 *
-	 * @static
-	 * @memberOf _
-	 * @since 2.4.0
-	 * @type {Function}
-	 * @category Date
-	 * @returns {number} Returns the timestamp.
-	 * @example
-	 *
-	 * _.defer(function(stamp) {
-	 *   console.log(_.now() - stamp);
-	 * }, _.now());
-	 * // => Logs the number of milliseconds it took for the deferred function to be invoked.
-	 */
-	var now = Date.now;
-
-	/**
-	 * Creates a debounced function that delays invoking `func` until after `wait`
-	 * milliseconds have elapsed since the last time the debounced function was
-	 * invoked. The debounced function comes with a `cancel` method to cancel
-	 * delayed `func` invocations and a `flush` method to immediately invoke them.
-	 * Provide an options object to indicate whether `func` should be invoked on
-	 * the leading and/or trailing edge of the `wait` timeout. The `func` is invoked
-	 * with the last arguments provided to the debounced function. Subsequent calls
-	 * to the debounced function return the result of the last `func` invocation.
-	 *
-	 * **Note:** If `leading` and `trailing` options are `true`, `func` is invoked
-	 * on the trailing edge of the timeout only if the debounced function is
-	 * invoked more than once during the `wait` timeout.
-	 *
-	 * See [David Corbacho's article](https://css-tricks.com/debouncing-throttling-explained-examples/)
-	 * for details over the differences between `_.debounce` and `_.throttle`.
-	 *
-	 * @static
-	 * @memberOf _
-	 * @since 0.1.0
-	 * @category Function
-	 * @param {Function} func The function to debounce.
-	 * @param {number} [wait=0] The number of milliseconds to delay.
-	 * @param {Object} [options={}] The options object.
-	 * @param {boolean} [options.leading=false]
-	 *  Specify invoking on the leading edge of the timeout.
-	 * @param {number} [options.maxWait]
-	 *  The maximum time `func` is allowed to be delayed before it's invoked.
-	 * @param {boolean} [options.trailing=true]
-	 *  Specify invoking on the trailing edge of the timeout.
-	 * @returns {Function} Returns the new debounced function.
-	 * @example
-	 *
-	 * // Avoid costly calculations while the window size is in flux.
-	 * jQuery(window).on('resize', _.debounce(calculateLayout, 150));
-	 *
-	 * // Invoke `sendMail` when clicked, debouncing subsequent calls.
-	 * jQuery(element).on('click', _.debounce(sendMail, 300, {
-	 *   'leading': true,
-	 *   'trailing': false
-	 * }));
-	 *
-	 * // Ensure `batchLog` is invoked once after 1 second of debounced calls.
-	 * var debounced = _.debounce(batchLog, 250, { 'maxWait': 1000 });
-	 * var source = new EventSource('/stream');
-	 * jQuery(source).on('message', debounced);
-	 *
-	 * // Cancel the trailing debounced invocation.
-	 * jQuery(window).on('popstate', debounced.cancel);
-	 */
-	function debounce(func, wait, options) {
-	  var lastArgs,
-	      lastThis,
-	      maxWait,
-	      result,
-	      timerId,
-	      lastCallTime = 0,
-	      lastInvokeTime = 0,
-	      leading = false,
-	      maxing = false,
-	      trailing = true;
-
-	  if (typeof func != 'function') {
-	    throw new TypeError(FUNC_ERROR_TEXT);
-	  }
-	  wait = toNumber(wait) || 0;
-	  if (isObject(options)) {
-	    leading = !!options.leading;
-	    maxing = 'maxWait' in options;
-	    maxWait = maxing ? nativeMax(toNumber(options.maxWait) || 0, wait) : maxWait;
-	    trailing = 'trailing' in options ? !!options.trailing : trailing;
-	  }
-
-	  function invokeFunc(time) {
-	    var args = lastArgs,
-	        thisArg = lastThis;
-
-	    lastArgs = lastThis = undefined;
-	    lastInvokeTime = time;
-	    result = func.apply(thisArg, args);
-	    return result;
-	  }
-
-	  function leadingEdge(time) {
-	    // Reset any `maxWait` timer.
-	    lastInvokeTime = time;
-	    // Start the timer for the trailing edge.
-	    timerId = setTimeout(timerExpired, wait);
-	    // Invoke the leading edge.
-	    return leading ? invokeFunc(time) : result;
-	  }
-
-	  function remainingWait(time) {
-	    var timeSinceLastCall = time - lastCallTime,
-	        timeSinceLastInvoke = time - lastInvokeTime,
-	        result = wait - timeSinceLastCall;
-
-	    return maxing ? nativeMin(result, maxWait - timeSinceLastInvoke) : result;
-	  }
-
-	  function shouldInvoke(time) {
-	    var timeSinceLastCall = time - lastCallTime,
-	        timeSinceLastInvoke = time - lastInvokeTime;
-
-	    // Either this is the first call, activity has stopped and we're at the
-	    // trailing edge, the system time has gone backwards and we're treating
-	    // it as the trailing edge, or we've hit the `maxWait` limit.
-	    return !lastCallTime || timeSinceLastCall >= wait || timeSinceLastCall < 0 || maxing && timeSinceLastInvoke >= maxWait;
-	  }
-
-	  function timerExpired() {
-	    var time = now();
-	    if (shouldInvoke(time)) {
-	      return trailingEdge(time);
-	    }
-	    // Restart the timer.
-	    timerId = setTimeout(timerExpired, remainingWait(time));
-	  }
-
-	  function trailingEdge(time) {
-	    clearTimeout(timerId);
-	    timerId = undefined;
-
-	    // Only invoke if we have `lastArgs` which means `func` has been
-	    // debounced at least once.
-	    if (trailing && lastArgs) {
-	      return invokeFunc(time);
-	    }
-	    lastArgs = lastThis = undefined;
-	    return result;
-	  }
-
-	  function cancel() {
-	    if (timerId !== undefined) {
-	      clearTimeout(timerId);
-	    }
-	    lastCallTime = lastInvokeTime = 0;
-	    lastArgs = lastThis = timerId = undefined;
-	  }
-
-	  function flush() {
-	    return timerId === undefined ? result : trailingEdge(now());
-	  }
-
-	  function debounced() {
-	    var time = now(),
-	        isInvoking = shouldInvoke(time);
-
-	    lastArgs = arguments;
-	    lastThis = this;
-	    lastCallTime = time;
-
-	    if (isInvoking) {
-	      if (timerId === undefined) {
-	        return leadingEdge(lastCallTime);
-	      }
-	      if (maxing) {
-	        // Handle invocations in a tight loop.
-	        clearTimeout(timerId);
-	        timerId = setTimeout(timerExpired, wait);
-	        return invokeFunc(lastCallTime);
-	      }
-	    }
-	    if (timerId === undefined) {
-	      timerId = setTimeout(timerExpired, wait);
-	    }
-	    return result;
-	  }
-	  debounced.cancel = cancel;
-	  debounced.flush = flush;
-	  return debounced;
-	}
-
-	/**
-	 * Checks if `value` is classified as a `Function` object.
-	 *
-	 * @static
-	 * @memberOf _
-	 * @since 0.1.0
-	 * @category Lang
-	 * @param {*} value The value to check.
-	 * @returns {boolean} Returns `true` if `value` is correctly classified,
-	 *  else `false`.
-	 * @example
-	 *
-	 * _.isFunction(_);
-	 * // => true
-	 *
-	 * _.isFunction(/abc/);
-	 * // => false
-	 */
-	function isFunction(value) {
-	  // The use of `Object#toString` avoids issues with the `typeof` operator
-	  // in Safari 8 which returns 'object' for typed array and weak map constructors,
-	  // and PhantomJS 1.9 which returns 'function' for `NodeList` instances.
-	  var tag = isObject(value) ? objectToString.call(value) : '';
-	  return tag == funcTag || tag == genTag;
-	}
-
-	/**
-	 * Checks if `value` is the
-	 * [language type](http://www.ecma-international.org/ecma-262/6.0/#sec-ecmascript-language-types)
-	 * of `Object`. (e.g. arrays, functions, objects, regexes, `new Number(0)`, and `new String('')`)
-	 *
-	 * @static
-	 * @memberOf _
-	 * @since 0.1.0
-	 * @category Lang
-	 * @param {*} value The value to check.
-	 * @returns {boolean} Returns `true` if `value` is an object, else `false`.
-	 * @example
-	 *
-	 * _.isObject({});
-	 * // => true
-	 *
-	 * _.isObject([1, 2, 3]);
-	 * // => true
-	 *
-	 * _.isObject(_.noop);
-	 * // => true
-	 *
-	 * _.isObject(null);
-	 * // => false
-	 */
-	function isObject(value) {
-	  var type = typeof value === 'undefined' ? 'undefined' : _typeof(value);
-	  return !!value && (type == 'object' || type == 'function');
-	}
-
-	/**
-	 * Checks if `value` is object-like. A value is object-like if it's not `null`
-	 * and has a `typeof` result of "object".
-	 *
-	 * @static
-	 * @memberOf _
-	 * @since 4.0.0
-	 * @category Lang
-	 * @param {*} value The value to check.
-	 * @returns {boolean} Returns `true` if `value` is object-like, else `false`.
-	 * @example
-	 *
-	 * _.isObjectLike({});
-	 * // => true
-	 *
-	 * _.isObjectLike([1, 2, 3]);
-	 * // => true
-	 *
-	 * _.isObjectLike(_.noop);
-	 * // => false
-	 *
-	 * _.isObjectLike(null);
-	 * // => false
-	 */
-	function isObjectLike(value) {
-	  return !!value && (typeof value === 'undefined' ? 'undefined' : _typeof(value)) == 'object';
-	}
-
-	/**
-	 * Checks if `value` is classified as a `Symbol` primitive or object.
-	 *
-	 * @static
-	 * @memberOf _
-	 * @since 4.0.0
-	 * @category Lang
-	 * @param {*} value The value to check.
-	 * @returns {boolean} Returns `true` if `value` is correctly classified,
-	 *  else `false`.
-	 * @example
-	 *
-	 * _.isSymbol(Symbol.iterator);
-	 * // => true
-	 *
-	 * _.isSymbol('abc');
-	 * // => false
-	 */
-	function isSymbol(value) {
-	  return (typeof value === 'undefined' ? 'undefined' : _typeof(value)) == 'symbol' || isObjectLike(value) && objectToString.call(value) == symbolTag;
-	}
-
-	/**
-	 * Converts `value` to a number.
-	 *
-	 * @static
-	 * @memberOf _
-	 * @since 4.0.0
-	 * @category Lang
-	 * @param {*} value The value to process.
-	 * @returns {number} Returns the number.
-	 * @example
-	 *
-	 * _.toNumber(3);
-	 * // => 3
-	 *
-	 * _.toNumber(Number.MIN_VALUE);
-	 * // => 5e-324
-	 *
-	 * _.toNumber(Infinity);
-	 * // => Infinity
-	 *
-	 * _.toNumber('3');
-	 * // => 3
-	 */
-	function toNumber(value) {
-	  if (typeof value == 'number') {
-	    return value;
-	  }
-	  if (isSymbol(value)) {
-	    return NAN;
-	  }
-	  if (isObject(value)) {
-	    var other = isFunction(value.valueOf) ? value.valueOf() : value;
-	    value = isObject(other) ? other + '' : other;
-	  }
-	  if (typeof value != 'string') {
-	    return value === 0 ? value : +value;
-	  }
-	  value = value.replace(reTrim, '');
-	  var isBinary = reIsBinary.test(value);
-	  return isBinary || reIsOctal.test(value) ? freeParseInt(value.slice(2), isBinary ? 2 : 8) : reIsBadHex.test(value) ? NAN : +value;
-	}
-
-	module.exports = debounce;
-
-/***/ },
-/* 7 */
-/***/ function(module, exports, __webpack_require__) {
-
-	'use strict';
-
-	var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol ? "symbol" : typeof obj; };
-
-	var each = __webpack_require__(8);
-	module.exports = api;
-
-	/**
-	 * Convenience wrapper around the api.
-	 * Calls `.get` when called with an `object` and a `pointer`.
-	 * Calls `.set` when also called with `value`.
-	 * If only supplied `object`, returns a partially applied function, mapped to the object.
-	 *
-	 * @param {Object} obj
-	 * @param {String|Array} pointer
-	 * @param value
-	 * @returns {*}
-	 */
-
-	function api(obj, pointer, value) {
-	    // .set()
-	    if (arguments.length === 3) {
-	        return api.set(obj, pointer, value);
-	    }
-	    // .get()
-	    if (arguments.length === 2) {
-	        return api.get(obj, pointer);
-	    }
-	    // Return a partially applied function on `obj`.
-	    var wrapped = api.bind(api, obj);
-
-	    // Support for oo style
-	    for (var name in api) {
-	        if (api.hasOwnProperty(name)) {
-	            wrapped[name] = api[name].bind(wrapped, obj);
-	        }
-	    }
-	    return wrapped;
-	}
-
-	/**
-	 * Lookup a json pointer in an object
-	 *
-	 * @param {Object} obj
-	 * @param {String|Array} pointer
-	 * @returns {*}
-	 */
-	api.get = function get(obj, pointer) {
-	    var refTokens = Array.isArray(pointer) ? pointer : api.parse(pointer);
-
-	    for (var i = 0; i < refTokens.length; ++i) {
-	        var tok = refTokens[i];
-	        if (!((typeof obj === 'undefined' ? 'undefined' : _typeof(obj)) == 'object' && tok in obj)) {
-	            throw new Error('Invalid reference token: ' + tok);
-	        }
-	        obj = obj[tok];
-	    }
-	    return obj;
-	};
-
-	/**
-	 * Sets a value on an object
-	 *
-	 * @param {Object} obj
-	 * @param {String|Array} pointer
-	 * @param value
-	 */
-	api.set = function set(obj, pointer, value) {
-	    var refTokens = Array.isArray(pointer) ? pointer : api.parse(pointer),
-	        nextTok = refTokens[0];
-
-	    for (var i = 0; i < refTokens.length - 1; ++i) {
-	        var tok = refTokens[i];
-	        if (tok === '-' && Array.isArray(obj)) {
-	            tok = obj.length;
-	        }
-	        nextTok = refTokens[i + 1];
-
-	        if (!(tok in obj)) {
-	            if (nextTok.match(/^(\d+|-)$/)) {
-	                obj[tok] = [];
-	            } else {
-	                obj[tok] = {};
-	            }
-	        }
-	        obj = obj[tok];
-	    }
-	    if (nextTok === '-' && Array.isArray(obj)) {
-	        nextTok = obj.length;
-	    }
-	    obj[nextTok] = value;
-	    return this;
-	};
-
-	/**
-	 * Removes an attribute
-	 *
-	 * @param {Object} obj
-	 * @param {String|Array} pointer
-	 */
-	api.remove = function (obj, pointer) {
-	    var refTokens = Array.isArray(pointer) ? pointer : api.parse(pointer);
-	    var finalToken = refTokens[refTokens.length - 1];
-	    if (finalToken === undefined) {
-	        throw new Error('Invalid JSON pointer for remove: "' + pointer + '"');
-	    }
-	    delete api.get(obj, refTokens.slice(0, -1))[finalToken];
-	};
-
-	/**
-	 * Returns a (pointer -> value) dictionary for an object
-	 *
-	 * @param obj
-	 * @param {function} descend
-	 * @returns {}
-	 */
-	api.dict = function dict(obj, descend) {
-	    var results = {};
-	    api.walk(obj, function (value, pointer) {
-	        results[pointer] = value;
-	    }, descend);
-	    return results;
-	};
-
-	/**
-	 * Iterates over an object
-	 * Iterator: function (value, pointer) {}
-	 *
-	 * @param obj
-	 * @param {function} iterator
-	 * @param {function} descend
-	 */
-	api.walk = function walk(obj, iterator, descend) {
-	    var refTokens = [];
-
-	    descend = descend || function (value) {
-	        var type = Object.prototype.toString.call(value);
-	        return type === '[object Object]' || type === '[object Array]';
-	    };
-
-	    (function next(cur) {
-	        each(cur, function (value, key) {
-	            refTokens.push(String(key));
-	            if (descend(value)) {
-	                next(value);
-	            } else {
-	                iterator(value, api.compile(refTokens));
-	            }
-	            refTokens.pop();
-	        });
-	    })(obj);
-	};
-
-	/**
-	 * Tests if an object has a value for a json pointer
-	 *
-	 * @param obj
-	 * @param pointer
-	 * @returns {boolean}
-	 */
-	api.has = function has(obj, pointer) {
-	    try {
-	        api.get(obj, pointer);
-	    } catch (e) {
-	        return false;
-	    }
-	    return true;
-	};
-
-	/**
-	 * Escapes a reference token
-	 *
-	 * @param str
-	 * @returns {string}
-	 */
-	api.escape = function escape(str) {
-	    return str.toString().replace(/~/g, '~0').replace(/\//g, '~1');
-	};
-
-	/**
-	 * Unescapes a reference token
-	 *
-	 * @param str
-	 * @returns {string}
-	 */
-	api.unescape = function unescape(str) {
-	    return str.replace(/~1/g, '/').replace(/~0/g, '~');
-	};
-
-	/**
-	 * Converts a json pointer into a array of reference tokens
-	 *
-	 * @param pointer
-	 * @returns {Array}
-	 */
-	api.parse = function parse(pointer) {
-	    if (pointer === '') {
-	        return [];
-	    }
-	    if (pointer.charAt(0) !== '/') {
-	        throw new Error('Invalid JSON pointer: ' + pointer);
-	    }
-	    return pointer.substring(1).split(/\//).map(api.unescape);
-	};
-
-	/**
-	 * Builds a json pointer from a array of reference tokens
-	 *
-	 * @param refTokens
-	 * @returns {string}
-	 */
-	api.compile = function compile(refTokens) {
-	    if (refTokens.length === 0) {
-	        return '';
-	    }
-	    return '/' + refTokens.map(api.escape).join('/');
-	};
-
-/***/ },
-/* 8 */
-/***/ function(module, exports) {
-
-	'use strict';
-
-	var hasOwn = Object.prototype.hasOwnProperty;
-	var toString = Object.prototype.toString;
-
-	module.exports = function forEach(obj, fn, ctx) {
-	    if (toString.call(fn) !== '[object Function]') {
-	        throw new TypeError('iterator must be a function');
-	    }
-	    var l = obj.length;
-	    if (l === +l) {
-	        for (var i = 0; i < l; i++) {
-	            fn.call(ctx, obj[i], i, obj);
-	        }
-	    } else {
-	        for (var k in obj) {
-	            if (hasOwn.call(obj, k)) {
-	                fn.call(ctx, obj[k], k, obj);
-	            }
-	        }
-	    }
-	};
-
-/***/ },
-/* 9 */
-/***/ function(module, exports, __webpack_require__) {
-
-	'use strict';
-
-	var _mithrilJ2c = __webpack_require__(15);
+	var _mithrilJ2c = __webpack_require__(6);
 
 	var _mithrilJ2c2 = _interopRequireDefault(_mithrilJ2c);
 
-	var _util = __webpack_require__(11);
+	var _util = __webpack_require__(8);
 
 	var _util2 = _interopRequireDefault(_util);
 
@@ -2316,13 +1518,14 @@
 	 * @license MIT
 	 */
 
-	var s = _mithrilJ2c2.default.bindMithril();
+	var mc = _mithrilJ2c2.default.bindM();
 
 	var style = _mithrilJ2c2.default.sheet({
 	  '.reporter': {
-	    margin_left: '20px'
+	    margin_left: '2em'
 	  },
 	  '.item': {
+	    line_height: '1.5em',
 	    color: 'grey'
 	  },
 	  '.success': {
@@ -2331,13 +1534,31 @@
 	  '.fail': {
 	    color: 'red'
 	  },
-	  '.footer': { color: 'blue' },
-	  '.abc': { color: 'blue' }
+	  '.footer': {
+	    color: 'blue',
+	    margin_top: '1em',
+	    margin_left: '1.5em'
+	  },
+	  '.testItem': {
+	    '&:before': {
+	      content: "'-'",
+	      color: 'grey'
+	    },
+	    ' span, a': {
+	      margin_left: '10px'
+	    }
+	  }
 	});
 
 	var footer = {
 	  view: function view(ctrl, arg) {
-	    return m('.footerContent', _util2.default.format('total:%s, success:%s, fail:%s', arg.total.length, arg.success.length, arg.fail.length));
+	    return mc('.footerContent', _util2.default.format('total:%s, success:%s, fail:%s', arg.total.length, arg.success.length, arg.fail.length));
+	  }
+	};
+
+	var testItem = {
+	  view: function view(ctrl, arg) {
+	    return mc('.testItem', [mc('span', arg.test.msg), mc('span', arg.test.submsg || ''), mc('span', arg.test.status || ''), arg.test.error ? mc('a[href=#]', 'detail') : []]);
 	  }
 	};
 
@@ -2346,14 +1567,14 @@
 	    this.data = arg.data || data;
 	  },
 	  view: function view(ctrl, arg) {
-	    return m('.runner-result', { style: { textAlign: 'left', padding: '30px' } }, [m.style(style), s('h3', { style: { marginBottom: '10px' } }, 'Result for ptest-runner'), s('.reporter', ctrl.data.map(function (v) {
-	      return s('.item', {
+	    return m('.runner-result', { style: { textAlign: 'left', padding: '2em' } }, [m.style(style), mc('h3', { style: { marginBottom: '1em' } }, 'Result for ptest-runner'), mc('.reporter', ctrl.data.map(function (v) {
+	      return mc('.item', {
 	        class: style[v.status],
 	        style: {
-	          marginLeft: v.level * 20 + 'px'
+	          marginLeft: v.level * 1 + 'em'
 	        }
-	      }, v.test ? _util2.default.format('%s %s %s', v.msg, v.submsg, v.status) : s('strong', v.msg));
-	    })), s('.footer', m(footer, {
+	      }, v.test ? m(testItem, { test: v }) : mc('strong', v.msg));
+	    })), mc('.footer', m(footer, {
 	      total: ctrl.data.filter(function (v) {
 	        return v.test;
 	      }),
@@ -2367,12 +1588,125 @@
 	  }
 	};
 
-	var data = [{ "msg": "ptest for custom test files", "submsg": "", "level": 0 }, { "msg": "[test1465218312129]", "submsg": "(1 / 1)", "test": "test1465218312129", "level": 1, "status": "success" }, { "msg": "[test1465218335247]", "submsg": "(1 / 1)", "test": "test1465218335247", "level": 1, "status": "fail" }];
+	var data = [{ 'msg': 'ptest for custom test files', 'submsg': '', 'level': 0 }, { 'msg': '[test1465218312129]', 'submsg': '(1 / 1)', 'test': 'test1465218312129', 'level': 1, 'status': 'success' }, { 'msg': '[test1465218335247]', 'submsg': '(1 / 1)', 'test': 'test1465218335247', 'level': 1, "error": { "test": "test1465218335247", "folder": "ptest_data", "a": "test1465218335247/1465218058523.png", "b": "test1465218335247/1465218058523.png_test.png", "diff": "test1465218335247/1465218058523.png_diff.png" }, 'status': 'fail' }, { 'msg': '[test1465218335247]', 'submsg': '(1 / 1)', 'test': 'test1465218335247', 'level': 1 }];
 
 	module.exports = reporter;
 
 /***/ },
-/* 10 */
+/* 6 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+
+	var j2c = __webpack_require__(7);
+
+	var hasOwn = {}.hasOwnProperty;
+	var type = {}.toString;
+
+	function isObject(object) {
+	  return type.call(object) === '[object Object]';
+	}
+
+	function isString(object) {
+	  return type.call(object) === '[object String]';
+	}
+
+	function bindM(M) {
+	  M = M || m;
+	  if (!M) throw new Error('cannot find mithril, make sure you have `m` available in this scope.');
+
+	  var style = {};
+
+	  M.style = function (j2cObject) {
+	    if (!isString(j2cObject)) {
+	      style = {};
+	      return [];
+	    }
+	    style = j2cObject;
+	    return M('style', { type: 'text/css' }, style);
+	  };
+
+	  M.c = function (tag, pairs) {
+	    var args = [];
+
+	    for (var i = 1, length = arguments.length; i < length; i++) {
+	      args[i - 1] = arguments[i];
+	    }
+
+	    if (isObject(tag)) {
+	      var classAttr = 'class' in tag.attrs ? 'class' : 'className';
+	      var classObj = tag.attrs && tag.attrs[classAttr];
+	      if (classObj) tag.attrs[classAttr] = classObj.split(/ +/).map(function (c) {
+	        return style[c] || c;
+	      }).join(' ');
+	      return M.apply(null, tag);
+	    }
+
+	    var hasAttrs = pairs != null && isObject(pairs) && !('tag' in pairs || 'view' in pairs || 'subtree' in pairs);
+
+	    var attrs = hasAttrs ? pairs : {};
+	    var cell = {
+	      tag: 'div',
+	      attrs: {}
+	    };
+
+	    assignAttrs(cell.attrs, attrs, parseTagAttrs(cell, tag, style), style);
+	    console.log(hasAttrs, cell, args);
+
+	    return M.apply(null, [cell.tag, cell.attrs].concat(hasAttrs ? args.slice(1) : args));
+	  };
+
+	  return M.c;
+	}
+
+	j2c.bindM = bindM;
+
+	module.exports = j2c;
+
+	// get from mithril.js, which not exposed
+	function getCell() {}
+
+	function parseTagAttrs(cell, tag, style) {
+	  var classes = [];
+	  var parser = /(?:(^|#|\.)([^#\.\[\]]+))|(\[.+?\])/g;
+	  var match;
+
+	  while (match = parser.exec(tag)) {
+	    if (match[1] === '' && match[2]) {
+	      cell.tag = match[2];
+	    } else if (match[1] === '#') {
+	      cell.attrs.id = match[2];
+	    } else if (match[1] === '.') {
+	      classes.push(style[match[2]] || match[2]);
+	    } else if (match[3][0] === '[') {
+	      var pair = /\[(.+?)(?:=("|'|)(.*?)\2)?\]/.exec(match[3]);
+	      cell.attrs[pair[1]] = pair[3] || '';
+	    }
+	  }
+
+	  return classes;
+	}
+
+	function assignAttrs(target, attrs, classes, style) {
+	  var classAttr = "class" in attrs ? "class" : "className";
+
+	  for (var attrName in attrs) {
+	    if (hasOwn.call(attrs, attrName)) {
+	      if (attrName === classAttr && attrs[attrName] != null && attrs[attrName] !== "") {
+	        classes.push(style[attrs[attrName]] || attrs[attrName]);
+	        // create key in correct iteration order
+	        target[attrName] = "";
+	      } else {
+	        target[attrName] = attrs[attrName];
+	      }
+	    }
+	  }
+
+	  if (classes.length) target[classAttr] = classes.join(" ");
+	}
+
+/***/ },
+/* 7 */
 /***/ function(module, exports) {
 
 	'use strict';
@@ -2731,7 +2065,7 @@
 	module.exports = j2c;
 
 /***/ },
-/* 11 */
+/* 8 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(global, process) {'use strict';
@@ -3228,7 +2562,7 @@
 	}
 	exports.isPrimitive = isPrimitive;
 
-	exports.isBuffer = __webpack_require__(13);
+	exports.isBuffer = __webpack_require__(10);
 
 	function objectToString(o) {
 	  return Object.prototype.toString.call(o);
@@ -3265,7 +2599,7 @@
 	 *     prototype.
 	 * @param {function} superCtor Constructor function to inherit prototype from.
 	 */
-	exports.inherits = __webpack_require__(14);
+	exports.inherits = __webpack_require__(11);
 
 	exports._extend = function (origin, add) {
 	  // Don't do anything if add isn't an object
@@ -3282,10 +2616,10 @@
 	function hasOwnProperty(obj, prop) {
 	  return Object.prototype.hasOwnProperty.call(obj, prop);
 	}
-	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }()), __webpack_require__(12)))
+	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }()), __webpack_require__(9)))
 
 /***/ },
-/* 12 */
+/* 9 */
 /***/ function(module, exports) {
 
 	'use strict';
@@ -3390,7 +2724,7 @@
 	};
 
 /***/ },
-/* 13 */
+/* 10 */
 /***/ function(module, exports) {
 
 	'use strict';
@@ -3402,7 +2736,7 @@
 	};
 
 /***/ },
-/* 14 */
+/* 11 */
 /***/ function(module, exports) {
 
 	'use strict';
@@ -3432,117 +2766,802 @@
 	}
 
 /***/ },
-/* 15 */
+/* 12 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;'use strict';
+
+	var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol ? "symbol" : typeof obj; };
+
+	(function (_global, factory) {
+	  if (true) {
+	    !(__WEBPACK_AMD_DEFINE_ARRAY__ = [], __WEBPACK_AMD_DEFINE_FACTORY__ = (factory), __WEBPACK_AMD_DEFINE_RESULT__ = (typeof __WEBPACK_AMD_DEFINE_FACTORY__ === 'function' ? (__WEBPACK_AMD_DEFINE_FACTORY__.apply(exports, __WEBPACK_AMD_DEFINE_ARRAY__)) : __WEBPACK_AMD_DEFINE_FACTORY__), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__)); // define(['jquery'], factory)
+	  } else if ((typeof exports === 'undefined' ? 'undefined' : _typeof(exports)) === 'object') {
+	      module.exports = factory(); // factory(require('jquery'))
+	    } else {
+	        _global.mOverlay = factory(); // should return obj in factory
+	      }
+	})(undefined, function () {
+	  'use strict';
+
+	  var debounce = __webpack_require__(13);
+
+	  /**
+	   * @fileOverview Popup toolkit using mithril
+	   * @name overlay.js
+	   * @author micheal.yang
+	   * @license MIT
+	   */
+
+	  // require js/broswerutil.js file
+
+	  /**
+	   * get browser window size
+	   * @returns [w,h] windows width and height
+	   */
+	  function _getWindowSize() {
+	    if (window.innerWidth) {
+	      return [window.innerWidth, window.innerHeight];
+	    } else if (document.documentElement && document.documentElement.clientHeight) {
+	      return [document.documentElement.clientWidth, document.documentElement.clientHeight];
+	    } else if (document.body) {
+	      return [document.body.clientWidth, document.body.clientHeight];
+	    }
+	    return 0;
+	  }
+
+	  var overlay = {
+	    controller: function controller(arg) {
+	      var root = arg.root;
+	      var ctrl = this;
+	      root.classList.add('overlay-root');
+	      root.style.position = 'fixed';
+	      root.style.display = 'block';
+	      root.style.left = 0;
+	      root.style.top = 0;
+	      root.style.zIndex = 99999;
+	      var onresize = function onresize(e) {
+	        ctrl.width = _getWindowSize()[0];
+	        ctrl.height = _getWindowSize()[1];
+	        root.style.width = ctrl.width + 'px';
+	        root.style.height = ctrl.height + 'px';
+	        m.redraw();
+	      };
+	      window.addEventListener('resize', debounce(onresize, 200));
+	      onresize();
+	    },
+	    view: function view(ctrl, arg) {
+	      var popup = arg.popup;
+	      popup = popup || {};
+	      popup.style = popup.style || {};
+	      /* below line for debug purpose */
+	      // popup.style.border = '1px solid red'
+
+	      return [m('.overlay-bg', {
+	        config: function config(e) {
+	          ctrl.root = e.parentElement;
+	        },
+	        style: {
+	          'display': 'block',
+	          'height': '100%',
+	          'width': '100%'
+
+	        }
+	      }), /* below try to fix IE8 render problem, but not work:(  */
+	      // backgroundColor: '#000000',
+	      // filter: 'none !important',
+	      // filter: 'progid:DXImageTransform.Microsoft.Alpha(Opacity=50)',
+	      // filter: 'alpha(opacity=50)',
+	      // 'zoom':1
+	      m('table.overlay', {
+	        style: {
+	          'position': 'absolute',
+	          top: 0,
+	          left: 0,
+	          // 'z-index': 99999,
+	          // 'border': 1 + 'px',
+	          'padding': 0 + 'px',
+	          'margin': 0 + 'px',
+	          'width': '100%',
+	          'height': '100%'
+	          // using below format to supress error in IE8, rgba color
+	          // 'background-color': 'rgba(0,0,0,0.5)'
+	        }
+	      }, m('tr', m('td', {
+	        'align': 'center',
+	        'valign': 'middle',
+	        'style': {
+	          'position': 'relative'
+	        }
+	      }, // 'vertical-align': 'middle'
+	      [m('div.overlay-content', {
+	        onclick: function onclick(e) {
+	          ctrl.close = true;
+	        },
+	        key: ctrl.height,
+	        style: Object.assign(popup.style || {}, { height: ctrl.height + 'px' })
+	      }, popup.com ? m.component(popup.com, ctrl) : popup.text || m.trust(popup.html))])))];
+	    }
+	  };
+
+	  function clearRoot(root) {
+	    m.mount(root, null);
+	    root.classList.remove('overlay-root');
+	    root.style.display = 'none';
+	  }
+
+	  function closeOverlay(root, ret) {
+	    if (!root) return;
+	    root = typeof root == 'string' ? document.querySelector(root) : root.closest('.overlay-root');
+	    if (root) {
+	      clearRoot(root);
+	      var callback = root.overlayStack.pop();
+	      if (callback) callback.call(this, ret);
+	    }
+	  }
+	  function popupOverlay(root, popup) {
+	    // if (arguments.length < 2) popup = root, root = null
+	    if (!root) return;
+	    root = typeof root == 'string' ? document.querySelector(root) : root;
+	    if (root) {
+	      root.overlayStack = root.overlayStack || [];
+	      root.overlayStack.push(popup.onclose);
+	      m.mount(root, m.component(overlay, { root: root, popup: popup }));
+	    }
+	  }
+
+	  // export function
+
+	  return { open: popupOverlay, show: popupOverlay, close: closeOverlay, hide: closeOverlay };
+	});
+
+/***/ },
+/* 13 */
+/***/ function(module, exports) {
+
+	'use strict';
+
+	var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol ? "symbol" : typeof obj; };
+
+	/**
+	 * lodash 4.0.6 (Custom Build) <https://lodash.com/>
+	 * Build: `lodash modularize exports="npm" -o ./`
+	 * Copyright jQuery Foundation and other contributors <https://jquery.org/>
+	 * Released under MIT license <https://lodash.com/license>
+	 * Based on Underscore.js 1.8.3 <http://underscorejs.org/LICENSE>
+	 * Copyright Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
+	 */
+
+	/** Used as the `TypeError` message for "Functions" methods. */
+	var FUNC_ERROR_TEXT = 'Expected a function';
+
+	/** Used as references for various `Number` constants. */
+	var NAN = 0 / 0;
+
+	/** `Object#toString` result references. */
+	var funcTag = '[object Function]',
+	    genTag = '[object GeneratorFunction]',
+	    symbolTag = '[object Symbol]';
+
+	/** Used to match leading and trailing whitespace. */
+	var reTrim = /^\s+|\s+$/g;
+
+	/** Used to detect bad signed hexadecimal string values. */
+	var reIsBadHex = /^[-+]0x[0-9a-f]+$/i;
+
+	/** Used to detect binary string values. */
+	var reIsBinary = /^0b[01]+$/i;
+
+	/** Used to detect octal string values. */
+	var reIsOctal = /^0o[0-7]+$/i;
+
+	/** Built-in method references without a dependency on `root`. */
+	var freeParseInt = parseInt;
+
+	/** Used for built-in method references. */
+	var objectProto = Object.prototype;
+
+	/**
+	 * Used to resolve the
+	 * [`toStringTag`](http://ecma-international.org/ecma-262/6.0/#sec-object.prototype.tostring)
+	 * of values.
+	 */
+	var objectToString = objectProto.toString;
+
+	/* Built-in method references for those with the same name as other `lodash` methods. */
+	var nativeMax = Math.max,
+	    nativeMin = Math.min;
+
+	/**
+	 * Gets the timestamp of the number of milliseconds that have elapsed since
+	 * the Unix epoch (1 January 1970 00:00:00 UTC).
+	 *
+	 * @static
+	 * @memberOf _
+	 * @since 2.4.0
+	 * @type {Function}
+	 * @category Date
+	 * @returns {number} Returns the timestamp.
+	 * @example
+	 *
+	 * _.defer(function(stamp) {
+	 *   console.log(_.now() - stamp);
+	 * }, _.now());
+	 * // => Logs the number of milliseconds it took for the deferred function to be invoked.
+	 */
+	var now = Date.now;
+
+	/**
+	 * Creates a debounced function that delays invoking `func` until after `wait`
+	 * milliseconds have elapsed since the last time the debounced function was
+	 * invoked. The debounced function comes with a `cancel` method to cancel
+	 * delayed `func` invocations and a `flush` method to immediately invoke them.
+	 * Provide an options object to indicate whether `func` should be invoked on
+	 * the leading and/or trailing edge of the `wait` timeout. The `func` is invoked
+	 * with the last arguments provided to the debounced function. Subsequent calls
+	 * to the debounced function return the result of the last `func` invocation.
+	 *
+	 * **Note:** If `leading` and `trailing` options are `true`, `func` is invoked
+	 * on the trailing edge of the timeout only if the debounced function is
+	 * invoked more than once during the `wait` timeout.
+	 *
+	 * See [David Corbacho's article](https://css-tricks.com/debouncing-throttling-explained-examples/)
+	 * for details over the differences between `_.debounce` and `_.throttle`.
+	 *
+	 * @static
+	 * @memberOf _
+	 * @since 0.1.0
+	 * @category Function
+	 * @param {Function} func The function to debounce.
+	 * @param {number} [wait=0] The number of milliseconds to delay.
+	 * @param {Object} [options={}] The options object.
+	 * @param {boolean} [options.leading=false]
+	 *  Specify invoking on the leading edge of the timeout.
+	 * @param {number} [options.maxWait]
+	 *  The maximum time `func` is allowed to be delayed before it's invoked.
+	 * @param {boolean} [options.trailing=true]
+	 *  Specify invoking on the trailing edge of the timeout.
+	 * @returns {Function} Returns the new debounced function.
+	 * @example
+	 *
+	 * // Avoid costly calculations while the window size is in flux.
+	 * jQuery(window).on('resize', _.debounce(calculateLayout, 150));
+	 *
+	 * // Invoke `sendMail` when clicked, debouncing subsequent calls.
+	 * jQuery(element).on('click', _.debounce(sendMail, 300, {
+	 *   'leading': true,
+	 *   'trailing': false
+	 * }));
+	 *
+	 * // Ensure `batchLog` is invoked once after 1 second of debounced calls.
+	 * var debounced = _.debounce(batchLog, 250, { 'maxWait': 1000 });
+	 * var source = new EventSource('/stream');
+	 * jQuery(source).on('message', debounced);
+	 *
+	 * // Cancel the trailing debounced invocation.
+	 * jQuery(window).on('popstate', debounced.cancel);
+	 */
+	function debounce(func, wait, options) {
+	  var lastArgs,
+	      lastThis,
+	      maxWait,
+	      result,
+	      timerId,
+	      lastCallTime = 0,
+	      lastInvokeTime = 0,
+	      leading = false,
+	      maxing = false,
+	      trailing = true;
+
+	  if (typeof func != 'function') {
+	    throw new TypeError(FUNC_ERROR_TEXT);
+	  }
+	  wait = toNumber(wait) || 0;
+	  if (isObject(options)) {
+	    leading = !!options.leading;
+	    maxing = 'maxWait' in options;
+	    maxWait = maxing ? nativeMax(toNumber(options.maxWait) || 0, wait) : maxWait;
+	    trailing = 'trailing' in options ? !!options.trailing : trailing;
+	  }
+
+	  function invokeFunc(time) {
+	    var args = lastArgs,
+	        thisArg = lastThis;
+
+	    lastArgs = lastThis = undefined;
+	    lastInvokeTime = time;
+	    result = func.apply(thisArg, args);
+	    return result;
+	  }
+
+	  function leadingEdge(time) {
+	    // Reset any `maxWait` timer.
+	    lastInvokeTime = time;
+	    // Start the timer for the trailing edge.
+	    timerId = setTimeout(timerExpired, wait);
+	    // Invoke the leading edge.
+	    return leading ? invokeFunc(time) : result;
+	  }
+
+	  function remainingWait(time) {
+	    var timeSinceLastCall = time - lastCallTime,
+	        timeSinceLastInvoke = time - lastInvokeTime,
+	        result = wait - timeSinceLastCall;
+
+	    return maxing ? nativeMin(result, maxWait - timeSinceLastInvoke) : result;
+	  }
+
+	  function shouldInvoke(time) {
+	    var timeSinceLastCall = time - lastCallTime,
+	        timeSinceLastInvoke = time - lastInvokeTime;
+
+	    // Either this is the first call, activity has stopped and we're at the
+	    // trailing edge, the system time has gone backwards and we're treating
+	    // it as the trailing edge, or we've hit the `maxWait` limit.
+	    return !lastCallTime || timeSinceLastCall >= wait || timeSinceLastCall < 0 || maxing && timeSinceLastInvoke >= maxWait;
+	  }
+
+	  function timerExpired() {
+	    var time = now();
+	    if (shouldInvoke(time)) {
+	      return trailingEdge(time);
+	    }
+	    // Restart the timer.
+	    timerId = setTimeout(timerExpired, remainingWait(time));
+	  }
+
+	  function trailingEdge(time) {
+	    clearTimeout(timerId);
+	    timerId = undefined;
+
+	    // Only invoke if we have `lastArgs` which means `func` has been
+	    // debounced at least once.
+	    if (trailing && lastArgs) {
+	      return invokeFunc(time);
+	    }
+	    lastArgs = lastThis = undefined;
+	    return result;
+	  }
+
+	  function cancel() {
+	    if (timerId !== undefined) {
+	      clearTimeout(timerId);
+	    }
+	    lastCallTime = lastInvokeTime = 0;
+	    lastArgs = lastThis = timerId = undefined;
+	  }
+
+	  function flush() {
+	    return timerId === undefined ? result : trailingEdge(now());
+	  }
+
+	  function debounced() {
+	    var time = now(),
+	        isInvoking = shouldInvoke(time);
+
+	    lastArgs = arguments;
+	    lastThis = this;
+	    lastCallTime = time;
+
+	    if (isInvoking) {
+	      if (timerId === undefined) {
+	        return leadingEdge(lastCallTime);
+	      }
+	      if (maxing) {
+	        // Handle invocations in a tight loop.
+	        clearTimeout(timerId);
+	        timerId = setTimeout(timerExpired, wait);
+	        return invokeFunc(lastCallTime);
+	      }
+	    }
+	    if (timerId === undefined) {
+	      timerId = setTimeout(timerExpired, wait);
+	    }
+	    return result;
+	  }
+	  debounced.cancel = cancel;
+	  debounced.flush = flush;
+	  return debounced;
+	}
+
+	/**
+	 * Checks if `value` is classified as a `Function` object.
+	 *
+	 * @static
+	 * @memberOf _
+	 * @since 0.1.0
+	 * @category Lang
+	 * @param {*} value The value to check.
+	 * @returns {boolean} Returns `true` if `value` is correctly classified,
+	 *  else `false`.
+	 * @example
+	 *
+	 * _.isFunction(_);
+	 * // => true
+	 *
+	 * _.isFunction(/abc/);
+	 * // => false
+	 */
+	function isFunction(value) {
+	  // The use of `Object#toString` avoids issues with the `typeof` operator
+	  // in Safari 8 which returns 'object' for typed array and weak map constructors,
+	  // and PhantomJS 1.9 which returns 'function' for `NodeList` instances.
+	  var tag = isObject(value) ? objectToString.call(value) : '';
+	  return tag == funcTag || tag == genTag;
+	}
+
+	/**
+	 * Checks if `value` is the
+	 * [language type](http://www.ecma-international.org/ecma-262/6.0/#sec-ecmascript-language-types)
+	 * of `Object`. (e.g. arrays, functions, objects, regexes, `new Number(0)`, and `new String('')`)
+	 *
+	 * @static
+	 * @memberOf _
+	 * @since 0.1.0
+	 * @category Lang
+	 * @param {*} value The value to check.
+	 * @returns {boolean} Returns `true` if `value` is an object, else `false`.
+	 * @example
+	 *
+	 * _.isObject({});
+	 * // => true
+	 *
+	 * _.isObject([1, 2, 3]);
+	 * // => true
+	 *
+	 * _.isObject(_.noop);
+	 * // => true
+	 *
+	 * _.isObject(null);
+	 * // => false
+	 */
+	function isObject(value) {
+	  var type = typeof value === 'undefined' ? 'undefined' : _typeof(value);
+	  return !!value && (type == 'object' || type == 'function');
+	}
+
+	/**
+	 * Checks if `value` is object-like. A value is object-like if it's not `null`
+	 * and has a `typeof` result of "object".
+	 *
+	 * @static
+	 * @memberOf _
+	 * @since 4.0.0
+	 * @category Lang
+	 * @param {*} value The value to check.
+	 * @returns {boolean} Returns `true` if `value` is object-like, else `false`.
+	 * @example
+	 *
+	 * _.isObjectLike({});
+	 * // => true
+	 *
+	 * _.isObjectLike([1, 2, 3]);
+	 * // => true
+	 *
+	 * _.isObjectLike(_.noop);
+	 * // => false
+	 *
+	 * _.isObjectLike(null);
+	 * // => false
+	 */
+	function isObjectLike(value) {
+	  return !!value && (typeof value === 'undefined' ? 'undefined' : _typeof(value)) == 'object';
+	}
+
+	/**
+	 * Checks if `value` is classified as a `Symbol` primitive or object.
+	 *
+	 * @static
+	 * @memberOf _
+	 * @since 4.0.0
+	 * @category Lang
+	 * @param {*} value The value to check.
+	 * @returns {boolean} Returns `true` if `value` is correctly classified,
+	 *  else `false`.
+	 * @example
+	 *
+	 * _.isSymbol(Symbol.iterator);
+	 * // => true
+	 *
+	 * _.isSymbol('abc');
+	 * // => false
+	 */
+	function isSymbol(value) {
+	  return (typeof value === 'undefined' ? 'undefined' : _typeof(value)) == 'symbol' || isObjectLike(value) && objectToString.call(value) == symbolTag;
+	}
+
+	/**
+	 * Converts `value` to a number.
+	 *
+	 * @static
+	 * @memberOf _
+	 * @since 4.0.0
+	 * @category Lang
+	 * @param {*} value The value to process.
+	 * @returns {number} Returns the number.
+	 * @example
+	 *
+	 * _.toNumber(3);
+	 * // => 3
+	 *
+	 * _.toNumber(Number.MIN_VALUE);
+	 * // => 5e-324
+	 *
+	 * _.toNumber(Infinity);
+	 * // => Infinity
+	 *
+	 * _.toNumber('3');
+	 * // => 3
+	 */
+	function toNumber(value) {
+	  if (typeof value == 'number') {
+	    return value;
+	  }
+	  if (isSymbol(value)) {
+	    return NAN;
+	  }
+	  if (isObject(value)) {
+	    var other = isFunction(value.valueOf) ? value.valueOf() : value;
+	    value = isObject(other) ? other + '' : other;
+	  }
+	  if (typeof value != 'string') {
+	    return value === 0 ? value : +value;
+	  }
+	  value = value.replace(reTrim, '');
+	  var isBinary = reIsBinary.test(value);
+	  return isBinary || reIsOctal.test(value) ? freeParseInt(value.slice(2), isBinary ? 2 : 8) : reIsBadHex.test(value) ? NAN : +value;
+	}
+
+	module.exports = debounce;
+
+/***/ },
+/* 14 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 
-	var j2c = __webpack_require__(10);
+	var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol ? "symbol" : typeof obj; };
 
-	var hasOwn = {}.hasOwnProperty;
-	var type = {}.toString;
+	var each = __webpack_require__(15);
+	module.exports = api;
 
-	function isObject(object) {
-	  return type.call(object) === '[object Object]';
+	/**
+	 * Convenience wrapper around the api.
+	 * Calls `.get` when called with an `object` and a `pointer`.
+	 * Calls `.set` when also called with `value`.
+	 * If only supplied `object`, returns a partially applied function, mapped to the object.
+	 *
+	 * @param {Object} obj
+	 * @param {String|Array} pointer
+	 * @param value
+	 * @returns {*}
+	 */
+
+	function api(obj, pointer, value) {
+	    // .set()
+	    if (arguments.length === 3) {
+	        return api.set(obj, pointer, value);
+	    }
+	    // .get()
+	    if (arguments.length === 2) {
+	        return api.get(obj, pointer);
+	    }
+	    // Return a partially applied function on `obj`.
+	    var wrapped = api.bind(api, obj);
+
+	    // Support for oo style
+	    for (var name in api) {
+	        if (api.hasOwnProperty(name)) {
+	            wrapped[name] = api[name].bind(wrapped, obj);
+	        }
+	    }
+	    return wrapped;
 	}
 
-	function isString(object) {
-	  return type.call(object) === '[object String]';
-	}
+	/**
+	 * Lookup a json pointer in an object
+	 *
+	 * @param {Object} obj
+	 * @param {String|Array} pointer
+	 * @returns {*}
+	 */
+	api.get = function get(obj, pointer) {
+	    var refTokens = Array.isArray(pointer) ? pointer : api.parse(pointer);
 
-	function bindMithril(M) {
-	  M = M || m;
-	  if (!M) throw new Error('cannot find mithril, make sure you have `m` available in this scope.');
-
-	  var style = {};
-
-	  M.style = function (j2cObject) {
-	    if (!isString(j2cObject)) {
-	      style = {};
-	      return [];
+	    for (var i = 0; i < refTokens.length; ++i) {
+	        var tok = refTokens[i];
+	        if (!((typeof obj === 'undefined' ? 'undefined' : _typeof(obj)) == 'object' && tok in obj)) {
+	            throw new Error('Invalid reference token: ' + tok);
+	        }
+	        obj = obj[tok];
 	    }
-	    style = j2cObject;
-	    return M('style', { type: 'text/css' }, style);
-	  };
+	    return obj;
+	};
 
-	  M.c = function (tag, pairs) {
-	    var args = [];
+	/**
+	 * Sets a value on an object
+	 *
+	 * @param {Object} obj
+	 * @param {String|Array} pointer
+	 * @param value
+	 */
+	api.set = function set(obj, pointer, value) {
+	    var refTokens = Array.isArray(pointer) ? pointer : api.parse(pointer),
+	        nextTok = refTokens[0];
 
-	    for (var i = 1, length = arguments.length; i < length; i++) {
-	      args[i - 1] = arguments[i];
+	    for (var i = 0; i < refTokens.length - 1; ++i) {
+	        var tok = refTokens[i];
+	        if (tok === '-' && Array.isArray(obj)) {
+	            tok = obj.length;
+	        }
+	        nextTok = refTokens[i + 1];
+
+	        if (!(tok in obj)) {
+	            if (nextTok.match(/^(\d+|-)$/)) {
+	                obj[tok] = [];
+	            } else {
+	                obj[tok] = {};
+	            }
+	        }
+	        obj = obj[tok];
 	    }
-
-	    if (isObject(tag)) {
-	      var classAttr = 'class' in tag.attrs ? 'class' : 'className';
-	      var classObj = tag.attrs && tag.attrs[classAttr];
-	      if (classObj) tag.attrs[classAttr] = classObj.split(/ +/).map(function (c) {
-	        return style[c] || c;
-	      }).join(' ');
-	      return M.apply(null, tag);
+	    if (nextTok === '-' && Array.isArray(obj)) {
+	        nextTok = obj.length;
 	    }
+	    obj[nextTok] = value;
+	    return this;
+	};
 
-	    var hasAttrs = pairs != null && isObject(pairs) && !('tag' in pairs || 'view' in pairs || 'subtree' in pairs);
+	/**
+	 * Removes an attribute
+	 *
+	 * @param {Object} obj
+	 * @param {String|Array} pointer
+	 */
+	api.remove = function (obj, pointer) {
+	    var refTokens = Array.isArray(pointer) ? pointer : api.parse(pointer);
+	    var finalToken = refTokens[refTokens.length - 1];
+	    if (finalToken === undefined) {
+	        throw new Error('Invalid JSON pointer for remove: "' + pointer + '"');
+	    }
+	    delete api.get(obj, refTokens.slice(0, -1))[finalToken];
+	};
 
-	    var attrs = hasAttrs ? pairs : {};
-	    var cell = {
-	      tag: 'div',
-	      attrs: {}
+	/**
+	 * Returns a (pointer -> value) dictionary for an object
+	 *
+	 * @param obj
+	 * @param {function} descend
+	 * @returns {}
+	 */
+	api.dict = function dict(obj, descend) {
+	    var results = {};
+	    api.walk(obj, function (value, pointer) {
+	        results[pointer] = value;
+	    }, descend);
+	    return results;
+	};
+
+	/**
+	 * Iterates over an object
+	 * Iterator: function (value, pointer) {}
+	 *
+	 * @param obj
+	 * @param {function} iterator
+	 * @param {function} descend
+	 */
+	api.walk = function walk(obj, iterator, descend) {
+	    var refTokens = [];
+
+	    descend = descend || function (value) {
+	        var type = Object.prototype.toString.call(value);
+	        return type === '[object Object]' || type === '[object Array]';
 	    };
 
-	    assignAttrs(cell.attrs, attrs, parseTagAttrs(cell, tag, style), style);
-	    console.log(hasAttrs, cell, args);
+	    (function next(cur) {
+	        each(cur, function (value, key) {
+	            refTokens.push(String(key));
+	            if (descend(value)) {
+	                next(value);
+	            } else {
+	                iterator(value, api.compile(refTokens));
+	            }
+	            refTokens.pop();
+	        });
+	    })(obj);
+	};
 
-	    return M.apply(null, [cell.tag, cell.attrs].concat(hasAttrs ? args.slice(1) : args));
-	  };
-
-	  return M.c;
-	}
-
-	j2c.bindMithril = bindMithril;
-
-	module.exports = j2c;
-
-	// get from mithril.js, which not exposed
-	function getCell() {}
-
-	function parseTagAttrs(cell, tag, style) {
-	  var classes = [];
-	  var parser = /(?:(^|#|\.)([^#\.\[\]]+))|(\[.+?\])/g;
-	  var match;
-
-	  while (match = parser.exec(tag)) {
-	    if (match[1] === '' && match[2]) {
-	      cell.tag = match[2];
-	    } else if (match[1] === '#') {
-	      cell.attrs.id = match[2];
-	    } else if (match[1] === '.') {
-	      classes.push(style[match[2]] || match[2]);
-	    } else if (match[3][0] === '[') {
-	      var pair = /\[(.+?)(?:=("|'|)(.*?)\2)?\]/.exec(match[3]);
-	      cell.attrs[pair[1]] = pair[3] || '';
+	/**
+	 * Tests if an object has a value for a json pointer
+	 *
+	 * @param obj
+	 * @param pointer
+	 * @returns {boolean}
+	 */
+	api.has = function has(obj, pointer) {
+	    try {
+	        api.get(obj, pointer);
+	    } catch (e) {
+	        return false;
 	    }
-	  }
+	    return true;
+	};
 
-	  return classes;
-	}
+	/**
+	 * Escapes a reference token
+	 *
+	 * @param str
+	 * @returns {string}
+	 */
+	api.escape = function escape(str) {
+	    return str.toString().replace(/~/g, '~0').replace(/\//g, '~1');
+	};
 
-	function assignAttrs(target, attrs, classes, style) {
-	  var classAttr = "class" in attrs ? "class" : "className";
+	/**
+	 * Unescapes a reference token
+	 *
+	 * @param str
+	 * @returns {string}
+	 */
+	api.unescape = function unescape(str) {
+	    return str.replace(/~1/g, '/').replace(/~0/g, '~');
+	};
 
-	  for (var attrName in attrs) {
-	    if (hasOwn.call(attrs, attrName)) {
-	      if (attrName === classAttr && attrs[attrName] != null && attrs[attrName] !== "") {
-	        classes.push(style[attrs[attrName]] || attrs[attrName]);
-	        // create key in correct iteration order
-	        target[attrName] = "";
-	      } else {
-	        target[attrName] = attrs[attrName];
-	      }
+	/**
+	 * Converts a json pointer into a array of reference tokens
+	 *
+	 * @param pointer
+	 * @returns {Array}
+	 */
+	api.parse = function parse(pointer) {
+	    if (pointer === '') {
+	        return [];
 	    }
-	  }
+	    if (pointer.charAt(0) !== '/') {
+	        throw new Error('Invalid JSON pointer: ' + pointer);
+	    }
+	    return pointer.substring(1).split(/\//).map(api.unescape);
+	};
 
-	  if (classes.length) target[classAttr] = classes.join(" ");
-	}
+	/**
+	 * Builds a json pointer from a array of reference tokens
+	 *
+	 * @param refTokens
+	 * @returns {string}
+	 */
+	api.compile = function compile(refTokens) {
+	    if (refTokens.length === 0) {
+	        return '';
+	    }
+	    return '/' + refTokens.map(api.escape).join('/');
+	};
+
+/***/ },
+/* 15 */
+/***/ function(module, exports) {
+
+	'use strict';
+
+	var hasOwn = Object.prototype.hasOwnProperty;
+	var toString = Object.prototype.toString;
+
+	module.exports = function forEach(obj, fn, ctx) {
+	    if (toString.call(fn) !== '[object Function]') {
+	        throw new TypeError('iterator must be a function');
+	    }
+	    var l = obj.length;
+	    if (l === +l) {
+	        for (var i = 0; i < l; i++) {
+	            fn.call(ctx, obj[i], i, obj);
+	        }
+	    } else {
+	        for (var k in obj) {
+	            if (hasOwn.call(obj, k)) {
+	                fn.call(ctx, obj[k], k, obj);
+	            }
+	        }
+	    }
+	};
 
 /***/ }
 /******/ ]);

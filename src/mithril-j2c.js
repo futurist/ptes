@@ -11,7 +11,7 @@ function isString (object) {
   return type.call(object) === '[object String]'
 }
 
-function bindMithril (M) {
+function bindM (M) {
   M = M || m
   if (!M) throw new Error('cannot find mithril, make sure you have `m` available in this scope.')
 
@@ -61,7 +61,7 @@ function bindMithril (M) {
   return M.c
 }
 
-j2c.bindMithril = bindMithril
+j2c.bindM = bindM
 
 module.exports = j2c
 

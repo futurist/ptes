@@ -177,8 +177,9 @@
 
 	        break;
 	      case 'test_output':
-	      case 'test_error':
+	        // case 'test_error':
 	        console.log(msg.data);
+	        _overlay2.default.show('#result', { com: m.component(_reporter2.default, { data: msg.data }) });
 
 	        break;
 	      case 'command_result':
@@ -306,8 +307,8 @@
 	  _overlay2.default.show('#overlay', { com: m.component(_mtree2.default, { url: '/config', onclose: oncloseSetup }) });
 	}
 
-	_overlay2.default.show('#result', { com: m.component(_reporter2.default, {}) });
-	_overlay2.default.show('#testimage', { com: m.component(_testImage2.default, {}) });
+	// mOverlay.show('#result', {com: m.component(reporter, {})})
+	// mOverlay.show('#testimage', {com: m.component(testImage, {})})
 
 	//
 	// setup keyboard event
@@ -1509,6 +1510,14 @@
 
 	var _mithrilJ2c2 = _interopRequireDefault(_mithrilJ2c);
 
+	var _testImage = __webpack_require__(12);
+
+	var _testImage2 = _interopRequireDefault(_testImage);
+
+	var _overlay = __webpack_require__(13);
+
+	var _overlay2 = _interopRequireDefault(_overlay);
+
 	var _util = __webpack_require__(8);
 
 	var _util2 = _interopRequireDefault(_util);
@@ -1540,9 +1549,12 @@
 	    color: 'red'
 	  },
 	  '.footer': {
-	    color: 'blue',
+	    color: 'grey',
 	    margin_top: '1em',
-	    margin_left: '1.5em'
+	    margin_left: '1.5em',
+	    ' .finished': {
+	      color: 'blue'
+	    }
 	  },
 	  '.testItem': {
 	    '&:before': {
@@ -1556,14 +1568,26 @@
 	});
 
 	var footer = {
+	  controller: function controller(arg) {
+	    var _this = this;
+
+	    this.total = arg.total.length;
+	    this.success = arg.success.length;
+	    this.fail = arg.fail.length;
+	    this.getClass = function () {
+	      return _this.total == _this.success + _this.fail ? 'finished' : 'unfinished';
+	    };
+	  },
 	  view: function view(ctrl, arg) {
-	    return mc('.footerContent', _util2.default.format('total:%s, success:%s, fail:%s', arg.total.length, arg.success.length, arg.fail.length));
+	    return mc('.footerContent', { class: ctrl.getClass() }, _util2.default.format('total:%s, success:%s, fail:%s', ctrl.total, ctrl.success, ctrl.fail));
 	  }
 	};
 
 	var testItem = {
 	  view: function view(ctrl, arg) {
-	    return mc('.testItem', [mc('span', arg.test.msg), mc('span', arg.test.submsg || ''), mc('span', arg.test.status || ''), arg.test.error ? mc('a[href=#]', 'detail') : []]);
+	    return mc('.testItem', [mc('span', arg.test.msg), mc('span', arg.test.submsg || ''), mc('span', arg.test.status || 'running'), arg.test.error ? mc('a[href=#]', { onclick: function onclick() {
+	        _overlay2.default.show('#testimage', { com: m.component(_testImage2.default, { data: arg.test.error }) });
+	      } }, 'detail') : []]);
 	  }
 	};
 
@@ -2825,14 +2849,15 @@
 
 	    this.data = arg.data || testdata;
 	    this.keys = ['a', 'b', 'diff'];
-	    this.cycleVisible = function () {
-	      current++;
+	    this.cycleVisible = function (diff) {
+	      current += diff || 1;
+	      if (current < 0) current = _this.keys.length - 1;
 	      current = current % _this.keys.length;
 	    };
 	  },
 	  view: function view(ctrl, arg) {
-	    return mc('.imageBox', { onclick: function onclick(e) {
-	        return ctrl.cycleVisible();
+	    return mc('.imageBox', { onmousedown: function onmousedown(e) {
+	        return ctrl.cycleVisible(detectRightButton() ? -1 : 1);
 	      } }, [mc.style(style), ctrl.keys.map(function (v, i) {
 	      return mc('.image', { class: current !== i ? '  :global(hide)   hide  ' : '' }, mc('img', { src: PTEST_PATH + ctrl.data.folder + '/' + ctrl.data[v] }));
 	    })]);
@@ -2842,6 +2867,16 @@
 	module.exports = gallary;
 
 	var testdata = { "test": "test1465218335247", "folder": "ptest_data", "a": "test1465218335247/1465218058523.png", "b": "test1465218335247/1465218058523.png_test.png", "diff": "test1465218335247/1465218058523.png_diff.png" };
+
+	//
+	// helper functions
+
+	function detectRightButton(e) {
+	  var rightclick;
+	  if (!e) var e = window.event;
+	  if (e.which) rightclick = e.which == 3;else if (e.button) rightclick = e.button == 2;
+	  return rightclick;
+	}
 
 /***/ },
 /* 13 */

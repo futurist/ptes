@@ -31,13 +31,14 @@ const gallary={
   controller : function(arg){
     this.data = arg.data || testdata
     this.keys = ['a','b','diff']
-    this.cycleVisible = ()=>{
-      current++
+    this.cycleVisible = (diff)=>{
+      current += diff||1
+      if(current<0) current = this.keys.length-1
       current = current % this.keys.length
     }
   },
   view : function(ctrl, arg){
-    return mc('.imageBox', {onclick:e=>ctrl.cycleVisible()}, [
+    return mc('.imageBox', {onmousedown:e=>ctrl.cycleVisible(detectRightButton()?-1:1)}, [
       mc.style(style),
       ctrl.keys.map((v,i)=>{
         return mc('.image', {class:current!==i?'  :global(hide)   hide  ':''}, mc('img', {src: PTEST_PATH + ctrl.data.folder+'/'+ctrl.data[v]}))
@@ -49,3 +50,15 @@ const gallary={
 module.exports = gallary
 
 var testdata = {"test":"test1465218335247","folder":"ptest_data","a":"test1465218335247/1465218058523.png","b":"test1465218335247/1465218058523.png_test.png","diff":"test1465218335247/1465218058523.png_diff.png"}
+
+
+//
+// helper functions
+
+function detectRightButton (e) {
+  var rightclick
+  if (!e) var e = window.event
+  if (e.which) rightclick = (e.which == 3)
+  else if (e.button) rightclick = (e.button == 2)
+  return rightclick
+}

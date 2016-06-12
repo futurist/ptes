@@ -7,6 +7,8 @@
  */
 
 import mj2c from './mithril-j2c.js'
+import testImage from './test-image'
+import mOverlay from './overlay'
 import util from 'util'
 
 const mc = mj2c.bindM()
@@ -26,9 +28,12 @@ const style = mj2c.sheet({
     color: 'red'
   },
   '.footer': {
-    color: 'blue',
+    color: 'grey',
     margin_top: '1em',
-    margin_left: '1.5em'
+    margin_left: '1.5em',
+    ' .finished':{
+      color:'blue'
+    }
   },
   '.testItem':{
     '&:before':{
@@ -42,12 +47,20 @@ const style = mj2c.sheet({
 })
 
 const footer = {
+  controller: function(arg) {
+    this.total = arg.total.length
+    this.success = arg.success.length
+    this.fail = arg.fail.length
+    this.getClass = ()=> {
+      return this.total==this.success+this.fail ? 'finished' : 'unfinished'
+    }
+  },
   view: function (ctrl, arg) {
-    return mc('.footerContent', util.format(
+    return mc('.footerContent',{class:ctrl.getClass()}, util.format(
       'total:%s, success:%s, fail:%s',
-      arg.total.length,
-      arg.success.length,
-      arg.fail.length
+      ctrl.total,
+      ctrl.success,
+      ctrl.fail
     ))
   }
 }
@@ -57,8 +70,10 @@ const testItem = {
     return mc('.testItem', [
       mc('span', arg.test.msg),
       mc('span', arg.test.submsg||''),
-      mc('span', arg.test.status||''),
-      arg.test.error? mc('a[href=#]', 'detail') : []
+      mc('span', arg.test.status||'running'),
+      arg.test.error? mc('a[href=#]', {onclick:function() {
+        mOverlay.show('#testimage', {com: m.component(testImage, {data: arg.test.error})})
+      }} ,'detail') : []
     ])
   }
 }

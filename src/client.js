@@ -105,8 +105,9 @@ ws.onopen = function (e) {
 
       break
     case 'test_output':
-    case 'test_error':
+    // case 'test_error':
       console.log(msg.data)
+      mOverlay.show('#result', {com: m.component(reporter, {data:msg.data})})
 
       break
     case 'command_result':
@@ -239,8 +240,8 @@ function showSetup (arg) {
   mOverlay.show('#overlay', {com: m.component(mTree, {url: '/config', onclose: oncloseSetup })})
 }
 
-mOverlay.show('#result', {com: m.component(reporter, {})})
-mOverlay.show('#testimage', {com: m.component(testImage, {})})
+// mOverlay.show('#result', {com: m.component(reporter, {})})
+// mOverlay.show('#testimage', {com: m.component(testImage, {})})
 
 //
 // setup keyboard event

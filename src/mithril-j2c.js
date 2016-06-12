@@ -49,7 +49,7 @@ function bindM (M) {
     return M.apply(null, [cell.tag, cell.attrs].concat( hasAttrs?args.slice(1):args ))
   }
 
-  M.c.styleSheet = function (j2cObject) {
+  M.c.style = function (j2cObject) {
     if (!isString(j2cObject)) {
       style = {}
       return []

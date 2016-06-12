@@ -38,7 +38,7 @@ const gallary={
   },
   view : function(ctrl, arg){
     return mc('.imageBox', {onclick:e=>ctrl.cycleVisible()}, [
-      mc.styleSheet(style),
+      mc.style(style),
       ctrl.keys.map((v,i)=>{
         return mc('.image', {class:current!==i?'  :global(hide)   hide  ':''}, mc('img', {src: PTEST_PATH + ctrl.data.folder+'/'+ctrl.data[v]}))
       })

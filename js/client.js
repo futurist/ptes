@@ -59,15 +59,15 @@
 
 	var _reporter2 = _interopRequireDefault(_reporter);
 
-	var _testImage = __webpack_require__(16);
+	var _testImage = __webpack_require__(12);
 
 	var _testImage2 = _interopRequireDefault(_testImage);
 
-	var _overlay = __webpack_require__(12);
+	var _overlay = __webpack_require__(13);
 
 	var _overlay2 = _interopRequireDefault(_overlay);
 
-	var _jsonPointer = __webpack_require__(14);
+	var _jsonPointer = __webpack_require__(15);
 
 	var _jsonPointer2 = _interopRequireDefault(_jsonPointer);
 
@@ -1572,7 +1572,7 @@
 	    this.data = arg.data || testdata;
 	  },
 	  view: function view(ctrl, arg) {
-	    return mc('.runner-result', { style: { textAlign: 'left', padding: '2em' } }, [mc.styleSheet(style), mc('h3', { style: { marginBottom: '1em' } }, 'Result for ptest-runner'), mc('.reporter', ctrl.data.map(function (v) {
+	    return mc('.runner-result', { style: { textAlign: 'left', padding: '2em' } }, [mc.style(style), mc('h3', { style: { marginBottom: '1em' } }, 'Result for ptest-runner'), mc('.reporter', ctrl.data.map(function (v) {
 	      return mc('.item', {
 	        class: style[v.status],
 	        style: {
@@ -1652,7 +1652,7 @@
 	    return M.apply(null, [cell.tag, cell.attrs].concat(hasAttrs ? args.slice(1) : args));
 	  };
 
-	  M.c.styleSheet = function (j2cObject) {
+	  M.c.style = function (j2cObject) {
 	    if (!isString(j2cObject)) {
 	      style = {};
 	      return [];
@@ -2782,6 +2782,71 @@
 /* 12 */
 /***/ function(module, exports, __webpack_require__) {
 
+	'use strict';
+
+	var _mithrilJ2c = __webpack_require__(6);
+
+	var _mithrilJ2c2 = _interopRequireDefault(_mithrilJ2c);
+
+	var _util = __webpack_require__(8);
+
+	var _util2 = _interopRequireDefault(_util);
+
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+	/**
+	 * @fileOverview Display test images for ptest.
+	 * @global Mousetrap.js, mithril.js
+	 * @name test-image.js
+	 * @author Micheal Yang
+	 * @license MIT
+	 */
+
+	var mc = _mithrilJ2c2.default.bindM();
+
+	var PTEST_PATH = '/ptestfolder/';
+
+	var style = _mithrilJ2c2.default.sheet({
+	  '.imageBox': {
+	    ' .image': {
+	      position: 'absolute'
+	    }
+	  },
+	  '.hide': {
+	    display: 'none'
+	  }
+	});
+
+	var current = 0;
+
+	var gallary = {
+	  controller: function controller(arg) {
+	    var _this = this;
+
+	    this.data = arg.data || testdata;
+	    this.keys = ['a', 'b', 'diff'];
+	    this.cycleVisible = function () {
+	      current++;
+	      current = current % _this.keys.length;
+	    };
+	  },
+	  view: function view(ctrl, arg) {
+	    return mc('.imageBox', { onclick: function onclick(e) {
+	        return ctrl.cycleVisible();
+	      } }, [mc.style(style), ctrl.keys.map(function (v, i) {
+	      return mc('.image', { class: current !== i ? '  :global(hide)   hide  ' : '' }, mc('img', { src: PTEST_PATH + ctrl.data.folder + '/' + ctrl.data[v] }));
+	    })]);
+	  }
+	};
+
+	module.exports = gallary;
+
+	var testdata = { "test": "test1465218335247", "folder": "ptest_data", "a": "test1465218335247/1465218058523.png", "b": "test1465218335247/1465218058523.png_test.png", "diff": "test1465218335247/1465218058523.png_diff.png" };
+
+/***/ },
+/* 13 */
+/***/ function(module, exports, __webpack_require__) {
+
 	var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;'use strict';
 
 	var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol ? "symbol" : typeof obj; };
@@ -2797,7 +2862,7 @@
 	})(undefined, function () {
 	  'use strict';
 
-	  var debounce = __webpack_require__(13);
+	  var debounce = __webpack_require__(14);
 
 	  /**
 	   * @fileOverview Popup toolkit using mithril
@@ -2929,7 +2994,7 @@
 	});
 
 /***/ },
-/* 13 */
+/* 14 */
 /***/ function(module, exports) {
 
 	'use strict';
@@ -3328,14 +3393,14 @@
 	module.exports = debounce;
 
 /***/ },
-/* 14 */
+/* 15 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 
 	var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol ? "symbol" : typeof obj; };
 
-	var each = __webpack_require__(15);
+	var each = __webpack_require__(16);
 	module.exports = api;
 
 	/**
@@ -3550,7 +3615,7 @@
 	};
 
 /***/ },
-/* 15 */
+/* 16 */
 /***/ function(module, exports) {
 
 	'use strict';
@@ -3575,71 +3640,6 @@
 	        }
 	    }
 	};
-
-/***/ },
-/* 16 */
-/***/ function(module, exports, __webpack_require__) {
-
-	'use strict';
-
-	var _mithrilJ2c = __webpack_require__(6);
-
-	var _mithrilJ2c2 = _interopRequireDefault(_mithrilJ2c);
-
-	var _util = __webpack_require__(8);
-
-	var _util2 = _interopRequireDefault(_util);
-
-	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-	/**
-	 * @fileOverview Display test images for ptest.
-	 * @global Mousetrap.js, mithril.js
-	 * @name test-image.js
-	 * @author Micheal Yang
-	 * @license MIT
-	 */
-
-	var mc = _mithrilJ2c2.default.bindM();
-
-	var PTEST_PATH = '/ptestfolder/';
-
-	var style = _mithrilJ2c2.default.sheet({
-	  '.imageBox': {
-	    ' .image': {
-	      position: 'absolute'
-	    }
-	  },
-	  '.hide': {
-	    display: 'none'
-	  }
-	});
-
-	var current = 0;
-
-	var gallary = {
-	  controller: function controller(arg) {
-	    var _this = this;
-
-	    this.data = arg.data || testdata;
-	    this.keys = ['a', 'b', 'diff'];
-	    this.cycleVisible = function () {
-	      current++;
-	      current = current % _this.keys.length;
-	    };
-	  },
-	  view: function view(ctrl, arg) {
-	    return mc('.imageBox', { onclick: function onclick(e) {
-	        return ctrl.cycleVisible();
-	      } }, [mc.styleSheet(style), ctrl.keys.map(function (v, i) {
-	      return mc('.image', { class: current !== i ? '  :global(hide)   hide  ' : '' }, mc('img', { src: PTEST_PATH + ctrl.data.folder + '/' + ctrl.data[v] }));
-	    })]);
-	  }
-	};
-
-	module.exports = gallary;
-
-	var testdata = { "test": "test1465218335247", "folder": "ptest_data", "a": "test1465218335247/1465218058523.png", "b": "test1465218335247/1465218058523.png_test.png", "diff": "test1465218335247/1465218058523.png_diff.png" };
 
 /***/ }
 /******/ ]);

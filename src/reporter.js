@@ -69,7 +69,7 @@ const reporter = {
   },
   view: function (ctrl, arg) {
     return mc('.runner-result', {style: {textAlign: 'left', padding: '2em'}}, [
-      mc.styleSheet(style),
+      mc.style(style),
       mc('h3', {style: {marginBottom: '1em'}}, 'Result for ptest-runner'),
       mc('.reporter',
          ctrl.data.map(v => {

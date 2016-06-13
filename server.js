@@ -13,6 +13,7 @@ var querystring = require('querystring')
 var split2 = require('split2')
 var mkdirp = require('mkdirp')
 var http = require('http')
+var url = require('url')
 var path = require('path')
 var process = require('process')
 var co = require('co')
@@ -125,6 +126,13 @@ var HttpServer = http.createServer(function (req, res) {
   if(req.url.indexOf(PTEST_PATH)===0){
     ROOT = './'
     req.url = req.url.replace(PTEST_PATH, '/')
+  }
+
+  var urlObj = url.parse(req.url,true)
+  if (urlObj.pathname === '/testimage' && req.method == 'GET') {
+    res.writeHead(200, 'OK', {'Content-Type': 'application/json'})
+    res.end(JSON.stringify({a:1234,b:234}))
+    return
   }
 
   var filePath = req.url

@@ -35,7 +35,16 @@ let current = 0
 
 const gallary={
   controller : function(arg){
-    this.data = arg.data || testdata
+    this.data = m.prop(arg.data || testdata)
+    this.images=m.request({method:'GET', url: PTEST_PATH+'/testimage', data:{
+      folder:this.data().folder,
+      test:this.data().test,
+      base:this.data().a
+    }}).then(v=>{
+      console.log(v)
+    }).catch(e=>{
+      console.log('err', e)
+    })
     this.keys = ['a','b','diff']
     this.cycleVisible = (diff)=>{
       current += diff||1
@@ -49,7 +58,7 @@ const gallary={
       mc('menu.top', [mc('a[href=#]',{onclick:e=>arg.onclose && arg.onclose()}, 'close')]),
       mc('.imageBox', {onmousedown:e=>ctrl.cycleVisible(detectRightButton()?-1:1)}, [
         ctrl.keys.map((v,i)=>{
-          return mc('.image', {class:current!==i?'  :global(hide)   hide  ':''}, mc('img', {src: PTEST_PATH + ctrl.data.folder+'/'+ctrl.data[v]}))
+          return mc('.image', {class:current!==i?'  :global(hide)   hide  ':''}, mc('img', {src: PTEST_PATH + ctrl.data().folder+'/'+ctrl.data()[v]}))
         })
       ])
     ])
@@ -58,7 +67,7 @@ const gallary={
 
 module.exports = gallary
 
-var testdata = {"test":"test1465218335247","folder":"ptest_data","a":"test1465218335247/1465218058523.png","b":"test1465218335247/1465218058523.png_test.png","diff":"test1465218335247/1465218058523.png_diff.png"}
+var testdata() = {"test":"test1465218335247","folder":"ptest_data()","a":"test1465218335247/1465218058523.png","b":"test1465218335247/1465218058523.png_test.png","diff":"test1465218335247/1465218058523.png_diff.png"}
 
 
 //

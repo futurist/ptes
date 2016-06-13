@@ -59,7 +59,7 @@
 
 	var _reporter2 = _interopRequireDefault(_reporter);
 
-	var _testImage = __webpack_require__(8);
+	var _testImage = __webpack_require__(!(function webpackMissingModule() { var e = new Error("Cannot find module \"./test-image\""); e.code = 'MODULE_NOT_FOUND'; throw e; }()));
 
 	var _testImage2 = _interopRequireDefault(_testImage);
 
@@ -1546,7 +1546,7 @@
 
 	var _mithrilJ2c2 = _interopRequireDefault(_mithrilJ2c);
 
-	var _testImage = __webpack_require__(8);
+	var _testImage = __webpack_require__(!(function webpackMissingModule() { var e = new Error("Cannot find module \"./test-image\""); e.code = 'MODULE_NOT_FOUND'; throw e; }()));
 
 	var _testImage2 = _interopRequireDefault(_testImage);
 
@@ -2149,90 +2149,7 @@
 	module.exports = j2c;
 
 /***/ },
-/* 8 */
-/***/ function(module, exports, __webpack_require__) {
-
-	'use strict';
-
-	var _mithrilJ2c = __webpack_require__(6);
-
-	var _mithrilJ2c2 = _interopRequireDefault(_mithrilJ2c);
-
-	var _util = __webpack_require__(11);
-
-	var _util2 = _interopRequireDefault(_util);
-
-	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-	/**
-	 * @fileOverview Display test images for ptest.
-	 * @global Mousetrap.js, mithril.js
-	 * @name test-image.js
-	 * @author Micheal Yang
-	 * @license MIT
-	 */
-
-	var mc = _mithrilJ2c2.default.bindM();
-
-	var PTEST_PATH = '/ptestfolder/';
-
-	var style = _mithrilJ2c2.default.sheet({
-	  '.test-image-con': {
-	    text_align: 'left'
-	  },
-	  'menu.top': {
-	    background: '#ccc'
-	  },
-	  '.imageBox': {
-	    ' .image': {
-	      position: 'absolute'
-	    }
-	  },
-	  '.hide': {
-	    display: 'none'
-	  }
-	});
-
-	var current = 0;
-
-	var gallary = {
-	  controller: function controller(arg) {
-	    var _this = this;
-
-	    this.data = arg.data || testdata;
-	    this.keys = ['a', 'b', 'diff'];
-	    this.cycleVisible = function (diff) {
-	      current += diff || 1;
-	      if (current < 0) current = _this.keys.length - 1;
-	      current = current % _this.keys.length;
-	    };
-	  },
-	  view: function view(ctrl, arg) {
-	    return mc('.test-image-con', [mc.style(style), mc('menu.top', [mc('a[href=#]', { onclick: function onclick(e) {
-	        return arg.onclose && arg.onclose();
-	      } }, 'close')]), mc('.imageBox', { onmousedown: function onmousedown(e) {
-	        return ctrl.cycleVisible(detectRightButton() ? -1 : 1);
-	      } }, [ctrl.keys.map(function (v, i) {
-	      return mc('.image', { class: current !== i ? '  :global(hide)   hide  ' : '' }, mc('img', { src: PTEST_PATH + ctrl.data.folder + '/' + ctrl.data[v] }));
-	    })])]);
-	  }
-	};
-
-	module.exports = gallary;
-
-	var testdata = { "test": "test1465218335247", "folder": "ptest_data", "a": "test1465218335247/1465218058523.png", "b": "test1465218335247/1465218058523.png_test.png", "diff": "test1465218335247/1465218058523.png_diff.png" };
-
-	//
-	// helper functions
-
-	function detectRightButton(e) {
-	  var rightclick;
-	  if (!e) var e = window.event;
-	  if (e.which) rightclick = e.which == 3;else if (e.button) rightclick = e.button == 2;
-	  return rightclick;
-	}
-
-/***/ },
+/* 8 */,
 /* 9 */
 /***/ function(module, exports, __webpack_require__) {
 

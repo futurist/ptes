@@ -523,7 +523,7 @@ function broadcast (data) {
 var runner
 function runTestFile(filenames) {
   runner = spawn('node', [path.join(__dirname, 'js', 'ptest-runner.js')].concat(filenames), {cwd: process.cwd()})
-  console.log(process.cwd(), filenames)
+  console.log(process.cwd(), typeof filenames, filenames)
   runner.stdout.pipe(split2()).on('data', function (line) {
     console.log('----'+line+'----')
     var ret = JSON.parse(line)
@@ -532,12 +532,12 @@ function runTestFile(filenames) {
   })
   runner.stderr.pipe(split2()).on('data', function (line) {
     console.log('runner stderr', line)
-    var ret = JSON.parse(line)
-    toClient({type:'test_error', data: ret})
+    toClient({type:'test_error', data: line})
   })
 }
 
 // runTestFile(['test1465218312129', 'test1465218335247'])
+// eval("runTestFile([1459850842156]) ")
 
 // Phantom
 var phantom

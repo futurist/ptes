@@ -29,20 +29,18 @@ var ARRAY = '[object Array]'
  * @param {} val
  * @returns {}
  */
-function deepFindKV (data, key, val, path) {
-  var i = 0, found, path = path || []
-  for (; i < data.length; i++) {
-    if ((new RegExp(val)).test(data[i][key])) {
-      return {path: path, item: data[i]}
-    } else if (data[i].children) {
-      found = deepFindKV(data[i].children, key, val, path.concat(i))
-      if (found) {
-        return found
+  function deepFindKV (data, f, path, found) {
+    var i = 0, path = path || [], found=found||[]
+    for (; i < data.length; i++) {
+      if (f(data[i])) {
+        found.push({path: path, item: data[i]})
+      }
+      if (data[i].children) {
+        deepFindKV(data[i].children, f, path.concat(i), found)
       }
     }
+    return found
   }
-}
-
 
 
 /**

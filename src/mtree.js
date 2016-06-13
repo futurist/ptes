@@ -59,6 +59,10 @@ if (!Array.prototype.last) {
   }
 }
 
+function getLeaf(node, f) {
+  if(node._leaf) return [node]
+  else return treeHelper.deepFindKV(node.children, (v)=>v._leaf==true)
+}
 function cleanData (data, store) {
   store = store || []
   data.forEach((v, i) => {
@@ -203,12 +207,12 @@ var com = {
       if (!v._leaf) {
         node.push(
           {action: 'add', text: 'Add', path: path, folder: folder},
-          {action: 'test', text: 'Test', path: path, folder: folder},
+          {action: 'test', text: 'Test', path: path, file:getLeaf(v).map(x=>x.item.name+''), folder: folder},
         )
       } else {
         node.push(
           {action: 'play', text: 'Play', path: path, file: v.name, folder: folder, url: url},
-          {action: 'test', text: 'Test', path: path, file: v.name, folder: folder, url: url, retain:true},
+          {action: 'test', text: 'Test', path: path, file: [v.name], folder: folder, url: url, retain:true},
         )
       }
       return node.map(oneAction)

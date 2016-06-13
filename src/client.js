@@ -225,7 +225,8 @@ var oncloseSetup = function (arg) {
   }
   if(arg.action=='test'){
     stage = TESTING
-    sc(' runTestFile(' + JSON.stringify([arg.file]) + ') ')
+    console.log(arg, ' runTestFile(' + JSON.stringify(arg.file) + ') ')
+    sc(' runTestFile(' + JSON.stringify(arg.file) + ') ')
   }
 }
 

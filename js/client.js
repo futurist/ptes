@@ -292,7 +292,8 @@
 	  }
 	  if (arg.action == 'test') {
 	    stage = TESTING;
-	    sc(' runTestFile(' + JSON.stringify([arg.file]) + ') ');
+	    console.log(arg, ' runTestFile(' + JSON.stringify(arg.file) + ') ');
+	    sc(' runTestFile(' + JSON.stringify(arg.file) + ') ');
 	  }
 	};
 
@@ -520,6 +521,11 @@
 	  };
 	}
 
+	function getLeaf(node, f) {
+	  if (node._leaf) return [node];else return treeHelper.deepFindKV(node.children, function (v) {
+	    return v._leaf == true;
+	  });
+	}
 	function cleanData(data, store) {
 	  store = store || [];
 	  data.forEach(function (v, i) {
@@ -664,9 +670,11 @@
 	      var folder = getRootVar(v._path, 'folder');
 	      var url = getRootVar(v._path, 'url');
 	      if (!v._leaf) {
-	        node.push({ action: 'add', text: 'Add', path: path, folder: folder }, { action: 'test', text: 'Test', path: path, folder: folder });
+	        node.push({ action: 'add', text: 'Add', path: path, folder: folder }, { action: 'test', text: 'Test', path: path, file: getLeaf(v).map(function (x) {
+	            return x.item.name + '';
+	          }), folder: folder });
 	      } else {
-	        node.push({ action: 'play', text: 'Play', path: path, file: v.name, folder: folder, url: url }, { action: 'test', text: 'Test', path: path, file: v.name, folder: folder, url: url, retain: true });
+	        node.push({ action: 'play', text: 'Play', path: path, file: v.name, folder: folder, url: url }, { action: 'test', text: 'Test', path: path, file: [v.name], folder: folder, url: url, retain: true });
 	      }
 	      return node.map(oneAction);
 	    }
@@ -1415,20 +1423,19 @@
 	   * @param {} val
 	   * @returns {}
 	   */
-	  function deepFindKV(data, key, val, path) {
+	  function deepFindKV(data, f, path, found) {
 	    var i = 0,
-	        found,
-	        path = path || [];
+	        path = path || [],
+	        found = found || [];
 	    for (; i < data.length; i++) {
-	      if (new RegExp(val).test(data[i][key])) {
-	        return { path: path, item: data[i] };
-	      } else if (data[i].children) {
-	        found = deepFindKV(data[i].children, key, val, path.concat(i));
-	        if (found) {
-	          return found;
-	        }
+	      if (f(data[i])) {
+	        found.push({ path: path, item: data[i] });
+	      }
+	      if (data[i].children) {
+	        deepFindKV(data[i].children, f, path.concat(i), found);
 	      }
 	    }
+	    return found;
 	  }
 
 	  /**

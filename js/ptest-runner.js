@@ -340,7 +340,7 @@ else
 
 
 function getTestRoot(data, filename) {
-  var found = treeHelper.deepFindKV(data, 'name', filename)
+  var found = treeHelper.deepFindKV(data, v=>v['name']==filename).pop()
   return found ? data[found.path[0]] : null
 }
 

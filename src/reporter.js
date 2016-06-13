@@ -14,6 +14,12 @@ import util from 'util'
 const mc = mj2c.bindM()
 
 const style = mj2c.sheet({
+  '.runner-result':{
+    text_align:'left'
+  },
+  'menu.top':{
+    background:'#ccc'
+  },
   '.reporter': {
     margin_left: '2em'
   },
@@ -83,9 +89,10 @@ const reporter = {
     this.data = arg.data || testdata
   },
   view: function (ctrl, arg) {
-    return mc('.runner-result', {style: {textAlign: 'left', padding: '2em'}}, [
+    return mc('.runner-result', [
       mc.style(style),
-      mc('h3', {style: {marginBottom: '1em'}}, 'Result for ptest-runner'),
+      mc('menu.top', [ mc('a[href=#]',{onclick:e=>mOverlay.hide(e.target)}, 'close') ]),
+      mc('h3', {style: {margin: '1em 0 0 1em'}}, 'Result for ptest-runner'),
       mc('.reporter',
          ctrl.data.map(v => {
            return mc(

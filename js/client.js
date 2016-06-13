@@ -59,7 +59,7 @@
 
 	var _reporter2 = _interopRequireDefault(_reporter);
 
-	var _testImage = __webpack_require__(12);
+	var _testImage = __webpack_require__(6);
 
 	var _testImage2 = _interopRequireDefault(_testImage);
 
@@ -1506,11 +1506,11 @@
 
 	'use strict';
 
-	var _mithrilJ2c = __webpack_require__(6);
+	var _mithrilJ2c = __webpack_require__(7);
 
 	var _mithrilJ2c2 = _interopRequireDefault(_mithrilJ2c);
 
-	var _testImage = __webpack_require__(12);
+	var _testImage = __webpack_require__(6);
 
 	var _testImage2 = _interopRequireDefault(_testImage);
 
@@ -1518,7 +1518,7 @@
 
 	var _overlay2 = _interopRequireDefault(_overlay);
 
-	var _util = __webpack_require__(8);
+	var _util = __webpack_require__(9);
 
 	var _util2 = _interopRequireDefault(_util);
 
@@ -1535,6 +1535,12 @@
 	var mc = _mithrilJ2c2.default.bindM();
 
 	var style = _mithrilJ2c2.default.sheet({
+	  '.runner-result': {
+	    text_align: 'left'
+	  },
+	  'menu.top': {
+	    background: '#ccc'
+	  },
 	  '.reporter': {
 	    margin_left: '2em'
 	  },
@@ -1596,7 +1602,9 @@
 	    this.data = arg.data || testdata;
 	  },
 	  view: function view(ctrl, arg) {
-	    return mc('.runner-result', { style: { textAlign: 'left', padding: '2em' } }, [mc.style(style), mc('h3', { style: { marginBottom: '1em' } }, 'Result for ptest-runner'), mc('.reporter', ctrl.data.map(function (v) {
+	    return mc('.runner-result', [mc.style(style), mc('menu.top', [mc('a[href=#]', { onclick: function onclick(e) {
+	        return _overlay2.default.hide(e.target);
+	      } }, 'close')]), mc('h3', { style: { margin: '1em 0 0 1em' } }, 'Result for ptest-runner'), mc('.reporter', ctrl.data.map(function (v) {
 	      return mc('.item', {
 	        class: style[v.status],
 	        style: {
@@ -1627,7 +1635,93 @@
 
 	'use strict';
 
-	var j2c = __webpack_require__(7);
+	var _mithrilJ2c = __webpack_require__(7);
+
+	var _mithrilJ2c2 = _interopRequireDefault(_mithrilJ2c);
+
+	var _overlay = __webpack_require__(13);
+
+	var _overlay2 = _interopRequireDefault(_overlay);
+
+	var _util = __webpack_require__(9);
+
+	var _util2 = _interopRequireDefault(_util);
+
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+	var mc = _mithrilJ2c2.default.bindM(); /**
+	                                        * @fileOverview Display test images for ptest.
+	                                        * @global Mousetrap.js, mithril.js
+	                                        * @name test-image.js
+	                                        * @author Micheal Yang
+	                                        * @license MIT
+	                                        */
+
+	var PTEST_PATH = '/ptestfolder/';
+
+	var style = _mithrilJ2c2.default.sheet({
+	  '.test-image-con': {
+	    text_align: 'left'
+	  },
+	  'menu.top': {
+	    background: '#ccc'
+	  },
+	  '.imageBox': {
+	    ' .image': {
+	      position: 'absolute'
+	    }
+	  },
+	  '.hide': {
+	    display: 'none'
+	  }
+	});
+
+	var current = 0;
+
+	var gallary = {
+	  controller: function controller(arg) {
+	    var _this = this;
+
+	    this.data = arg.data || testdata;
+	    this.keys = ['a', 'b', 'diff'];
+	    this.cycleVisible = function (diff) {
+	      current += diff || 1;
+	      if (current < 0) current = _this.keys.length - 1;
+	      current = current % _this.keys.length;
+	    };
+	  },
+	  view: function view(ctrl, arg) {
+	    return mc('.test-image-con', [mc.style(style), mc('menu.top', [mc('a[href=#]', { onclick: function onclick(e) {
+	        return _overlay2.default.hide(e.target);
+	      } }, 'close')]), mc('.imageBox', { onmousedown: function onmousedown(e) {
+	        return ctrl.cycleVisible(detectRightButton() ? -1 : 1);
+	      } }, [ctrl.keys.map(function (v, i) {
+	      return mc('.image', { class: current !== i ? '  :global(hide)   hide  ' : '' }, mc('img', { src: PTEST_PATH + ctrl.data.folder + '/' + ctrl.data[v] }));
+	    })])]);
+	  }
+	};
+
+	module.exports = gallary;
+
+	var testdata = { "test": "test1465218335247", "folder": "ptest_data", "a": "test1465218335247/1465218058523.png", "b": "test1465218335247/1465218058523.png_test.png", "diff": "test1465218335247/1465218058523.png_diff.png" };
+
+	//
+	// helper functions
+
+	function detectRightButton(e) {
+	  var rightclick;
+	  if (!e) var e = window.event;
+	  if (e.which) rightclick = e.which == 3;else if (e.button) rightclick = e.button == 2;
+	  return rightclick;
+	}
+
+/***/ },
+/* 7 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+
+	var j2c = __webpack_require__(8);
 
 	var hasOwn = {}.hasOwnProperty;
 	var type = {}.toString;
@@ -1743,7 +1837,7 @@
 	}
 
 /***/ },
-/* 7 */
+/* 8 */
 /***/ function(module, exports) {
 
 	'use strict';
@@ -2102,7 +2196,7 @@
 	module.exports = j2c;
 
 /***/ },
-/* 8 */
+/* 9 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(global, process) {'use strict';
@@ -2599,7 +2693,7 @@
 	}
 	exports.isPrimitive = isPrimitive;
 
-	exports.isBuffer = __webpack_require__(10);
+	exports.isBuffer = __webpack_require__(11);
 
 	function objectToString(o) {
 	  return Object.prototype.toString.call(o);
@@ -2636,7 +2730,7 @@
 	 *     prototype.
 	 * @param {function} superCtor Constructor function to inherit prototype from.
 	 */
-	exports.inherits = __webpack_require__(11);
+	exports.inherits = __webpack_require__(12);
 
 	exports._extend = function (origin, add) {
 	  // Don't do anything if add isn't an object
@@ -2653,10 +2747,10 @@
 	function hasOwnProperty(obj, prop) {
 	  return Object.prototype.hasOwnProperty.call(obj, prop);
 	}
-	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }()), __webpack_require__(9)))
+	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }()), __webpack_require__(10)))
 
 /***/ },
-/* 9 */
+/* 10 */
 /***/ function(module, exports) {
 
 	'use strict';
@@ -2761,7 +2855,7 @@
 	};
 
 /***/ },
-/* 10 */
+/* 11 */
 /***/ function(module, exports) {
 
 	'use strict';
@@ -2773,7 +2867,7 @@
 	};
 
 /***/ },
-/* 11 */
+/* 12 */
 /***/ function(module, exports) {
 
 	'use strict';
@@ -2800,82 +2894,6 @@
 	    ctor.prototype = new TempCtor();
 	    ctor.prototype.constructor = ctor;
 	  };
-	}
-
-/***/ },
-/* 12 */
-/***/ function(module, exports, __webpack_require__) {
-
-	'use strict';
-
-	var _mithrilJ2c = __webpack_require__(6);
-
-	var _mithrilJ2c2 = _interopRequireDefault(_mithrilJ2c);
-
-	var _util = __webpack_require__(8);
-
-	var _util2 = _interopRequireDefault(_util);
-
-	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-	/**
-	 * @fileOverview Display test images for ptest.
-	 * @global Mousetrap.js, mithril.js
-	 * @name test-image.js
-	 * @author Micheal Yang
-	 * @license MIT
-	 */
-
-	var mc = _mithrilJ2c2.default.bindM();
-
-	var PTEST_PATH = '/ptestfolder/';
-
-	var style = _mithrilJ2c2.default.sheet({
-	  '.imageBox': {
-	    ' .image': {
-	      position: 'absolute'
-	    }
-	  },
-	  '.hide': {
-	    display: 'none'
-	  }
-	});
-
-	var current = 0;
-
-	var gallary = {
-	  controller: function controller(arg) {
-	    var _this = this;
-
-	    this.data = arg.data || testdata;
-	    this.keys = ['a', 'b', 'diff'];
-	    this.cycleVisible = function (diff) {
-	      current += diff || 1;
-	      if (current < 0) current = _this.keys.length - 1;
-	      current = current % _this.keys.length;
-	    };
-	  },
-	  view: function view(ctrl, arg) {
-	    return mc('.imageBox', { onmousedown: function onmousedown(e) {
-	        return ctrl.cycleVisible(detectRightButton() ? -1 : 1);
-	      } }, [mc.style(style), ctrl.keys.map(function (v, i) {
-	      return mc('.image', { class: current !== i ? '  :global(hide)   hide  ' : '' }, mc('img', { src: PTEST_PATH + ctrl.data.folder + '/' + ctrl.data[v] }));
-	    })]);
-	  }
-	};
-
-	module.exports = gallary;
-
-	var testdata = { "test": "test1465218335247", "folder": "ptest_data", "a": "test1465218335247/1465218058523.png", "b": "test1465218335247/1465218058523.png_test.png", "diff": "test1465218335247/1465218058523.png_diff.png" };
-
-	//
-	// helper functions
-
-	function detectRightButton(e) {
-	  var rightclick;
-	  if (!e) var e = window.event;
-	  if (e.which) rightclick = e.which == 3;else if (e.button) rightclick = e.button == 2;
-	  return rightclick;
 	}
 
 /***/ },

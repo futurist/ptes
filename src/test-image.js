@@ -8,7 +8,6 @@
 
 
 import mj2c from './mithril-j2c.js'
-import mOverlay from './overlay'
 import util from 'util'
 
 const mc = mj2c.bindM()
@@ -47,7 +46,7 @@ const gallary={
   view : function(ctrl, arg){
     return mc('.test-image-con', [
       mc.style(style),
-      mc('menu.top', [mc('a[href=#]',{onclick:e=>mOverlay.hide(e.target)}, 'close')]),
+      mc('menu.top', [mc('a[href=#]',{onclick:e=>arg.onclose && arg.onclose()}, 'close')]),
       mc('.imageBox', {onmousedown:e=>ctrl.cycleVisible(detectRightButton()?-1:1)}, [
         ctrl.keys.map((v,i)=>{
           return mc('.image', {class:current!==i?'  :global(hide)   hide  ':''}, mc('img', {src: PTEST_PATH + ctrl.data.folder+'/'+ctrl.data[v]}))

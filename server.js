@@ -522,6 +522,7 @@ function broadcast (data) {
 
 var runner
 function runTestFile(filenames) {
+  filenames = filenames||[]
   runner = spawn('node', [path.join(__dirname, 'js', 'ptest-runner.js')].concat(filenames), {cwd: process.cwd()})
   console.log(process.cwd(), typeof filenames, filenames)
   runner.stdout.pipe(split2()).on('data', function (line) {

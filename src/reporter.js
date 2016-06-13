@@ -8,7 +8,6 @@
 
 import mj2c from './mithril-j2c.js'
 import testImage from './test-image'
-import mOverlay from './overlay'
 import util from 'util'
 
 const mc = mj2c.bindM()
@@ -21,7 +20,7 @@ const style = mj2c.sheet({
     background:'#ccc'
   },
   '.reporter': {
-    margin_left: '2em'
+    margin_left: '2em',
   },
   '.item': {
     line_height: '1.5em',
@@ -36,10 +35,14 @@ const style = mj2c.sheet({
   '.footer': {
     color: 'grey',
     margin_top: '1em',
+    margin_bottom: '3em',
     margin_left: '1.5em',
     ' .finished':{
       color:'blue'
     }
+  },
+  '.button':{
+    margin_left: '1em'
   },
   '.testItem':{
     '&:before':{
@@ -62,12 +65,15 @@ const footer = {
     }
   },
   view: function (ctrl, arg) {
-    return mc('.footerContent',{class:ctrl.getClass()}, util.format(
-      'total:%s, success:%s, fail:%s',
-      ctrl.total,
-      ctrl.success,
-      ctrl.fail
-    ))
+    return mc('.footerContent',{class:ctrl.getClass()},
+              [util.format(
+                'total:%s, success:%s, fail:%s',
+                ctrl.total,
+                ctrl.success,
+                ctrl.fail,
+              ),
+               arg.result ? mc('a.button[href=#]',{onclick:e=>arg.onclose&&arg.onclose()}, 'close')  : [],
+              ])
   }
 }
 
@@ -78,7 +84,7 @@ const testItem = {
       mc('span', arg.test.submsg||''),
       mc('span', arg.test.status||'?'),
       arg.test.error? mc('a[href=#]', {onclick:function() {
-        mOverlay.show('#testimage', {com: m.component(testImage, {data: arg.test.error})})
+        arg.onmsg && arg.onmsg(arg.test)
       }} ,'detail') : []
     ])
   }
@@ -92,7 +98,7 @@ const reporter = {
   view: function (ctrl, arg) {
     return mc('.runner-result', [
       mc.style(style),
-      ctrl.result ? mc('menu.top', [ mc('a[href=#]',{onclick:e=>mOverlay.hide(e.target)}, 'close') ]) : [],
+      ctrl.result ? mc('menu.top', [ mc('a[href=#]',{onclick:e=>arg.onclose&&arg.onclose()}, 'close') ]) : [],
       mc('h3', {style: {margin: '1em 0 0 1em'}}, 'Result for ptest-runner'),
       mc('.reporter',
          ctrl.data.map( (v,i) => {
@@ -105,17 +111,17 @@ const reporter = {
                }
              },
              v.test
-               ? m(testItem, {test:v})
+               ? m(testItem, Object.assign({},arg, {test:v}))
              : mc('strong', v.msg + (v.result? ' '+v.result:''))
            )
          })
         ),
-      mc('.footer', m(footer, {
+      mc('.footer', m(footer, Object.assign({},arg,{
         result: ctrl.data[0].result,
         total: ctrl.data.filter(v => v.test),
         success: ctrl.data.filter(v => v.status == 'success'),
         fail: ctrl.data.filter(v => v.status == 'fail'),
-      }))
+      })))
     ])
   }
 }
@@ -123,3 +129,7 @@ const reporter = {
 var testdata = [{'msg': 'ptest for custom test files','submsg': '','level': 0}, {'msg': '[test1465218312129]','submsg': '(1 / 1)','test': 'test1465218312129','level': 1,'status': 'success'}, {'msg': '[test1465218335247]','submsg': '(1 / 1)','test': 'test1465218335247','level': 1,"error":{"test":"test1465218335247","folder":"ptest_data","a":"test1465218335247/1465218058523.png","b":"test1465218335247/1465218058523.png_test.png","diff":"test1465218335247/1465218058523.png_diff.png"},'status': 'fail'}, {'msg': '[test1465218335247]','submsg': '(1 / 1)','test': 'test1465218335247','level': 1}]
 
 module.exports = reporter
+
+
+//
+// helper functions

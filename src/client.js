@@ -11,7 +11,8 @@ import mOverlay from './overlay'
 import pointer from 'json-pointer'
 window.pointer = pointer
 
-const RECORDING = 'STAGE_RECORDING', PLAYING = 'STAGE_PLAYING', CLIPPING = 'STAGE_CLIPPING', SETUP = 'STAGE_SETUP', TESTING = 'STAGE_TESTING'
+const RECORDING = 'STAGE_RECORDING', PLAYING = 'STAGE_PLAYING', CLIPPING = 'STAGE_CLIPPING',
+      SETUP = 128, REPORTER = 256, IMAGEVIEW = 512
 const INVALID_NAME = '<>:"\\|?*' // '<>:"/\\|?*'
 const INVALID_NAME_REGEXP = new RegExp('[' + INVALID_NAME.replace('\\', '\\\\') + ']', 'g')
 const MODIFIER = {
@@ -32,6 +33,7 @@ let PageClip = {}
 let clipDrag = m_drag({})
 let stage = null
 let playbackStatus = STOPPED
+window.stage = ()=>stage
 
 let startClip = clipDrag('clip', function (e, data, root) {
   if (stage != CLIPPING) return
@@ -105,9 +107,23 @@ ws.onopen = function (e) {
 
       break
     case 'test_output':
-    // case 'test_error':
+      // case 'test_error':
       console.log(msg.data)
-      mOverlay.show('#result', {com: m.component(reporter, {data:msg.data})})
+      stage = REPORTER
+      mOverlay.show('#reporter', {com: m.component(reporter, {
+        data:msg.data,
+        onmsg:function(msg) {
+          stage = IMAGEVIEW
+          mOverlay.show('#testimage', {com: m.component(testImage, {data: msg.error, onclose:function() {
+            stage = REPORTER
+            mOverlay.hide('#testimage')
+          }})})
+        },
+        onclose:function() {
+          stage = SETUP
+          mOverlay.hide('#reporter')
+        }
+      })})
 
       break
     case 'command_result':
@@ -223,9 +239,12 @@ var oncloseSetup = function (arg) {
       // window.reload()
     })
   }
+  if(arg.action=='testAll'){
+    stage = REPORTER
+    sc(' runTestFile() ')
+  }
   if(arg.action=='test'){
-    stage = TESTING
-    console.log(arg, ' runTestFile(' + JSON.stringify(arg.file) + ') ')
+    stage = REPORTER
     sc(' runTestFile(' + JSON.stringify(arg.file) + ') ')
   }
 }
@@ -241,7 +260,7 @@ function showSetup (arg) {
   mOverlay.show('#overlay', {com: m.component(mTree, {url: '/config', onclose: oncloseSetup })})
 }
 
-// mOverlay.show('#result', {com: m.component(reporter, {})})
+// mOverlay.show('#reporter', {com: m.component(reporter, {})})
 // mOverlay.show('#testimage', {com: m.component(testImage, {})})
 
 //
@@ -253,6 +272,7 @@ function registerEvent () {
   })
   Mousetrap.bind('f4', function (e) {
     e.preventDefault()
+    if(stage>SETUP) return
     if (stage === SETUP) {
       hideSetup()
     } else {
@@ -271,6 +291,7 @@ function registerEvent () {
   })
   Mousetrap.bind('ctrl+a', function (e) {
     e.preventDefault()
+    if (stage !== null) return
     stage = CLIPPING
   })
   Mousetrap.bind('ctrl+s', function (e) {

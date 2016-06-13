@@ -78,8 +78,9 @@
 	var RECORDING = 'STAGE_RECORDING',
 	    PLAYING = 'STAGE_PLAYING',
 	    CLIPPING = 'STAGE_CLIPPING',
-	    SETUP = 'STAGE_SETUP',
-	    TESTING = 'STAGE_TESTING';
+	    SETUP = 128,
+	    REPORTER = 256,
+	    IMAGEVIEW = 512;
 	var INVALID_NAME = '<>:"\\|?*'; // '<>:"/\\|?*'
 	var INVALID_NAME_REGEXP = new RegExp('[' + INVALID_NAME.replace('\\', '\\\\') + ']', 'g');
 	var MODIFIER = {
@@ -104,6 +105,9 @@
 	var clipDrag = m_drag({});
 	var stage = null;
 	var playbackStatus = STOPPED;
+	window.stage = function () {
+	  return stage;
+	};
 
 	var startClip = clipDrag('clip', function (e, data, root) {
 	  if (stage != CLIPPING) return;
@@ -179,7 +183,21 @@
 	      case 'test_output':
 	        // case 'test_error':
 	        console.log(msg.data);
-	        _overlay2.default.show('#result', { com: m.component(_reporter2.default, { data: msg.data }) });
+	        stage = REPORTER;
+	        _overlay2.default.show('#reporter', { com: m.component(_reporter2.default, {
+	            data: msg.data,
+	            onmsg: function onmsg(msg) {
+	              stage = IMAGEVIEW;
+	              _overlay2.default.show('#testimage', { com: m.component(_testImage2.default, { data: msg.error, onclose: function onclose() {
+	                    stage = REPORTER;
+	                    _overlay2.default.hide('#testimage');
+	                  } }) });
+	            },
+	            onclose: function onclose() {
+	              stage = SETUP;
+	              _overlay2.default.hide('#reporter');
+	            }
+	          }) });
 
 	        break;
 	      case 'command_result':
@@ -290,9 +308,12 @@
 	      // window.reload()
 	    });
 	  }
+	  if (arg.action == 'testAll') {
+	    stage = REPORTER;
+	    sc(' runTestFile() ');
+	  }
 	  if (arg.action == 'test') {
-	    stage = TESTING;
-	    console.log(arg, ' runTestFile(' + JSON.stringify(arg.file) + ') ');
+	    stage = REPORTER;
 	    sc(' runTestFile(' + JSON.stringify(arg.file) + ') ');
 	  }
 	};
@@ -308,7 +329,7 @@
 	  _overlay2.default.show('#overlay', { com: m.component(_mtree2.default, { url: '/config', onclose: oncloseSetup }) });
 	}
 
-	// mOverlay.show('#result', {com: m.component(reporter, {})})
+	// mOverlay.show('#reporter', {com: m.component(reporter, {})})
 	// mOverlay.show('#testimage', {com: m.component(testImage, {})})
 
 	//
@@ -320,6 +341,7 @@
 	  });
 	  Mousetrap.bind('f4', function (e) {
 	    e.preventDefault();
+	    if (stage > SETUP) return;
 	    if (stage === SETUP) {
 	      hideSetup();
 	    } else {
@@ -338,6 +360,7 @@
 	  });
 	  Mousetrap.bind('ctrl+a', function (e) {
 	    e.preventDefault();
+	    if (stage !== null) return;
 	    stage = CLIPPING;
 	  });
 	  Mousetrap.bind('ctrl+s', function (e) {
@@ -962,16 +985,22 @@
 	      });
 	    }
 
-	    function getMenu() {
-	      return m('a.button[href=#]', {
-	        onclick: function onclick(e) {
-	          e.preventDefault();
-	          saveConfig();
-	        }
-	      }, 'Save');
+	    function getMenu(items) {
+	      return items.map(function (v) {
+	        return m('a.button[href=#]', {
+	          onclick: function onclick(e) {
+	            e.preventDefault();
+	            v.action();
+	          }
+	        }, v.text);
+	      });
 	    }
 	    ctrl.getDom = function (_) {
-	      return [m('.menu', getMenu()), interTree(data)];
+	      return [m('.menu', [getMenu([{ text: 'Save', action: function action() {
+	          saveConfig();
+	        } }]),
+	      // {text:'TestAll', action:()=>{saveConfig()} },
+	      oneAction({ action: 'testAll', text: 'TestAll', retain: true })]), interTree(data)];
 	    };
 	    ctrl.onunload = function (e) {
 	      for (var k in keyMap) {
@@ -1521,25 +1550,19 @@
 
 	var _testImage2 = _interopRequireDefault(_testImage);
 
-	var _overlay = __webpack_require__(9);
-
-	var _overlay2 = _interopRequireDefault(_overlay);
-
 	var _util = __webpack_require__(11);
 
 	var _util2 = _interopRequireDefault(_util);
 
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-	/**
-	 * @fileOverview Render html view from ptest-runner reporter
-	 * @requires ptest-runner output JSON format file/response
-	 * @name ptest-resu@lt.js
-	 * @author Micheal Yang
-	 * @license MIT
-	 */
-
-	var mc = _mithrilJ2c2.default.bindM();
+	var mc = _mithrilJ2c2.default.bindM(); /**
+	                                        * @fileOverview Render html view from ptest-runner reporter
+	                                        * @requires ptest-runner output JSON format file/response
+	                                        * @name ptest-resu@lt.js
+	                                        * @author Micheal Yang
+	                                        * @license MIT
+	                                        */
 
 	var style = _mithrilJ2c2.default.sheet({
 	  '.runner-result': {
@@ -1564,10 +1587,14 @@
 	  '.footer': {
 	    color: 'grey',
 	    margin_top: '1em',
+	    margin_bottom: '3em',
 	    margin_left: '1.5em',
 	    ' .finished': {
 	      color: 'blue'
 	    }
+	  },
+	  '.button': {
+	    margin_left: '1em'
 	  },
 	  '.testItem': {
 	    '&:before': {
@@ -1590,14 +1617,16 @@
 	    };
 	  },
 	  view: function view(ctrl, arg) {
-	    return mc('.footerContent', { class: ctrl.getClass() }, _util2.default.format('total:%s, success:%s, fail:%s', ctrl.total, ctrl.success, ctrl.fail));
+	    return mc('.footerContent', { class: ctrl.getClass() }, [_util2.default.format('total:%s, success:%s, fail:%s', ctrl.total, ctrl.success, ctrl.fail), arg.result ? mc('a.button[href=#]', { onclick: function onclick(e) {
+	        return arg.onclose && arg.onclose();
+	      } }, 'close') : []]);
 	  }
 	};
 
 	var testItem = {
 	  view: function view(ctrl, arg) {
 	    return mc('.testItem', [mc('span', arg.test.msg), mc('span', arg.test.submsg || ''), mc('span', arg.test.status || '?'), arg.test.error ? mc('a[href=#]', { onclick: function onclick() {
-	        _overlay2.default.show('#testimage', { com: m.component(_testImage2.default, { data: arg.test.error }) });
+	        arg.onmsg && arg.onmsg(arg.test);
 	      } }, 'detail') : []]);
 	  }
 	};
@@ -1609,15 +1638,15 @@
 	  },
 	  view: function view(ctrl, arg) {
 	    return mc('.runner-result', [mc.style(style), ctrl.result ? mc('menu.top', [mc('a[href=#]', { onclick: function onclick(e) {
-	        return _overlay2.default.hide(e.target);
+	        return arg.onclose && arg.onclose();
 	      } }, 'close')]) : [], mc('h3', { style: { margin: '1em 0 0 1em' } }, 'Result for ptest-runner'), mc('.reporter', ctrl.data.map(function (v, i) {
 	      return mc('.item', {
 	        class: style[v.status],
 	        style: {
 	          marginLeft: v.level * 1 + 'em'
 	        }
-	      }, v.test ? m(testItem, { test: v }) : mc('strong', v.msg + (v.result ? ' ' + v.result : '')));
-	    })), mc('.footer', m(footer, {
+	      }, v.test ? m(testItem, Object.assign({}, arg, { test: v })) : mc('strong', v.msg + (v.result ? ' ' + v.result : '')));
+	    })), mc('.footer', m(footer, Object.assign({}, arg, {
 	      result: ctrl.data[0].result,
 	      total: ctrl.data.filter(function (v) {
 	        return v.test;
@@ -1628,13 +1657,16 @@
 	      fail: ctrl.data.filter(function (v) {
 	        return v.status == 'fail';
 	      })
-	    }))]);
+	    })))]);
 	  }
 	};
 
 	var testdata = [{ 'msg': 'ptest for custom test files', 'submsg': '', 'level': 0 }, { 'msg': '[test1465218312129]', 'submsg': '(1 / 1)', 'test': 'test1465218312129', 'level': 1, 'status': 'success' }, { 'msg': '[test1465218335247]', 'submsg': '(1 / 1)', 'test': 'test1465218335247', 'level': 1, "error": { "test": "test1465218335247", "folder": "ptest_data", "a": "test1465218335247/1465218058523.png", "b": "test1465218335247/1465218058523.png_test.png", "diff": "test1465218335247/1465218058523.png_diff.png" }, 'status': 'fail' }, { 'msg': '[test1465218335247]', 'submsg': '(1 / 1)', 'test': 'test1465218335247', 'level': 1 }];
 
 	module.exports = reporter;
+
+	//
+	// helper functions
 
 /***/ },
 /* 6 */
@@ -2126,23 +2158,21 @@
 
 	var _mithrilJ2c2 = _interopRequireDefault(_mithrilJ2c);
 
-	var _overlay = __webpack_require__(9);
-
-	var _overlay2 = _interopRequireDefault(_overlay);
-
 	var _util = __webpack_require__(11);
 
 	var _util2 = _interopRequireDefault(_util);
 
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-	var mc = _mithrilJ2c2.default.bindM(); /**
-	                                        * @fileOverview Display test images for ptest.
-	                                        * @global Mousetrap.js, mithril.js
-	                                        * @name test-image.js
-	                                        * @author Micheal Yang
-	                                        * @license MIT
-	                                        */
+	/**
+	 * @fileOverview Display test images for ptest.
+	 * @global Mousetrap.js, mithril.js
+	 * @name test-image.js
+	 * @author Micheal Yang
+	 * @license MIT
+	 */
+
+	var mc = _mithrilJ2c2.default.bindM();
 
 	var PTEST_PATH = '/ptestfolder/';
 
@@ -2179,7 +2209,7 @@
 	  },
 	  view: function view(ctrl, arg) {
 	    return mc('.test-image-con', [mc.style(style), mc('menu.top', [mc('a[href=#]', { onclick: function onclick(e) {
-	        return _overlay2.default.hide(e.target);
+	        return arg.onclose && arg.onclose();
 	      } }, 'close')]), mc('.imageBox', { onmousedown: function onmousedown(e) {
 	        return ctrl.cycleVisible(detectRightButton() ? -1 : 1);
 	      } }, [ctrl.keys.map(function (v, i) {

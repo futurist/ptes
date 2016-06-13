@@ -529,20 +529,26 @@ var com = {
              )
     }
 
-    function getMenu () {
-      return m('a.button[href=#]',
+    function getMenu (items) {
+      return items.map(v=>m('a.button[href=#]',
                {
                  onclick: e => {
                    e.preventDefault()
-                   saveConfig()
+                   v.action()
                  }
                },
-               'Save'
-              )
+               v.text
+              ))
     }
     ctrl.getDom = _ => {
       return [
-        m('.menu', getMenu()),
+        m('.menu', [
+          getMenu([
+            {text:'Save', action:()=>{saveConfig()} },
+            // {text:'TestAll', action:()=>{saveConfig()} },
+          ]),
+          oneAction({action:'testAll', text:'TestAll',  retain:true}),
+        ]),
         interTree(data)
       ]
     }

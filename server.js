@@ -528,7 +528,7 @@ function runTestFile(filenames) {
     console.log('----'+line+'----')
     var ret = JSON.parse(line)
     // var filenames = ret.filter(v=>v.test).map(v=>v.test)
-    toClient({type:'test_output', data: ret.filter(v=>v.test)})
+    toClient({type:'test_output', data: ret})
   })
   runner.stderr.pipe(split2()).on('data', function (line) {
     console.log('runner stderr', line)

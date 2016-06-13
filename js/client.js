@@ -59,11 +59,11 @@
 
 	var _reporter2 = _interopRequireDefault(_reporter);
 
-	var _testImage = __webpack_require__(6);
+	var _testImage = __webpack_require__(8);
 
 	var _testImage2 = _interopRequireDefault(_testImage);
 
-	var _overlay = __webpack_require__(13);
+	var _overlay = __webpack_require__(9);
 
 	var _overlay2 = _interopRequireDefault(_overlay);
 
@@ -672,7 +672,7 @@
 	      if (!v._leaf) {
 	        node.push({ action: 'add', text: 'Add', path: path, folder: folder }, { action: 'test', text: 'Test', path: path, file: getLeaf(v).map(function (x) {
 	            return x.item.name + '';
-	          }), folder: folder });
+	          }), folder: folder, retain: true });
 	      } else {
 	        node.push({ action: 'play', text: 'Play', path: path, file: v.name, folder: folder, url: url }, { action: 'test', text: 'Test', path: path, file: [v.name], folder: folder, url: url, retain: true });
 	      }
@@ -1429,7 +1429,7 @@
 	        found = found || [];
 	    for (; i < data.length; i++) {
 	      if (f(data[i])) {
-	        found.push({ path: path, item: data[i] });
+	        found.push({ path: path.concat(i), item: data[i] });
 	      }
 	      if (data[i].children) {
 	        deepFindKV(data[i].children, f, path.concat(i), found);
@@ -1513,19 +1513,19 @@
 
 	'use strict';
 
-	var _mithrilJ2c = __webpack_require__(7);
+	var _mithrilJ2c = __webpack_require__(6);
 
 	var _mithrilJ2c2 = _interopRequireDefault(_mithrilJ2c);
 
-	var _testImage = __webpack_require__(6);
+	var _testImage = __webpack_require__(8);
 
 	var _testImage2 = _interopRequireDefault(_testImage);
 
-	var _overlay = __webpack_require__(13);
+	var _overlay = __webpack_require__(9);
 
 	var _overlay2 = _interopRequireDefault(_overlay);
 
-	var _util = __webpack_require__(9);
+	var _util = __webpack_require__(11);
 
 	var _util2 = _interopRequireDefault(_util);
 
@@ -1582,13 +1582,11 @@
 
 	var footer = {
 	  controller: function controller(arg) {
-	    var _this = this;
-
 	    this.total = arg.total.length;
 	    this.success = arg.success.length;
 	    this.fail = arg.fail.length;
 	    this.getClass = function () {
-	      return _this.total == _this.success + _this.fail ? 'finished' : 'unfinished';
+	      return arg.result;
 	    };
 	  },
 	  view: function view(ctrl, arg) {
@@ -1598,7 +1596,7 @@
 
 	var testItem = {
 	  view: function view(ctrl, arg) {
-	    return mc('.testItem', [mc('span', arg.test.msg), mc('span', arg.test.submsg || ''), mc('span', arg.test.status || 'running'), arg.test.error ? mc('a[href=#]', { onclick: function onclick() {
+	    return mc('.testItem', [mc('span', arg.test.msg), mc('span', arg.test.submsg || ''), mc('span', arg.test.status || '?'), arg.test.error ? mc('a[href=#]', { onclick: function onclick() {
 	        _overlay2.default.show('#testimage', { com: m.component(_testImage2.default, { data: arg.test.error }) });
 	      } }, 'detail') : []]);
 	  }
@@ -1607,18 +1605,20 @@
 	var reporter = {
 	  controller: function controller(arg) {
 	    this.data = arg.data || testdata;
+	    this.result = this.data.length && this.data[0].result;
 	  },
 	  view: function view(ctrl, arg) {
-	    return mc('.runner-result', [mc.style(style), mc('menu.top', [mc('a[href=#]', { onclick: function onclick(e) {
+	    return mc('.runner-result', [mc.style(style), ctrl.result ? mc('menu.top', [mc('a[href=#]', { onclick: function onclick(e) {
 	        return _overlay2.default.hide(e.target);
-	      } }, 'close')]), mc('h3', { style: { margin: '1em 0 0 1em' } }, 'Result for ptest-runner'), mc('.reporter', ctrl.data.map(function (v) {
+	      } }, 'close')]) : [], mc('h3', { style: { margin: '1em 0 0 1em' } }, 'Result for ptest-runner'), mc('.reporter', ctrl.data.map(function (v, i) {
 	      return mc('.item', {
 	        class: style[v.status],
 	        style: {
 	          marginLeft: v.level * 1 + 'em'
 	        }
-	      }, v.test ? m(testItem, { test: v }) : mc('strong', v.msg));
+	      }, v.test ? m(testItem, { test: v }) : mc('strong', v.msg + (v.result ? ' ' + v.result : '')));
 	    })), mc('.footer', m(footer, {
+	      result: ctrl.data[0].result,
 	      total: ctrl.data.filter(function (v) {
 	        return v.test;
 	      }),
@@ -1642,93 +1642,7 @@
 
 	'use strict';
 
-	var _mithrilJ2c = __webpack_require__(7);
-
-	var _mithrilJ2c2 = _interopRequireDefault(_mithrilJ2c);
-
-	var _overlay = __webpack_require__(13);
-
-	var _overlay2 = _interopRequireDefault(_overlay);
-
-	var _util = __webpack_require__(9);
-
-	var _util2 = _interopRequireDefault(_util);
-
-	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-	var mc = _mithrilJ2c2.default.bindM(); /**
-	                                        * @fileOverview Display test images for ptest.
-	                                        * @global Mousetrap.js, mithril.js
-	                                        * @name test-image.js
-	                                        * @author Micheal Yang
-	                                        * @license MIT
-	                                        */
-
-	var PTEST_PATH = '/ptestfolder/';
-
-	var style = _mithrilJ2c2.default.sheet({
-	  '.test-image-con': {
-	    text_align: 'left'
-	  },
-	  'menu.top': {
-	    background: '#ccc'
-	  },
-	  '.imageBox': {
-	    ' .image': {
-	      position: 'absolute'
-	    }
-	  },
-	  '.hide': {
-	    display: 'none'
-	  }
-	});
-
-	var current = 0;
-
-	var gallary = {
-	  controller: function controller(arg) {
-	    var _this = this;
-
-	    this.data = arg.data || testdata;
-	    this.keys = ['a', 'b', 'diff'];
-	    this.cycleVisible = function (diff) {
-	      current += diff || 1;
-	      if (current < 0) current = _this.keys.length - 1;
-	      current = current % _this.keys.length;
-	    };
-	  },
-	  view: function view(ctrl, arg) {
-	    return mc('.test-image-con', [mc.style(style), mc('menu.top', [mc('a[href=#]', { onclick: function onclick(e) {
-	        return _overlay2.default.hide(e.target);
-	      } }, 'close')]), mc('.imageBox', { onmousedown: function onmousedown(e) {
-	        return ctrl.cycleVisible(detectRightButton() ? -1 : 1);
-	      } }, [ctrl.keys.map(function (v, i) {
-	      return mc('.image', { class: current !== i ? '  :global(hide)   hide  ' : '' }, mc('img', { src: PTEST_PATH + ctrl.data.folder + '/' + ctrl.data[v] }));
-	    })])]);
-	  }
-	};
-
-	module.exports = gallary;
-
-	var testdata = { "test": "test1465218335247", "folder": "ptest_data", "a": "test1465218335247/1465218058523.png", "b": "test1465218335247/1465218058523.png_test.png", "diff": "test1465218335247/1465218058523.png_diff.png" };
-
-	//
-	// helper functions
-
-	function detectRightButton(e) {
-	  var rightclick;
-	  if (!e) var e = window.event;
-	  if (e.which) rightclick = e.which == 3;else if (e.button) rightclick = e.button == 2;
-	  return rightclick;
-	}
-
-/***/ },
-/* 7 */
-/***/ function(module, exports, __webpack_require__) {
-
-	'use strict';
-
-	var j2c = __webpack_require__(8);
+	var j2c = __webpack_require__(7);
 
 	var hasOwn = {}.hasOwnProperty;
 	var type = {}.toString;
@@ -1844,7 +1758,7 @@
 	}
 
 /***/ },
-/* 8 */
+/* 7 */
 /***/ function(module, exports) {
 
 	'use strict';
@@ -2203,7 +2117,642 @@
 	module.exports = j2c;
 
 /***/ },
+/* 8 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+
+	var _mithrilJ2c = __webpack_require__(6);
+
+	var _mithrilJ2c2 = _interopRequireDefault(_mithrilJ2c);
+
+	var _overlay = __webpack_require__(9);
+
+	var _overlay2 = _interopRequireDefault(_overlay);
+
+	var _util = __webpack_require__(11);
+
+	var _util2 = _interopRequireDefault(_util);
+
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+	var mc = _mithrilJ2c2.default.bindM(); /**
+	                                        * @fileOverview Display test images for ptest.
+	                                        * @global Mousetrap.js, mithril.js
+	                                        * @name test-image.js
+	                                        * @author Micheal Yang
+	                                        * @license MIT
+	                                        */
+
+	var PTEST_PATH = '/ptestfolder/';
+
+	var style = _mithrilJ2c2.default.sheet({
+	  '.test-image-con': {
+	    text_align: 'left'
+	  },
+	  'menu.top': {
+	    background: '#ccc'
+	  },
+	  '.imageBox': {
+	    ' .image': {
+	      position: 'absolute'
+	    }
+	  },
+	  '.hide': {
+	    display: 'none'
+	  }
+	});
+
+	var current = 0;
+
+	var gallary = {
+	  controller: function controller(arg) {
+	    var _this = this;
+
+	    this.data = arg.data || testdata;
+	    this.keys = ['a', 'b', 'diff'];
+	    this.cycleVisible = function (diff) {
+	      current += diff || 1;
+	      if (current < 0) current = _this.keys.length - 1;
+	      current = current % _this.keys.length;
+	    };
+	  },
+	  view: function view(ctrl, arg) {
+	    return mc('.test-image-con', [mc.style(style), mc('menu.top', [mc('a[href=#]', { onclick: function onclick(e) {
+	        return _overlay2.default.hide(e.target);
+	      } }, 'close')]), mc('.imageBox', { onmousedown: function onmousedown(e) {
+	        return ctrl.cycleVisible(detectRightButton() ? -1 : 1);
+	      } }, [ctrl.keys.map(function (v, i) {
+	      return mc('.image', { class: current !== i ? '  :global(hide)   hide  ' : '' }, mc('img', { src: PTEST_PATH + ctrl.data.folder + '/' + ctrl.data[v] }));
+	    })])]);
+	  }
+	};
+
+	module.exports = gallary;
+
+	var testdata = { "test": "test1465218335247", "folder": "ptest_data", "a": "test1465218335247/1465218058523.png", "b": "test1465218335247/1465218058523.png_test.png", "diff": "test1465218335247/1465218058523.png_diff.png" };
+
+	//
+	// helper functions
+
+	function detectRightButton(e) {
+	  var rightclick;
+	  if (!e) var e = window.event;
+	  if (e.which) rightclick = e.which == 3;else if (e.button) rightclick = e.button == 2;
+	  return rightclick;
+	}
+
+/***/ },
 /* 9 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;'use strict';
+
+	var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol ? "symbol" : typeof obj; };
+
+	(function (_global, factory) {
+	  if (true) {
+	    !(__WEBPACK_AMD_DEFINE_ARRAY__ = [], __WEBPACK_AMD_DEFINE_FACTORY__ = (factory), __WEBPACK_AMD_DEFINE_RESULT__ = (typeof __WEBPACK_AMD_DEFINE_FACTORY__ === 'function' ? (__WEBPACK_AMD_DEFINE_FACTORY__.apply(exports, __WEBPACK_AMD_DEFINE_ARRAY__)) : __WEBPACK_AMD_DEFINE_FACTORY__), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__)); // define(['jquery'], factory)
+	  } else if ((typeof exports === 'undefined' ? 'undefined' : _typeof(exports)) === 'object') {
+	      module.exports = factory(); // factory(require('jquery'))
+	    } else {
+	        _global.mOverlay = factory(); // should return obj in factory
+	      }
+	})(undefined, function () {
+	  'use strict';
+
+	  var debounce = __webpack_require__(10);
+
+	  /**
+	   * @fileOverview Popup toolkit using mithril
+	   * @name overlay.js
+	   * @author micheal.yang
+	   * @license MIT
+	   */
+
+	  // require js/broswerutil.js file
+
+	  /**
+	   * get browser window size
+	   * @returns [w,h] windows width and height
+	   */
+	  function _getWindowSize() {
+	    if (window.innerWidth) {
+	      return [window.innerWidth, window.innerHeight];
+	    } else if (document.documentElement && document.documentElement.clientHeight) {
+	      return [document.documentElement.clientWidth, document.documentElement.clientHeight];
+	    } else if (document.body) {
+	      return [document.body.clientWidth, document.body.clientHeight];
+	    }
+	    return 0;
+	  }
+
+	  var overlay = {
+	    controller: function controller(arg) {
+	      var root = arg.root;
+	      var ctrl = this;
+	      root.classList.add('overlay-root');
+	      root.style.position = 'fixed';
+	      root.style.display = 'block';
+	      root.style.left = 0;
+	      root.style.top = 0;
+	      root.style.zIndex = 99999;
+	      var onresize = function onresize(e) {
+	        ctrl.width = _getWindowSize()[0];
+	        ctrl.height = _getWindowSize()[1];
+	        root.style.width = ctrl.width + 'px';
+	        root.style.height = ctrl.height + 'px';
+	        m.redraw();
+	      };
+	      window.addEventListener('resize', debounce(onresize, 200));
+	      onresize();
+	    },
+	    view: function view(ctrl, arg) {
+	      var popup = arg.popup;
+	      popup = popup || {};
+	      popup.style = popup.style || {};
+	      /* below line for debug purpose */
+	      // popup.style.border = '1px solid red'
+
+	      return [m('.overlay-bg', {
+	        config: function config(e) {
+	          ctrl.root = e.parentElement;
+	        },
+	        style: {
+	          'display': 'block',
+	          'height': '100%',
+	          'width': '100%'
+
+	        }
+	      }), /* below try to fix IE8 render problem, but not work:(  */
+	      // backgroundColor: '#000000',
+	      // filter: 'none !important',
+	      // filter: 'progid:DXImageTransform.Microsoft.Alpha(Opacity=50)',
+	      // filter: 'alpha(opacity=50)',
+	      // 'zoom':1
+	      m('table.overlay', {
+	        style: {
+	          'position': 'absolute',
+	          top: 0,
+	          left: 0,
+	          // 'z-index': 99999,
+	          // 'border': 1 + 'px',
+	          'padding': 0 + 'px',
+	          'margin': 0 + 'px',
+	          'width': '100%',
+	          'height': '100%'
+	          // using below format to supress error in IE8, rgba color
+	          // 'background-color': 'rgba(0,0,0,0.5)'
+	        }
+	      }, m('tr', m('td', {
+	        'align': 'center',
+	        'valign': 'middle',
+	        'style': {
+	          'position': 'relative'
+	        }
+	      }, // 'vertical-align': 'middle'
+	      [m('div.overlay-content', {
+	        onclick: function onclick(e) {
+	          ctrl.close = true;
+	        },
+	        key: ctrl.height,
+	        style: Object.assign(popup.style || {}, { height: ctrl.height + 'px' })
+	      }, popup.com ? m.component(popup.com, ctrl) : popup.text || m.trust(popup.html))])))];
+	    }
+	  };
+
+	  function clearRoot(root) {
+	    m.mount(root, null);
+	    root.classList.remove('overlay-root');
+	    root.style.display = 'none';
+	  }
+
+	  function closeOverlay(root, ret) {
+	    if (!root) return;
+	    root = typeof root == 'string' ? document.querySelector(root) : root.closest('.overlay-root');
+	    if (root) {
+	      clearRoot(root);
+	      var callback = root.overlayStack.pop();
+	      if (callback) callback.call(this, ret);
+	    }
+	  }
+	  function popupOverlay(root, popup) {
+	    // if (arguments.length < 2) popup = root, root = null
+	    if (!root) return;
+	    root = typeof root == 'string' ? document.querySelector(root) : root;
+	    if (root) {
+	      root.overlayStack = root.overlayStack || [];
+	      root.overlayStack.push(popup.onclose);
+	      m.mount(root, m.component(overlay, { root: root, popup: popup }));
+	    }
+	  }
+
+	  // export function
+
+	  return { open: popupOverlay, show: popupOverlay, close: closeOverlay, hide: closeOverlay };
+	});
+
+/***/ },
+/* 10 */
+/***/ function(module, exports) {
+
+	'use strict';
+
+	var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol ? "symbol" : typeof obj; };
+
+	/**
+	 * lodash 4.0.6 (Custom Build) <https://lodash.com/>
+	 * Build: `lodash modularize exports="npm" -o ./`
+	 * Copyright jQuery Foundation and other contributors <https://jquery.org/>
+	 * Released under MIT license <https://lodash.com/license>
+	 * Based on Underscore.js 1.8.3 <http://underscorejs.org/LICENSE>
+	 * Copyright Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
+	 */
+
+	/** Used as the `TypeError` message for "Functions" methods. */
+	var FUNC_ERROR_TEXT = 'Expected a function';
+
+	/** Used as references for various `Number` constants. */
+	var NAN = 0 / 0;
+
+	/** `Object#toString` result references. */
+	var funcTag = '[object Function]',
+	    genTag = '[object GeneratorFunction]',
+	    symbolTag = '[object Symbol]';
+
+	/** Used to match leading and trailing whitespace. */
+	var reTrim = /^\s+|\s+$/g;
+
+	/** Used to detect bad signed hexadecimal string values. */
+	var reIsBadHex = /^[-+]0x[0-9a-f]+$/i;
+
+	/** Used to detect binary string values. */
+	var reIsBinary = /^0b[01]+$/i;
+
+	/** Used to detect octal string values. */
+	var reIsOctal = /^0o[0-7]+$/i;
+
+	/** Built-in method references without a dependency on `root`. */
+	var freeParseInt = parseInt;
+
+	/** Used for built-in method references. */
+	var objectProto = Object.prototype;
+
+	/**
+	 * Used to resolve the
+	 * [`toStringTag`](http://ecma-international.org/ecma-262/6.0/#sec-object.prototype.tostring)
+	 * of values.
+	 */
+	var objectToString = objectProto.toString;
+
+	/* Built-in method references for those with the same name as other `lodash` methods. */
+	var nativeMax = Math.max,
+	    nativeMin = Math.min;
+
+	/**
+	 * Gets the timestamp of the number of milliseconds that have elapsed since
+	 * the Unix epoch (1 January 1970 00:00:00 UTC).
+	 *
+	 * @static
+	 * @memberOf _
+	 * @since 2.4.0
+	 * @type {Function}
+	 * @category Date
+	 * @returns {number} Returns the timestamp.
+	 * @example
+	 *
+	 * _.defer(function(stamp) {
+	 *   console.log(_.now() - stamp);
+	 * }, _.now());
+	 * // => Logs the number of milliseconds it took for the deferred function to be invoked.
+	 */
+	var now = Date.now;
+
+	/**
+	 * Creates a debounced function that delays invoking `func` until after `wait`
+	 * milliseconds have elapsed since the last time the debounced function was
+	 * invoked. The debounced function comes with a `cancel` method to cancel
+	 * delayed `func` invocations and a `flush` method to immediately invoke them.
+	 * Provide an options object to indicate whether `func` should be invoked on
+	 * the leading and/or trailing edge of the `wait` timeout. The `func` is invoked
+	 * with the last arguments provided to the debounced function. Subsequent calls
+	 * to the debounced function return the result of the last `func` invocation.
+	 *
+	 * **Note:** If `leading` and `trailing` options are `true`, `func` is invoked
+	 * on the trailing edge of the timeout only if the debounced function is
+	 * invoked more than once during the `wait` timeout.
+	 *
+	 * See [David Corbacho's article](https://css-tricks.com/debouncing-throttling-explained-examples/)
+	 * for details over the differences between `_.debounce` and `_.throttle`.
+	 *
+	 * @static
+	 * @memberOf _
+	 * @since 0.1.0
+	 * @category Function
+	 * @param {Function} func The function to debounce.
+	 * @param {number} [wait=0] The number of milliseconds to delay.
+	 * @param {Object} [options={}] The options object.
+	 * @param {boolean} [options.leading=false]
+	 *  Specify invoking on the leading edge of the timeout.
+	 * @param {number} [options.maxWait]
+	 *  The maximum time `func` is allowed to be delayed before it's invoked.
+	 * @param {boolean} [options.trailing=true]
+	 *  Specify invoking on the trailing edge of the timeout.
+	 * @returns {Function} Returns the new debounced function.
+	 * @example
+	 *
+	 * // Avoid costly calculations while the window size is in flux.
+	 * jQuery(window).on('resize', _.debounce(calculateLayout, 150));
+	 *
+	 * // Invoke `sendMail` when clicked, debouncing subsequent calls.
+	 * jQuery(element).on('click', _.debounce(sendMail, 300, {
+	 *   'leading': true,
+	 *   'trailing': false
+	 * }));
+	 *
+	 * // Ensure `batchLog` is invoked once after 1 second of debounced calls.
+	 * var debounced = _.debounce(batchLog, 250, { 'maxWait': 1000 });
+	 * var source = new EventSource('/stream');
+	 * jQuery(source).on('message', debounced);
+	 *
+	 * // Cancel the trailing debounced invocation.
+	 * jQuery(window).on('popstate', debounced.cancel);
+	 */
+	function debounce(func, wait, options) {
+	  var lastArgs,
+	      lastThis,
+	      maxWait,
+	      result,
+	      timerId,
+	      lastCallTime = 0,
+	      lastInvokeTime = 0,
+	      leading = false,
+	      maxing = false,
+	      trailing = true;
+
+	  if (typeof func != 'function') {
+	    throw new TypeError(FUNC_ERROR_TEXT);
+	  }
+	  wait = toNumber(wait) || 0;
+	  if (isObject(options)) {
+	    leading = !!options.leading;
+	    maxing = 'maxWait' in options;
+	    maxWait = maxing ? nativeMax(toNumber(options.maxWait) || 0, wait) : maxWait;
+	    trailing = 'trailing' in options ? !!options.trailing : trailing;
+	  }
+
+	  function invokeFunc(time) {
+	    var args = lastArgs,
+	        thisArg = lastThis;
+
+	    lastArgs = lastThis = undefined;
+	    lastInvokeTime = time;
+	    result = func.apply(thisArg, args);
+	    return result;
+	  }
+
+	  function leadingEdge(time) {
+	    // Reset any `maxWait` timer.
+	    lastInvokeTime = time;
+	    // Start the timer for the trailing edge.
+	    timerId = setTimeout(timerExpired, wait);
+	    // Invoke the leading edge.
+	    return leading ? invokeFunc(time) : result;
+	  }
+
+	  function remainingWait(time) {
+	    var timeSinceLastCall = time - lastCallTime,
+	        timeSinceLastInvoke = time - lastInvokeTime,
+	        result = wait - timeSinceLastCall;
+
+	    return maxing ? nativeMin(result, maxWait - timeSinceLastInvoke) : result;
+	  }
+
+	  function shouldInvoke(time) {
+	    var timeSinceLastCall = time - lastCallTime,
+	        timeSinceLastInvoke = time - lastInvokeTime;
+
+	    // Either this is the first call, activity has stopped and we're at the
+	    // trailing edge, the system time has gone backwards and we're treating
+	    // it as the trailing edge, or we've hit the `maxWait` limit.
+	    return !lastCallTime || timeSinceLastCall >= wait || timeSinceLastCall < 0 || maxing && timeSinceLastInvoke >= maxWait;
+	  }
+
+	  function timerExpired() {
+	    var time = now();
+	    if (shouldInvoke(time)) {
+	      return trailingEdge(time);
+	    }
+	    // Restart the timer.
+	    timerId = setTimeout(timerExpired, remainingWait(time));
+	  }
+
+	  function trailingEdge(time) {
+	    clearTimeout(timerId);
+	    timerId = undefined;
+
+	    // Only invoke if we have `lastArgs` which means `func` has been
+	    // debounced at least once.
+	    if (trailing && lastArgs) {
+	      return invokeFunc(time);
+	    }
+	    lastArgs = lastThis = undefined;
+	    return result;
+	  }
+
+	  function cancel() {
+	    if (timerId !== undefined) {
+	      clearTimeout(timerId);
+	    }
+	    lastCallTime = lastInvokeTime = 0;
+	    lastArgs = lastThis = timerId = undefined;
+	  }
+
+	  function flush() {
+	    return timerId === undefined ? result : trailingEdge(now());
+	  }
+
+	  function debounced() {
+	    var time = now(),
+	        isInvoking = shouldInvoke(time);
+
+	    lastArgs = arguments;
+	    lastThis = this;
+	    lastCallTime = time;
+
+	    if (isInvoking) {
+	      if (timerId === undefined) {
+	        return leadingEdge(lastCallTime);
+	      }
+	      if (maxing) {
+	        // Handle invocations in a tight loop.
+	        clearTimeout(timerId);
+	        timerId = setTimeout(timerExpired, wait);
+	        return invokeFunc(lastCallTime);
+	      }
+	    }
+	    if (timerId === undefined) {
+	      timerId = setTimeout(timerExpired, wait);
+	    }
+	    return result;
+	  }
+	  debounced.cancel = cancel;
+	  debounced.flush = flush;
+	  return debounced;
+	}
+
+	/**
+	 * Checks if `value` is classified as a `Function` object.
+	 *
+	 * @static
+	 * @memberOf _
+	 * @since 0.1.0
+	 * @category Lang
+	 * @param {*} value The value to check.
+	 * @returns {boolean} Returns `true` if `value` is correctly classified,
+	 *  else `false`.
+	 * @example
+	 *
+	 * _.isFunction(_);
+	 * // => true
+	 *
+	 * _.isFunction(/abc/);
+	 * // => false
+	 */
+	function isFunction(value) {
+	  // The use of `Object#toString` avoids issues with the `typeof` operator
+	  // in Safari 8 which returns 'object' for typed array and weak map constructors,
+	  // and PhantomJS 1.9 which returns 'function' for `NodeList` instances.
+	  var tag = isObject(value) ? objectToString.call(value) : '';
+	  return tag == funcTag || tag == genTag;
+	}
+
+	/**
+	 * Checks if `value` is the
+	 * [language type](http://www.ecma-international.org/ecma-262/6.0/#sec-ecmascript-language-types)
+	 * of `Object`. (e.g. arrays, functions, objects, regexes, `new Number(0)`, and `new String('')`)
+	 *
+	 * @static
+	 * @memberOf _
+	 * @since 0.1.0
+	 * @category Lang
+	 * @param {*} value The value to check.
+	 * @returns {boolean} Returns `true` if `value` is an object, else `false`.
+	 * @example
+	 *
+	 * _.isObject({});
+	 * // => true
+	 *
+	 * _.isObject([1, 2, 3]);
+	 * // => true
+	 *
+	 * _.isObject(_.noop);
+	 * // => true
+	 *
+	 * _.isObject(null);
+	 * // => false
+	 */
+	function isObject(value) {
+	  var type = typeof value === 'undefined' ? 'undefined' : _typeof(value);
+	  return !!value && (type == 'object' || type == 'function');
+	}
+
+	/**
+	 * Checks if `value` is object-like. A value is object-like if it's not `null`
+	 * and has a `typeof` result of "object".
+	 *
+	 * @static
+	 * @memberOf _
+	 * @since 4.0.0
+	 * @category Lang
+	 * @param {*} value The value to check.
+	 * @returns {boolean} Returns `true` if `value` is object-like, else `false`.
+	 * @example
+	 *
+	 * _.isObjectLike({});
+	 * // => true
+	 *
+	 * _.isObjectLike([1, 2, 3]);
+	 * // => true
+	 *
+	 * _.isObjectLike(_.noop);
+	 * // => false
+	 *
+	 * _.isObjectLike(null);
+	 * // => false
+	 */
+	function isObjectLike(value) {
+	  return !!value && (typeof value === 'undefined' ? 'undefined' : _typeof(value)) == 'object';
+	}
+
+	/**
+	 * Checks if `value` is classified as a `Symbol` primitive or object.
+	 *
+	 * @static
+	 * @memberOf _
+	 * @since 4.0.0
+	 * @category Lang
+	 * @param {*} value The value to check.
+	 * @returns {boolean} Returns `true` if `value` is correctly classified,
+	 *  else `false`.
+	 * @example
+	 *
+	 * _.isSymbol(Symbol.iterator);
+	 * // => true
+	 *
+	 * _.isSymbol('abc');
+	 * // => false
+	 */
+	function isSymbol(value) {
+	  return (typeof value === 'undefined' ? 'undefined' : _typeof(value)) == 'symbol' || isObjectLike(value) && objectToString.call(value) == symbolTag;
+	}
+
+	/**
+	 * Converts `value` to a number.
+	 *
+	 * @static
+	 * @memberOf _
+	 * @since 4.0.0
+	 * @category Lang
+	 * @param {*} value The value to process.
+	 * @returns {number} Returns the number.
+	 * @example
+	 *
+	 * _.toNumber(3);
+	 * // => 3
+	 *
+	 * _.toNumber(Number.MIN_VALUE);
+	 * // => 5e-324
+	 *
+	 * _.toNumber(Infinity);
+	 * // => Infinity
+	 *
+	 * _.toNumber('3');
+	 * // => 3
+	 */
+	function toNumber(value) {
+	  if (typeof value == 'number') {
+	    return value;
+	  }
+	  if (isSymbol(value)) {
+	    return NAN;
+	  }
+	  if (isObject(value)) {
+	    var other = isFunction(value.valueOf) ? value.valueOf() : value;
+	    value = isObject(other) ? other + '' : other;
+	  }
+	  if (typeof value != 'string') {
+	    return value === 0 ? value : +value;
+	  }
+	  value = value.replace(reTrim, '');
+	  var isBinary = reIsBinary.test(value);
+	  return isBinary || reIsOctal.test(value) ? freeParseInt(value.slice(2), isBinary ? 2 : 8) : reIsBadHex.test(value) ? NAN : +value;
+	}
+
+	module.exports = debounce;
+
+/***/ },
+/* 11 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(global, process) {'use strict';
@@ -2700,7 +3249,7 @@
 	}
 	exports.isPrimitive = isPrimitive;
 
-	exports.isBuffer = __webpack_require__(11);
+	exports.isBuffer = __webpack_require__(13);
 
 	function objectToString(o) {
 	  return Object.prototype.toString.call(o);
@@ -2737,7 +3286,7 @@
 	 *     prototype.
 	 * @param {function} superCtor Constructor function to inherit prototype from.
 	 */
-	exports.inherits = __webpack_require__(12);
+	exports.inherits = __webpack_require__(14);
 
 	exports._extend = function (origin, add) {
 	  // Don't do anything if add isn't an object
@@ -2754,10 +3303,10 @@
 	function hasOwnProperty(obj, prop) {
 	  return Object.prototype.hasOwnProperty.call(obj, prop);
 	}
-	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }()), __webpack_require__(10)))
+	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }()), __webpack_require__(12)))
 
 /***/ },
-/* 10 */
+/* 12 */
 /***/ function(module, exports) {
 
 	'use strict';
@@ -2862,7 +3411,7 @@
 	};
 
 /***/ },
-/* 11 */
+/* 13 */
 /***/ function(module, exports) {
 
 	'use strict';
@@ -2874,7 +3423,7 @@
 	};
 
 /***/ },
-/* 12 */
+/* 14 */
 /***/ function(module, exports) {
 
 	'use strict';
@@ -2902,555 +3451,6 @@
 	    ctor.prototype.constructor = ctor;
 	  };
 	}
-
-/***/ },
-/* 13 */
-/***/ function(module, exports, __webpack_require__) {
-
-	var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;'use strict';
-
-	var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol ? "symbol" : typeof obj; };
-
-	(function (_global, factory) {
-	  if (true) {
-	    !(__WEBPACK_AMD_DEFINE_ARRAY__ = [], __WEBPACK_AMD_DEFINE_FACTORY__ = (factory), __WEBPACK_AMD_DEFINE_RESULT__ = (typeof __WEBPACK_AMD_DEFINE_FACTORY__ === 'function' ? (__WEBPACK_AMD_DEFINE_FACTORY__.apply(exports, __WEBPACK_AMD_DEFINE_ARRAY__)) : __WEBPACK_AMD_DEFINE_FACTORY__), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__)); // define(['jquery'], factory)
-	  } else if ((typeof exports === 'undefined' ? 'undefined' : _typeof(exports)) === 'object') {
-	      module.exports = factory(); // factory(require('jquery'))
-	    } else {
-	        _global.mOverlay = factory(); // should return obj in factory
-	      }
-	})(undefined, function () {
-	  'use strict';
-
-	  var debounce = __webpack_require__(14);
-
-	  /**
-	   * @fileOverview Popup toolkit using mithril
-	   * @name overlay.js
-	   * @author micheal.yang
-	   * @license MIT
-	   */
-
-	  // require js/broswerutil.js file
-
-	  /**
-	   * get browser window size
-	   * @returns [w,h] windows width and height
-	   */
-	  function _getWindowSize() {
-	    if (window.innerWidth) {
-	      return [window.innerWidth, window.innerHeight];
-	    } else if (document.documentElement && document.documentElement.clientHeight) {
-	      return [document.documentElement.clientWidth, document.documentElement.clientHeight];
-	    } else if (document.body) {
-	      return [document.body.clientWidth, document.body.clientHeight];
-	    }
-	    return 0;
-	  }
-
-	  var overlay = {
-	    controller: function controller(arg) {
-	      var root = arg.root;
-	      var ctrl = this;
-	      root.classList.add('overlay-root');
-	      root.style.position = 'fixed';
-	      root.style.display = 'block';
-	      root.style.left = 0;
-	      root.style.top = 0;
-	      root.style.zIndex = 99999;
-	      var onresize = function onresize(e) {
-	        ctrl.width = _getWindowSize()[0];
-	        ctrl.height = _getWindowSize()[1];
-	        root.style.width = ctrl.width + 'px';
-	        root.style.height = ctrl.height + 'px';
-	        m.redraw();
-	      };
-	      window.addEventListener('resize', debounce(onresize, 200));
-	      onresize();
-	    },
-	    view: function view(ctrl, arg) {
-	      var popup = arg.popup;
-	      popup = popup || {};
-	      popup.style = popup.style || {};
-	      /* below line for debug purpose */
-	      // popup.style.border = '1px solid red'
-
-	      return [m('.overlay-bg', {
-	        config: function config(e) {
-	          ctrl.root = e.parentElement;
-	        },
-	        style: {
-	          'display': 'block',
-	          'height': '100%',
-	          'width': '100%'
-
-	        }
-	      }), /* below try to fix IE8 render problem, but not work:(  */
-	      // backgroundColor: '#000000',
-	      // filter: 'none !important',
-	      // filter: 'progid:DXImageTransform.Microsoft.Alpha(Opacity=50)',
-	      // filter: 'alpha(opacity=50)',
-	      // 'zoom':1
-	      m('table.overlay', {
-	        style: {
-	          'position': 'absolute',
-	          top: 0,
-	          left: 0,
-	          // 'z-index': 99999,
-	          // 'border': 1 + 'px',
-	          'padding': 0 + 'px',
-	          'margin': 0 + 'px',
-	          'width': '100%',
-	          'height': '100%'
-	          // using below format to supress error in IE8, rgba color
-	          // 'background-color': 'rgba(0,0,0,0.5)'
-	        }
-	      }, m('tr', m('td', {
-	        'align': 'center',
-	        'valign': 'middle',
-	        'style': {
-	          'position': 'relative'
-	        }
-	      }, // 'vertical-align': 'middle'
-	      [m('div.overlay-content', {
-	        onclick: function onclick(e) {
-	          ctrl.close = true;
-	        },
-	        key: ctrl.height,
-	        style: Object.assign(popup.style || {}, { height: ctrl.height + 'px' })
-	      }, popup.com ? m.component(popup.com, ctrl) : popup.text || m.trust(popup.html))])))];
-	    }
-	  };
-
-	  function clearRoot(root) {
-	    m.mount(root, null);
-	    root.classList.remove('overlay-root');
-	    root.style.display = 'none';
-	  }
-
-	  function closeOverlay(root, ret) {
-	    if (!root) return;
-	    root = typeof root == 'string' ? document.querySelector(root) : root.closest('.overlay-root');
-	    if (root) {
-	      clearRoot(root);
-	      var callback = root.overlayStack.pop();
-	      if (callback) callback.call(this, ret);
-	    }
-	  }
-	  function popupOverlay(root, popup) {
-	    // if (arguments.length < 2) popup = root, root = null
-	    if (!root) return;
-	    root = typeof root == 'string' ? document.querySelector(root) : root;
-	    if (root) {
-	      root.overlayStack = root.overlayStack || [];
-	      root.overlayStack.push(popup.onclose);
-	      m.mount(root, m.component(overlay, { root: root, popup: popup }));
-	    }
-	  }
-
-	  // export function
-
-	  return { open: popupOverlay, show: popupOverlay, close: closeOverlay, hide: closeOverlay };
-	});
-
-/***/ },
-/* 14 */
-/***/ function(module, exports) {
-
-	'use strict';
-
-	var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol ? "symbol" : typeof obj; };
-
-	/**
-	 * lodash 4.0.6 (Custom Build) <https://lodash.com/>
-	 * Build: `lodash modularize exports="npm" -o ./`
-	 * Copyright jQuery Foundation and other contributors <https://jquery.org/>
-	 * Released under MIT license <https://lodash.com/license>
-	 * Based on Underscore.js 1.8.3 <http://underscorejs.org/LICENSE>
-	 * Copyright Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
-	 */
-
-	/** Used as the `TypeError` message for "Functions" methods. */
-	var FUNC_ERROR_TEXT = 'Expected a function';
-
-	/** Used as references for various `Number` constants. */
-	var NAN = 0 / 0;
-
-	/** `Object#toString` result references. */
-	var funcTag = '[object Function]',
-	    genTag = '[object GeneratorFunction]',
-	    symbolTag = '[object Symbol]';
-
-	/** Used to match leading and trailing whitespace. */
-	var reTrim = /^\s+|\s+$/g;
-
-	/** Used to detect bad signed hexadecimal string values. */
-	var reIsBadHex = /^[-+]0x[0-9a-f]+$/i;
-
-	/** Used to detect binary string values. */
-	var reIsBinary = /^0b[01]+$/i;
-
-	/** Used to detect octal string values. */
-	var reIsOctal = /^0o[0-7]+$/i;
-
-	/** Built-in method references without a dependency on `root`. */
-	var freeParseInt = parseInt;
-
-	/** Used for built-in method references. */
-	var objectProto = Object.prototype;
-
-	/**
-	 * Used to resolve the
-	 * [`toStringTag`](http://ecma-international.org/ecma-262/6.0/#sec-object.prototype.tostring)
-	 * of values.
-	 */
-	var objectToString = objectProto.toString;
-
-	/* Built-in method references for those with the same name as other `lodash` methods. */
-	var nativeMax = Math.max,
-	    nativeMin = Math.min;
-
-	/**
-	 * Gets the timestamp of the number of milliseconds that have elapsed since
-	 * the Unix epoch (1 January 1970 00:00:00 UTC).
-	 *
-	 * @static
-	 * @memberOf _
-	 * @since 2.4.0
-	 * @type {Function}
-	 * @category Date
-	 * @returns {number} Returns the timestamp.
-	 * @example
-	 *
-	 * _.defer(function(stamp) {
-	 *   console.log(_.now() - stamp);
-	 * }, _.now());
-	 * // => Logs the number of milliseconds it took for the deferred function to be invoked.
-	 */
-	var now = Date.now;
-
-	/**
-	 * Creates a debounced function that delays invoking `func` until after `wait`
-	 * milliseconds have elapsed since the last time the debounced function was
-	 * invoked. The debounced function comes with a `cancel` method to cancel
-	 * delayed `func` invocations and a `flush` method to immediately invoke them.
-	 * Provide an options object to indicate whether `func` should be invoked on
-	 * the leading and/or trailing edge of the `wait` timeout. The `func` is invoked
-	 * with the last arguments provided to the debounced function. Subsequent calls
-	 * to the debounced function return the result of the last `func` invocation.
-	 *
-	 * **Note:** If `leading` and `trailing` options are `true`, `func` is invoked
-	 * on the trailing edge of the timeout only if the debounced function is
-	 * invoked more than once during the `wait` timeout.
-	 *
-	 * See [David Corbacho's article](https://css-tricks.com/debouncing-throttling-explained-examples/)
-	 * for details over the differences between `_.debounce` and `_.throttle`.
-	 *
-	 * @static
-	 * @memberOf _
-	 * @since 0.1.0
-	 * @category Function
-	 * @param {Function} func The function to debounce.
-	 * @param {number} [wait=0] The number of milliseconds to delay.
-	 * @param {Object} [options={}] The options object.
-	 * @param {boolean} [options.leading=false]
-	 *  Specify invoking on the leading edge of the timeout.
-	 * @param {number} [options.maxWait]
-	 *  The maximum time `func` is allowed to be delayed before it's invoked.
-	 * @param {boolean} [options.trailing=true]
-	 *  Specify invoking on the trailing edge of the timeout.
-	 * @returns {Function} Returns the new debounced function.
-	 * @example
-	 *
-	 * // Avoid costly calculations while the window size is in flux.
-	 * jQuery(window).on('resize', _.debounce(calculateLayout, 150));
-	 *
-	 * // Invoke `sendMail` when clicked, debouncing subsequent calls.
-	 * jQuery(element).on('click', _.debounce(sendMail, 300, {
-	 *   'leading': true,
-	 *   'trailing': false
-	 * }));
-	 *
-	 * // Ensure `batchLog` is invoked once after 1 second of debounced calls.
-	 * var debounced = _.debounce(batchLog, 250, { 'maxWait': 1000 });
-	 * var source = new EventSource('/stream');
-	 * jQuery(source).on('message', debounced);
-	 *
-	 * // Cancel the trailing debounced invocation.
-	 * jQuery(window).on('popstate', debounced.cancel);
-	 */
-	function debounce(func, wait, options) {
-	  var lastArgs,
-	      lastThis,
-	      maxWait,
-	      result,
-	      timerId,
-	      lastCallTime = 0,
-	      lastInvokeTime = 0,
-	      leading = false,
-	      maxing = false,
-	      trailing = true;
-
-	  if (typeof func != 'function') {
-	    throw new TypeError(FUNC_ERROR_TEXT);
-	  }
-	  wait = toNumber(wait) || 0;
-	  if (isObject(options)) {
-	    leading = !!options.leading;
-	    maxing = 'maxWait' in options;
-	    maxWait = maxing ? nativeMax(toNumber(options.maxWait) || 0, wait) : maxWait;
-	    trailing = 'trailing' in options ? !!options.trailing : trailing;
-	  }
-
-	  function invokeFunc(time) {
-	    var args = lastArgs,
-	        thisArg = lastThis;
-
-	    lastArgs = lastThis = undefined;
-	    lastInvokeTime = time;
-	    result = func.apply(thisArg, args);
-	    return result;
-	  }
-
-	  function leadingEdge(time) {
-	    // Reset any `maxWait` timer.
-	    lastInvokeTime = time;
-	    // Start the timer for the trailing edge.
-	    timerId = setTimeout(timerExpired, wait);
-	    // Invoke the leading edge.
-	    return leading ? invokeFunc(time) : result;
-	  }
-
-	  function remainingWait(time) {
-	    var timeSinceLastCall = time - lastCallTime,
-	        timeSinceLastInvoke = time - lastInvokeTime,
-	        result = wait - timeSinceLastCall;
-
-	    return maxing ? nativeMin(result, maxWait - timeSinceLastInvoke) : result;
-	  }
-
-	  function shouldInvoke(time) {
-	    var timeSinceLastCall = time - lastCallTime,
-	        timeSinceLastInvoke = time - lastInvokeTime;
-
-	    // Either this is the first call, activity has stopped and we're at the
-	    // trailing edge, the system time has gone backwards and we're treating
-	    // it as the trailing edge, or we've hit the `maxWait` limit.
-	    return !lastCallTime || timeSinceLastCall >= wait || timeSinceLastCall < 0 || maxing && timeSinceLastInvoke >= maxWait;
-	  }
-
-	  function timerExpired() {
-	    var time = now();
-	    if (shouldInvoke(time)) {
-	      return trailingEdge(time);
-	    }
-	    // Restart the timer.
-	    timerId = setTimeout(timerExpired, remainingWait(time));
-	  }
-
-	  function trailingEdge(time) {
-	    clearTimeout(timerId);
-	    timerId = undefined;
-
-	    // Only invoke if we have `lastArgs` which means `func` has been
-	    // debounced at least once.
-	    if (trailing && lastArgs) {
-	      return invokeFunc(time);
-	    }
-	    lastArgs = lastThis = undefined;
-	    return result;
-	  }
-
-	  function cancel() {
-	    if (timerId !== undefined) {
-	      clearTimeout(timerId);
-	    }
-	    lastCallTime = lastInvokeTime = 0;
-	    lastArgs = lastThis = timerId = undefined;
-	  }
-
-	  function flush() {
-	    return timerId === undefined ? result : trailingEdge(now());
-	  }
-
-	  function debounced() {
-	    var time = now(),
-	        isInvoking = shouldInvoke(time);
-
-	    lastArgs = arguments;
-	    lastThis = this;
-	    lastCallTime = time;
-
-	    if (isInvoking) {
-	      if (timerId === undefined) {
-	        return leadingEdge(lastCallTime);
-	      }
-	      if (maxing) {
-	        // Handle invocations in a tight loop.
-	        clearTimeout(timerId);
-	        timerId = setTimeout(timerExpired, wait);
-	        return invokeFunc(lastCallTime);
-	      }
-	    }
-	    if (timerId === undefined) {
-	      timerId = setTimeout(timerExpired, wait);
-	    }
-	    return result;
-	  }
-	  debounced.cancel = cancel;
-	  debounced.flush = flush;
-	  return debounced;
-	}
-
-	/**
-	 * Checks if `value` is classified as a `Function` object.
-	 *
-	 * @static
-	 * @memberOf _
-	 * @since 0.1.0
-	 * @category Lang
-	 * @param {*} value The value to check.
-	 * @returns {boolean} Returns `true` if `value` is correctly classified,
-	 *  else `false`.
-	 * @example
-	 *
-	 * _.isFunction(_);
-	 * // => true
-	 *
-	 * _.isFunction(/abc/);
-	 * // => false
-	 */
-	function isFunction(value) {
-	  // The use of `Object#toString` avoids issues with the `typeof` operator
-	  // in Safari 8 which returns 'object' for typed array and weak map constructors,
-	  // and PhantomJS 1.9 which returns 'function' for `NodeList` instances.
-	  var tag = isObject(value) ? objectToString.call(value) : '';
-	  return tag == funcTag || tag == genTag;
-	}
-
-	/**
-	 * Checks if `value` is the
-	 * [language type](http://www.ecma-international.org/ecma-262/6.0/#sec-ecmascript-language-types)
-	 * of `Object`. (e.g. arrays, functions, objects, regexes, `new Number(0)`, and `new String('')`)
-	 *
-	 * @static
-	 * @memberOf _
-	 * @since 0.1.0
-	 * @category Lang
-	 * @param {*} value The value to check.
-	 * @returns {boolean} Returns `true` if `value` is an object, else `false`.
-	 * @example
-	 *
-	 * _.isObject({});
-	 * // => true
-	 *
-	 * _.isObject([1, 2, 3]);
-	 * // => true
-	 *
-	 * _.isObject(_.noop);
-	 * // => true
-	 *
-	 * _.isObject(null);
-	 * // => false
-	 */
-	function isObject(value) {
-	  var type = typeof value === 'undefined' ? 'undefined' : _typeof(value);
-	  return !!value && (type == 'object' || type == 'function');
-	}
-
-	/**
-	 * Checks if `value` is object-like. A value is object-like if it's not `null`
-	 * and has a `typeof` result of "object".
-	 *
-	 * @static
-	 * @memberOf _
-	 * @since 4.0.0
-	 * @category Lang
-	 * @param {*} value The value to check.
-	 * @returns {boolean} Returns `true` if `value` is object-like, else `false`.
-	 * @example
-	 *
-	 * _.isObjectLike({});
-	 * // => true
-	 *
-	 * _.isObjectLike([1, 2, 3]);
-	 * // => true
-	 *
-	 * _.isObjectLike(_.noop);
-	 * // => false
-	 *
-	 * _.isObjectLike(null);
-	 * // => false
-	 */
-	function isObjectLike(value) {
-	  return !!value && (typeof value === 'undefined' ? 'undefined' : _typeof(value)) == 'object';
-	}
-
-	/**
-	 * Checks if `value` is classified as a `Symbol` primitive or object.
-	 *
-	 * @static
-	 * @memberOf _
-	 * @since 4.0.0
-	 * @category Lang
-	 * @param {*} value The value to check.
-	 * @returns {boolean} Returns `true` if `value` is correctly classified,
-	 *  else `false`.
-	 * @example
-	 *
-	 * _.isSymbol(Symbol.iterator);
-	 * // => true
-	 *
-	 * _.isSymbol('abc');
-	 * // => false
-	 */
-	function isSymbol(value) {
-	  return (typeof value === 'undefined' ? 'undefined' : _typeof(value)) == 'symbol' || isObjectLike(value) && objectToString.call(value) == symbolTag;
-	}
-
-	/**
-	 * Converts `value` to a number.
-	 *
-	 * @static
-	 * @memberOf _
-	 * @since 4.0.0
-	 * @category Lang
-	 * @param {*} value The value to process.
-	 * @returns {number} Returns the number.
-	 * @example
-	 *
-	 * _.toNumber(3);
-	 * // => 3
-	 *
-	 * _.toNumber(Number.MIN_VALUE);
-	 * // => 5e-324
-	 *
-	 * _.toNumber(Infinity);
-	 * // => Infinity
-	 *
-	 * _.toNumber('3');
-	 * // => 3
-	 */
-	function toNumber(value) {
-	  if (typeof value == 'number') {
-	    return value;
-	  }
-	  if (isSymbol(value)) {
-	    return NAN;
-	  }
-	  if (isObject(value)) {
-	    var other = isFunction(value.valueOf) ? value.valueOf() : value;
-	    value = isObject(other) ? other + '' : other;
-	  }
-	  if (typeof value != 'string') {
-	    return value === 0 ? value : +value;
-	  }
-	  value = value.replace(reTrim, '');
-	  var isBinary = reIsBinary.test(value);
-	  return isBinary || reIsOctal.test(value) ? freeParseInt(value.slice(2), isBinary ? 2 : 8) : reIsBadHex.test(value) ? NAN : +value;
-	}
-
-	module.exports = debounce;
 
 /***/ },
 /* 15 */

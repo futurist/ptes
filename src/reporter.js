@@ -58,7 +58,7 @@ const footer = {
     this.success = arg.success.length
     this.fail = arg.fail.length
     this.getClass = ()=> {
-      return this.total==this.success+this.fail ? 'finished' : 'unfinished'
+      return arg.result
     }
   },
   view: function (ctrl, arg) {
@@ -76,7 +76,7 @@ const testItem = {
     return mc('.testItem', [
       mc('span', arg.test.msg),
       mc('span', arg.test.submsg||''),
-      mc('span', arg.test.status||'running'),
+      mc('span', arg.test.status||'?'),
       arg.test.error? mc('a[href=#]', {onclick:function() {
         mOverlay.show('#testimage', {com: m.component(testImage, {data: arg.test.error})})
       }} ,'detail') : []
@@ -87,14 +87,15 @@ const testItem = {
 const reporter = {
   controller: function (arg) {
     this.data = arg.data || testdata
+    this.result = this.data.length && this.data[0].result
   },
   view: function (ctrl, arg) {
     return mc('.runner-result', [
       mc.style(style),
-      mc('menu.top', [ mc('a[href=#]',{onclick:e=>mOverlay.hide(e.target)}, 'close') ]),
+      ctrl.result ? mc('menu.top', [ mc('a[href=#]',{onclick:e=>mOverlay.hide(e.target)}, 'close') ]) : [],
       mc('h3', {style: {margin: '1em 0 0 1em'}}, 'Result for ptest-runner'),
       mc('.reporter',
-         ctrl.data.map(v => {
+         ctrl.data.map( (v,i) => {
            return mc(
              '.item',
              {
@@ -105,11 +106,12 @@ const reporter = {
              },
              v.test
                ? m(testItem, {test:v})
-               : mc('strong', v.msg)
+             : mc('strong', v.msg + (v.result? ' '+v.result:''))
            )
          })
         ),
       mc('.footer', m(footer, {
+        result: ctrl.data[0].result,
         total: ctrl.data.filter(v => v.test),
         success: ctrl.data.filter(v => v.status == 'success'),
         fail: ctrl.data.filter(v => v.status == 'fail'),

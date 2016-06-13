@@ -114,12 +114,14 @@ var _statusColor = {
   'unknown': 'grey',
 }
 
+var RESULT = null
 function _logStatus (str, level, status) {
   var out = ansi.clear_line + _repeat('  ', level || 0) + _color(str, _statusColor[status || 'unknown']) + os.EOL
   _putcon(out)
   return out
 }
 var _report = function () {
+  if(_output.length && RESULT) _output[0].result = RESULT
   if(!isTTY){
     return console.log(JSON.stringify(_output))
   }
@@ -132,7 +134,7 @@ var _report = function () {
     if(scroll>0) _putcon(ansi.scroll_down(scroll) + ansi.cursor_up(scroll))
   }
   _prevOutput = ''
-  _output.forEach(function (v) {
+  _output.forEach(function (v,i) {
     _prevOutput += _logStatus(v.msg + v.submsg, v.level, v.status)
   })
 }
@@ -147,9 +149,9 @@ function describe (msg, func) {
   var _this = new func()
   _level--
 }
-function it (file, func) {
+function it (testPath, file, func) {
   var indent = isTTY ? '⋅ ' : ''
-  var msg = '[' + file + ']'
+  var msg = testPath.slice(0,-1).join('/') + ' [' + file + ']'
   var _this_level = _level
   var _stat = {msg: indent + msg, submsg:'', test:file, level: _this_level}
   func.prototype._timeout = 2000
@@ -180,6 +182,7 @@ function it (file, func) {
     _afterEach && _afterEach.call(_this)
     if (err) {
       _stat.status = 'fail'
+      RESULT = 'fail'
       _report()
       clearTest()
       if(isTTY) assert(false, err)
@@ -190,6 +193,7 @@ function it (file, func) {
       return
     }
     _stat.status = 'success'
+    if(_activeTests.length==0) RESULT='success'
     _report()
   }
   _output.push(_stat)
@@ -238,24 +242,31 @@ function arrayLast (arr) {
 }
 
 function runTestFile (fileName) {
-  var root = getTestRoot(ptest, fileName)
+  var found = treeHelper.deepFindKV(ptest, v=>v._leaf && v.name==fileName).pop()
+  var root = found ? ptest[found.path[0]] : null
+  if(!root) return
+  var testPath = treeHelper.getArrayPath(ptest, found.path).texts
   var testFolder = path.join(TEST_FOLDER, root.folder)
   var url = root.url
+
+  /** get info from file*/
   // if(!path.extname(filename)) filename+='.json'
   var data = fs.readFileSync(path.join(testFolder, fileName+'.json'), 'utf8')
   try{
     var obj = JSON.parse(data)
   }catch(e){ throw new Error('bad json from file:', fileName)}
 
-  var testPath = obj.testPath
+  /** use mTree path instead of file's */
+  // var testPath = obj.testPath
   if (typeof testPath == 'string') testPath = pointer.parse('/'+testPath)
+
   // var name = arrayLast(testPath)
   var name = obj.text || ''
   if(obj.url) url = obj.url
   var span = arrayLast(obj.event).time - obj.event[0].time
   if(!url) return
 
-  it(fileName, function (done) {
+  it(testPath, fileName, function (done) {
     var self = this
     this.setTest(fileName)
     this.timeout(span * 2)
@@ -340,7 +351,8 @@ else
 
 
 function getTestRoot(data, filename) {
-  var found = treeHelper.deepFindKV(data, v=>v['name']==filename).pop()
+  var found = treeHelper.deepFindKV(data, v=>v._leaf && v.name==filename).pop()
+  return found
   return found ? data[found.path[0]] : null
 }
 

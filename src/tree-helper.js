@@ -33,7 +33,7 @@ var ARRAY = '[object Array]'
     var i = 0, path = path || [], found=found||[]
     for (; i < data.length; i++) {
       if (f(data[i])) {
-        found.push({path: path, item: data[i]})
+        found.push({path: path.concat(i), item: data[i]})
       }
       if (data[i].children) {
         deepFindKV(data[i].children, f, path.concat(i), found)

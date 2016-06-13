@@ -207,7 +207,7 @@ var com = {
       if (!v._leaf) {
         node.push(
           {action: 'add', text: 'Add', path: path, folder: folder},
-          {action: 'test', text: 'Test', path: path, file:getLeaf(v).map(x=>x.item.name+''), folder: folder},
+          {action: 'test', text: 'Test', path: path, file:getLeaf(v).map(x=>x.item.name+''), folder: folder, retain:true},
         )
       } else {
         node.push(

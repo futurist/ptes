@@ -2274,7 +2274,6 @@
 	    Mousetrap.unbind(keyNumber);
 	    Mousetrap.bind(keyNumber, function (e, key) {
 	      e.preventDefault();
-	      console.log(key == '1');
 	      index = parseInt(key) - 1;
 	      m.redraw(true);
 	    });

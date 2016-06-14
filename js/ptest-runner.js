@@ -75,6 +75,7 @@ var ansi = {
   magenta: [35, 39],
   cyan: [36, 39],
   grey: [90, 39],
+  white: [37, 39],
 
   clear_screen: CSI+'0J', // 0J = clear from cursor to bottom; 2J = entire screen
   clear_line: CSI+'2K',
@@ -104,6 +105,10 @@ var _repeat = function (str, n) {return new Array(n + 1).join(str) }
 var _output = []
 var _prevOutput = ''
 var _activeTests = []
+var _phantomQueue = []
+
+var _phantomQueueSize = 5
+var _earlyAbort = true
 var _level = 0
 var _beforeEach = null
 var _afterEach = null
@@ -111,6 +116,7 @@ var _statusColor = {
   'fail': 'red,bold',
   'success': 'green',
   'slow': 'yellow',
+  'running': 'white',
   'unknown': 'grey',
 }
 
@@ -168,6 +174,10 @@ function it (testPath, file, func) {
   func.prototype.setTest = function (val) {
     _stat.test = val
   }
+  func.prototype.status = function (val) {
+    _stat.status = val
+    _report()
+  }
   func.prototype.error = function (val) {
     _stat.error = val
   }
@@ -178,12 +188,15 @@ function it (testPath, file, func) {
   }
   var callback = function (err) {
     var idx = _activeTests.indexOf(_this)
+    var pid = _phantomQueue.indexOf(_this)
     if (idx > -1) _activeTests.splice(idx, 1)
+    if (pid > -1) _phantomQueue.splice(pid, 1)
     _afterEach && _afterEach.call(_this)
     if (err) {
       _stat.status = 'fail'
       RESULT = 'fail'
       _report()
+      if(!_earlyAbort) return
       clearTest()
       if(isTTY) assert(false, err)
       else{
@@ -273,46 +286,57 @@ function runTestFile (fileName) {
     this.slow(span * 1.1)
     // var cmd = 'phantomjs --config=phantom.config ptest-phantom.js '+ ptest.url +' '+obj[v].name
     // console.log(__dirname, cmd)
+    var runPhantom = function() {
+      _phantomQueue.push(self)
+      self.status('running')
+      var phantom
+      phantom = spawn('phantomjs', [
+        '--config',
+        path.join('.', 'phantom.config'),
+        path.join(__dirname, 'ptest-phantom.js'),
+        url,
+        fileName
+      ], {
+        cwd: path.join(testFolder)
+      })
 
-    var phantom = spawn('phantomjs', [
-      '--config',
-      path.join('.', 'phantom.config'),
-      path.join(__dirname, 'ptest-phantom.js'),
-      url,
-      fileName
-    ], {
-      cwd: path.join(testFolder)
-    })
+      phantom.stdout.pipe(split2()).on('data', function (line) {
+        // console.log('stdout', line)
+        if (line[0] === '>') {
+          // >{id:12345, type:'type', data:data, cur:1, total:5} format is special!!
+          try {
+            var msg = JSON.parse(line.substr(1))
+            switch (msg.type) {
+            case 'compareImage':
+              compareImage(fileName, testFolder, msg.data, function (err) {
+                self.submsg(util.format('(%s / %s)', msg.cur, msg.total))
+                if(!isTTY) self.error(err)
+                if (err) return done(isTTY? err : JSON.stringify(err))
+                if (msg.meta == 'last') return done()
+              })
+              break
+            } } catch(e) {}
+        }
+      })
+      phantom.stderr.on('data', function (data) {
+        console.log('stderr', data.toString())
+      })
+      phantom.on('exit', function (code, signal) {
+        // console.log('exit', code, signal)
+        // if(!signal) done(code)
+      })
+      phantom.on('error', function (code) {
+        console.log('error', code)
+      })
+      self.phantom = phantom
+    }
 
-    phantom.stdout.pipe(split2()).on('data', function (line) {
-      // console.log('stdout', line)
-      if (line[0] === '>') {
-        // >{id:12345, type:'type', data:data, cur:1, total:5} format is special!!
-        try {
-          var msg = JSON.parse(line.substr(1))
-          switch (msg.type) {
-          case 'compareImage':
-            compareImage(fileName, testFolder, msg.data, function (err) {
-              self.submsg(util.format('(%s / %s)', msg.cur, msg.total))
-              if(!isTTY) self.error(err)
-              if (err) return done(isTTY? err : JSON.stringify(err))
-              if (msg.meta == 'last') return done()
-            })
-            break
-          } } catch(e) {}
+    var inter1 = setInterval(function(){
+      if(_phantomQueue.length<_phantomQueueSize){
+        clearInterval(inter1)
+        runPhantom()
       }
-    })
-    phantom.stderr.on('data', function (data) {
-      console.log('stderr', data.toString())
-    })
-    phantom.on('exit', function (code, signal) {
-      // console.log('exit', code, signal)
-      // if(!signal) done(code)
-    })
-    phantom.on('error', function (code) {
-      console.log('error', code)
-    })
-    this.phantom = phantom
+    }, 300)
   })
 }
 

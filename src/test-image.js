@@ -21,9 +21,19 @@ const style = mj2c.sheet({
     background: '#ccc',
     ' a, span':{
       margin_left:'10px'
+    },
+    ' span.current':{
+      color:'red'
     }
   },
   '.imageBox': {
+    position:'relative',
+    ' .info':{
+      position:'absolute',
+      right:'10px',
+      top:'10px',
+      z_index:999
+    },
     ' .image': {
       position: 'absolute'
     }
@@ -45,6 +55,8 @@ const gallary = {
     var a = data.a
     var images = m.request({method: 'GET', url: [PTEST_PATH, 'testimage'].join(''), data: {folder, test} })
           .then(f => {
+            const found = f.findIndex(v=>v.a==a)
+            if(found>-1) group=found
             return f
           })
 
@@ -57,15 +69,18 @@ const gallary = {
     }
 
     ctrl.getImageList = ()=>{
-      return images().map(v=>mc('span', v.a))
+      return images().map((v,i)=>mc('span', {class:group==i?'current':'',onclick:e=>group=i}, v.a))
     }
 
     ctrl.getImageTag = () => {
       var obj = images()[group]
       var keys = Object.keys(obj)
-      return keys.map((v, i) => {
-        return mc('.image', {class: index !== i ? '  :global(hide)   hide  ' : ''}, mc('img', {src: PTEST_PATH + folder + '/' + obj[v]}))
-      })
+      return [
+        mc('.info', keys[index]),
+        keys.map((v, i) => {
+          return mc('.image', {class: index !== i ? '  :global(hide)   hide  ' : ''}, mc('img', {src: PTEST_PATH + folder + '/' + obj[v]}))
+        })
+      ]
     }
   },
   view: function (ctrl, arg) {

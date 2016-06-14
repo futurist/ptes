@@ -207,12 +207,13 @@ var com = {
       if (!v._leaf) {
         node.push(
           {action: 'add', text: 'Add', path: path, folder: folder},
-          {action: 'test', text: 'Test', path: path, file:getLeaf(v).map(x=>x.item.name+''), folder: folder, retain:true},
+          {action: 'test', text: 'Test', path: path, file:getLeaf(v).map(x=>x.item.name), folder: folder, retain:true},
         )
       } else {
         node.push(
           {action: 'play', text: 'Play', path: path, file: v.name, folder: folder, url: url},
           {action: 'test', text: 'Test', path: path, file: [v.name], folder: folder, url: url, retain:true},
+          {action: 'view', text: 'View', path: path, file: v.name, folder: folder, retain:true},
         )
       }
       return node.map(oneAction)

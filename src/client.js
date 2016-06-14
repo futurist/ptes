@@ -239,6 +239,20 @@ var oncloseSetup = function (arg) {
       // window.reload()
     })
   }
+  if(arg.action=='view'){
+    let {folder, file:test, a} = arg
+    stage = IMAGEVIEW
+    mOverlay.show( '#testimage', { com: m.component(
+        testImage,
+        {
+          data: {folder,test,a},
+          onclose:function() {
+            stage=SETUP
+            mOverlay.hide('#testimage')
+          }
+        }
+      ) } )
+  }
   if(arg.action=='testAll'){
     stage = REPORTER
     sc(' runTestFile() ')

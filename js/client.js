@@ -308,6 +308,20 @@
 	      // window.reload()
 	    });
 	  }
+	  if (arg.action == 'view') {
+	    var folder = arg.folder;
+	    var _test = arg.file;
+	    var a = arg.a;
+
+	    stage = IMAGEVIEW;
+	    _overlay2.default.show('#testimage', { com: m.component(_testImage2.default, {
+	        data: { folder: folder, test: _test, a: a },
+	        onclose: function onclose() {
+	          stage = SETUP;
+	          _overlay2.default.hide('#testimage');
+	        }
+	      }) });
+	  }
 	  if (arg.action == 'testAll') {
 	    stage = REPORTER;
 	    sc(' runTestFile() ');
@@ -694,10 +708,10 @@
 	      var url = getRootVar(v._path, 'url');
 	      if (!v._leaf) {
 	        node.push({ action: 'add', text: 'Add', path: path, folder: folder }, { action: 'test', text: 'Test', path: path, file: getLeaf(v).map(function (x) {
-	            return x.item.name + '';
+	            return x.item.name;
 	          }), folder: folder, retain: true });
 	      } else {
-	        node.push({ action: 'play', text: 'Play', path: path, file: v.name, folder: folder, url: url }, { action: 'test', text: 'Test', path: path, file: [v.name], folder: folder, url: url, retain: true });
+	        node.push({ action: 'play', text: 'Play', path: path, file: v.name, folder: folder, url: url }, { action: 'test', text: 'Test', path: path, file: [v.name], folder: folder, url: url, retain: true }, { action: 'view', text: 'View', path: path, file: v.name, folder: folder, retain: true });
 	      }
 	      return node.map(oneAction);
 	    }
@@ -2184,9 +2198,19 @@
 	    background: '#ccc',
 	    ' a, span': {
 	      margin_left: '10px'
+	    },
+	    ' span.current': {
+	      color: 'red'
 	    }
 	  },
 	  '.imageBox': {
+	    position: 'relative',
+	    ' .info': {
+	      position: 'absolute',
+	      right: '10px',
+	      top: '10px',
+	      z_index: 999
+	    },
 	    ' .image': {
 	      position: 'absolute'
 	    }
@@ -2207,6 +2231,10 @@
 	    var test = data.test;
 	    var a = data.a;
 	    var images = m.request({ method: 'GET', url: [PTEST_PATH, 'testimage'].join(''), data: { folder: folder, test: test } }).then(function (f) {
+	      var found = f.findIndex(function (v) {
+	        return v.a == a;
+	      });
+	      if (found > -1) group = found;
 	      return f;
 	    });
 
@@ -2219,17 +2247,19 @@
 	    };
 
 	    ctrl.getImageList = function () {
-	      return images().map(function (v) {
-	        return mc('span', v.a);
+	      return images().map(function (v, i) {
+	        return mc('span', { class: group == i ? 'current' : '', onclick: function onclick(e) {
+	            return group = i;
+	          } }, v.a);
 	      });
 	    };
 
 	    ctrl.getImageTag = function () {
 	      var obj = images()[group];
 	      var keys = Object.keys(obj);
-	      return keys.map(function (v, i) {
+	      return [mc('.info', keys[index]), keys.map(function (v, i) {
 	        return mc('.image', { class: index !== i ? '  :global(hide)   hide  ' : '' }, mc('img', { src: PTEST_PATH + folder + '/' + obj[v] }));
-	      });
+	      })];
 	    };
 	  },
 	  view: function view(ctrl, arg) {

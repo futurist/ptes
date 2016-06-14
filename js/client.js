@@ -2261,6 +2261,23 @@
 	        return mc('.image', { class: index !== i ? '  :global(hide)   hide  ' : '' }, mc('img', { src: PTEST_PATH + folder + '/' + obj[v] }));
 	      })];
 	    };
+
+	    ctrl.onunload = function (e) {
+	      /** tested bug below: preventdefault will trigger 2 unloaded??? */
+	      // e.preventDefault()
+	      console.log('unloaded', e);
+	      Mousetrap.unbind(keyNumber);
+	    };
+
+	    var keyNumber = ['1', '2', '3', '4'];
+	    /** Bind to short cut to switch images */
+	    Mousetrap.unbind(keyNumber);
+	    Mousetrap.bind(keyNumber, function (e, key) {
+	      e.preventDefault();
+	      console.log(key == '1');
+	      index = parseInt(key) - 1;
+	      m.redraw(true);
+	    });
 	  },
 	  view: function view(ctrl, arg) {
 	    return mc('.test-image-con', [mc.style(style), mc('menu.top', [mc('a[href=#]', { onclick: function onclick(e) {

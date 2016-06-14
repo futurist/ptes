@@ -15,7 +15,7 @@ function ensureExt (file, ext) {
   else return [file, '.', ext.replace(/\.+/, '')].join('')
 }
 
-function getImageArray (folder, test, base) {
+function getImageArray (folder, test, base, cb) {
   folder = folder||'../../nlp/test/ptest_data/'
   test = test||'test1464943421058'
   if(base) base = path.parse(base).base
@@ -46,7 +46,9 @@ function getImageArray (folder, test, base) {
 
         return obj
       })
-      console.log(ret)
+      console.log(snaps, ret)
+
+      if(cb) cb(ret)
     })
   }
 
@@ -55,4 +57,4 @@ function getImageArray (folder, test, base) {
 
 module.exports = getImageArray
 
-getImageArray(1,1,'test1464943421058/1464943205970.png')
+// getImageArray(null,null,'test1464943421058/1464943205970.png')

@@ -134,9 +134,10 @@ var HttpServer = http.createServer(function (req, res) {
     var folder = urlObj.query.folder
     var test = urlObj.query.test
     var base = urlObj.query.base
-    var json = getImageArray(folder, test, base)
-    res.writeHead(200, 'OK', {'Content-Type': 'application/json'})
-    res.end(JSON.stringify(json))
+    getImageArray(folder, test, base, ret=>{
+      res.writeHead(200, 'OK', {'Content-Type': 'application/json'})
+      res.end(JSON.stringify(ret))
+    })
     return
   }
 

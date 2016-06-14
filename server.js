@@ -24,6 +24,7 @@ var spawn = require('child_process').spawn
 var pointer = require('json-pointer')
 var pkg = require('./package.json')
 var treeHelper = require('./src/tree-helper')
+var getImageArray = require('./getImageArray.js')
 
 var DEFAULT_URL = [
   'http://1111hui.com/nlp/tree.html',
@@ -130,8 +131,12 @@ var HttpServer = http.createServer(function (req, res) {
 
   var urlObj = url.parse(req.url,true)
   if (urlObj.pathname === '/testimage' && req.method == 'GET') {
+    var folder = urlObj.query.folder
+    var test = urlObj.query.test
+    var base = urlObj.query.base
+    var json = getImageArray(folder, test, base)
     res.writeHead(200, 'OK', {'Content-Type': 'application/json'})
-    res.end(JSON.stringify({a:1234,b:234}))
+    res.end(JSON.stringify(json))
     return
   }
 

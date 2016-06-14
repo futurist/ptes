@@ -27,6 +27,7 @@
     "undo-manager": "^1.0.5",
     "util_debounce_throttle": "^1.0.0",
     "util_extend_exclude": "^1.0.4",
+    "walk": "^2.3.9",
     "ws": "^1.0.1"
   },
   "devDependencies": {

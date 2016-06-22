@@ -29,14 +29,15 @@ var ARRAY = '[object Array]'
  * @param {} val
  * @returns {}
  */
-  function deepFindKV (data, f, path, found) {
-    var i = 0, path = path || [], found=found||[]
+  function deepFindKV (data, f, howMany, path, found) {
+    var i = 0, path = path || [], found=found||[], howMany=howMany|0
     for (; i < data.length; i++) {
       if (f(data[i])) {
         found.push({path: path.concat(i), item: data[i]})
+        if(howMany--<1) break
       }
       if (data[i].children) {
-        deepFindKV(data[i].children, f, path.concat(i), found)
+        deepFindKV(data[i].children, f, howMany, path.concat(i), found)
       }
     }
     return found

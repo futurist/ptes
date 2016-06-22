@@ -1,5 +1,13 @@
-var j2c = require('j2c')
-
+;(function (root, factory) {
+  if (typeof define === 'function' && define.amd) {
+    define([], factory) // define(['jquery'], factory)
+  } else if (typeof exports === 'object' && typeof module !== 'undefined') {
+    module.exports = factory() // factory(require('jquery'))
+  } else {
+    root.mj2c = factory() // should return obj in factory
+  }
+}(this, function () {
+var mj2c = require('j2c')
 var hasOwn = {}.hasOwnProperty
 var type = {}.toString
 
@@ -61,9 +69,12 @@ function bindM (M) {
   return M.c
 }
 
-j2c.bindM = bindM
+mj2c.bindM = bindM
 
-module.exports = j2c
+// module.exports = mj2c
+
+//
+/** helper functions **/
 
 function getStyle(style, cls) {
   var globalRe = /:global\(([^)]+)\)/i
@@ -120,3 +131,7 @@ function assignAttrs(target, attrs, classes, style) {
 
   if (classes.length) target[classAttr] = classes.join(" ")
 }
+
+  // module exports
+  return mj2c
+}))

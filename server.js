@@ -587,7 +587,7 @@ function stopPhantom () {
 }
 
 function getTestRoot(filename) {
-  var found = deepFindKV(Config, 'name', filename)
+  var found = treeHelper.deepFindKV(Config, v=>v['name']==filename, 1).pop()
   return found ? Config[found.path[0]] : null
 }
 

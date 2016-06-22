@@ -1769,11 +1769,11 @@
 	  /** helper functions **/
 
 	  function getStyle(style, cls) {
-	    var globalRe = /:global\(([^)]+)\)/i;
+	    var globalRe = /:global\(([^)]+)\)|!([^.#]+)/i;
 	    var classes = cls.split(/\s+/);
 	    return classes.map(function (v) {
 	      var match = v.match(globalRe);
-	      if (match) return match.pop();else return style[v] || v;
+	      if (match) return match.pop() || match.pop();else return style[v] || v;
 	    }).join(' ');
 	  }
 

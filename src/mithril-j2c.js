@@ -7,6 +7,7 @@
     root.mj2c = factory() // should return obj in factory
   }
 }(this, function () {
+var self = this
 var mj2c = require('j2c')
 var hasOwn = {}.hasOwnProperty
 var type = {}.toString
@@ -20,7 +21,7 @@ function isString (object) {
 }
 
 function bindM (M) {
-  M = M || m
+  M = M || self.m || m
   if (!M) throw new Error('cannot find mithril, make sure you have `m` available in this scope.')
 
   var style = {}
@@ -58,12 +59,16 @@ function bindM (M) {
   }
 
   M.c.style = function (j2cObject) {
-    if (!isString(j2cObject)) {
+    if(!arguments.length)
+      return style
+    if (!j2cObject) {
       style = {}
       return []
     }
-    style = j2cObject
-    return M('style', {type: 'text/css'}, style)
+    if(isString(j2cObject)){
+      style = j2cObject
+      return M('style', {type: 'text/css'}, style)
+    }
   }
 
   return M.c

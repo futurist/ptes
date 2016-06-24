@@ -559,7 +559,7 @@
 	}
 
 	function getLeaf(node, f) {
-	  if (node._leaf) return [node];else return treeHelper.deepFindKV(node.children, function (v) {
+	  if (node._leaf) return [node];else if (!node.children) return [];else return treeHelper.deepFindKV(node.children, function (v) {
 	    return v._leaf == true;
 	  });
 	}
@@ -1701,6 +1701,7 @@
 	        root.mj2c = factory(); // should return obj in factory
 	      }
 	})(undefined, function () {
+	  var self = this;
 	  var mj2c = __webpack_require__(7);
 	  var hasOwn = {}.hasOwnProperty;
 	  var type = {}.toString;
@@ -1714,7 +1715,7 @@
 	  }
 
 	  function bindM(M) {
-	    M = M || m;
+	    M = M || self.m || m;
 	    if (!M) throw new Error('cannot find mithril, make sure you have `m` available in this scope.');
 
 	    var style = {};
@@ -1750,12 +1751,15 @@
 	    };
 
 	    M.c.style = function (j2cObject) {
-	      if (!isString(j2cObject)) {
+	      if (!arguments.length) return style;
+	      if (!j2cObject) {
 	        style = {};
 	        return [];
 	      }
-	      style = j2cObject;
-	      return M('style', { type: 'text/css' }, style);
+	      if (isString(j2cObject)) {
+	        style = j2cObject;
+	        return M('style', { type: 'text/css' }, style);
+	      }
 	    };
 
 	    return M.c;

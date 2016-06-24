@@ -61,6 +61,7 @@ if (!Array.prototype.last) {
 
 function getLeaf(node, f) {
   if(node._leaf) return [node]
+  else if (!node.children) return []
   else return treeHelper.deepFindKV(node.children, (v)=>v._leaf==true)
 }
 function cleanData (data, store) {

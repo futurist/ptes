@@ -309,6 +309,16 @@ page.onLoadFinished = function (status) { // success
   renderLoop()
 
   page.evaluate(function () {
+    var __randomStore = []
+    var __old_math_random = Math.random
+    Math.random = function () {
+      var val = __old_math_random()
+      __randomStore.push(val)
+      return val
+    }
+  })
+
+  page.evaluate(function () {
     window.addEventListener('mousemove', function (evt) {
       // _phantom.setDot(evt.pageX,evt.pageY)
     })

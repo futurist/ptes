@@ -343,11 +343,11 @@ function registerEvent () {
     // 'dblclick',
   ]
   eventList.forEach(function (v) {
-    $('#phantom').on(v, function (evt) {
+    $(window).on(v, function (evt) {
+      if (stage !== RECORDING && stage!==null) return
       const e = evt.originalEvent
       const isKey = /key/.test(e.type)
       if (isKey) e.preventDefault()
-      if (stage === PLAYING) return
       // if (!isKey && e.target.id!=='phantom') return
       let modifier = 0
       if (e.shiftKey) modifier |= MODIFIER.shift

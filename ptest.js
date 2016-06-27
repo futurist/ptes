@@ -122,7 +122,7 @@ function connectWS() {
 
         // command from client.html
       case 'command':
-        var cmd = msg.data.trim().match(/([.\w]+)\((.*)\)/)
+        var cmd = msg.data.trim().match(/([.\w]+)\s*\((.*)\)/)
         var cb = function (result) {
           if (arguments.length) msg.result = result
           delete msg.data

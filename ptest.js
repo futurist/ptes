@@ -15,12 +15,11 @@ function assertError (msg, stack) {
   phantom.exit(1)
 }
 var PageClip = {}
-var URL = ''
 var DBLCLICK_INTERVAL = 500 // windows default double click time is 500ms
 var WHICH_MOUSE_BUTTON = {'0': '', '1': 'left', '2': 'middle', '3': 'right'}
 var ASYNC_COMMAND = {
   'page.reload': null,
-  'page.go': null
+  'page.open': null
 }
 var asyncCB = function (cmd) {
   var args = [].slice.call(arguments, 1)
@@ -120,15 +119,17 @@ function connectWS() {
 
         // command from client.html
       case 'command':
-        var cmd = msg.data.trim().split('(').shift()
+        var cmd = msg.data.trim().match(/([.\w]+)\((.*)\)/)
         var cb = function (result) {
           if (arguments.length) msg.result = result
           delete msg.data
           msg.type = 'command_result'
           ws._send(msg)
         }
-        var isAsync = cmd in ASYNC_COMMAND
-        if (msg.__id && isAsync) ASYNC_COMMAND[cmd] = cb
+        var isAsync = cmd && cmd[1] in ASYNC_COMMAND
+        if(isAsync && cmd[1]=='page.open'){
+        }
+        if (msg.__id && isAsync) ASYNC_COMMAND[cmd[1]] = cb
 
         try {
           if (msg.meta == 'client') {
@@ -311,10 +312,10 @@ page.onLoadFinished = function (status) { // success
 
 function init () {
   if (sys.args.length === 1) return
-  URL = sys.args[1]
+  var url = sys.args[1]
   // URL = 'http://bing.com'
   if (page.clearMemoryCache) page.clearMemoryCache()
-  page.open(URL)
+  page.open(url)
 }
 init()
 

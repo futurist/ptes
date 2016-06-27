@@ -202,12 +202,13 @@ function startRec (arg, name) {
   DATA_DIR = arg.folder
   var title = arg.path
   var folder = arg.folder
+  var url = arg.url
 
   Config = readPtestConfig(true)
 
-  return console.log(arg, folder, title, name, Config)
+  // return console.log(arg, folder, title, name, Config)
 
-  toPhantom({ type: 'command', meta: 'server', data: 'page.reload()' }, function (msg) {
+  toPhantom({ type: 'command', meta: 'server', data: 'page.open("'+ url +'")' }, function (msg) {
     if (msg.result === 'success') {
       name = name || 'test' + (+new Date())
       ImageName = name

@@ -15,7 +15,7 @@ function assertError (msg, stack) {
   phantom.exit(1)
 }
 
-var ARG_URL = sys.args.length>1 && sys.args[1]
+var ARG_URL = sys.args.length>1 && sys.args[1] || 'about:blank'
 var PageClip = {}
 var DBLCLICK_INTERVAL = 500 // windows default double click time is 500ms
 var WHICH_MOUSE_BUTTON = {'0': '', '1': 'left', '2': 'middle', '3': 'right'}
@@ -292,10 +292,11 @@ page.onLoadFinished = function (status) { // success
     head.insertBefore(style, head.firstChild)
   })
 
-  asyncCB('page.open', status)
-  asyncCB('page.reload', status)
-
   createCursor()
+
+  Object.keys(ASYNC_COMMAND).forEach(function(cmd) {
+    asyncCB(cmd, status)
+  })
 
   clearTimeout(renderRun)
   renderRun = 0

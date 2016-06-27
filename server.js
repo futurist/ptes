@@ -29,6 +29,7 @@ var getImageArray = require('./getImageArray.js')
 var DEFAULT_URL = [
   'http://1111hui.com/nlp/tree.html',
   // 'http://1111hui.com/github/ptes/abc.html',
+  'about:blank'
 ].pop()
 var HTTP_HOST = '0.0.0.0'
 var HTTP_PORT = 8080
@@ -46,8 +47,8 @@ commander
 
 var cmdArgs = (commander.args)
 if (!commander.list && !cmdArgs.length) {
-  console.log('Usage:\n  ptest-server -l\n  ptest-server url -d [testDir] -p [playTest]\n    [testDir] default value: %s', path.join(TEST_FOLDER, '..'))
-  process.exit()
+  // console.log('Usage:\n  ptest-server -l\n  ptest-server url -d [testDir] -p [playTest]\n    [testDir] default value: %s', path.join(TEST_FOLDER, '..'))
+  // process.exit()
 }
 if (cmdArgs[0] !== 'debug') DEFAULT_URL = cmdArgs[0]
 if (commander.list) { }
@@ -438,7 +439,7 @@ class EventPlayBack {
     co(function * () {
       // refresh phantom page before play
       yield new Promise(function (ok, error) {
-        toPhantom({ type: 'command', meta: 'server', data: 'page.reload()' }, function (msg) {
+        toPhantom({ type: 'command', meta: 'server', data: 'openPage("'+DEFAULT_URL+'")' }, function (msg) {
           if (msg.result == 'success') ok()
           else error()
         })
@@ -611,6 +612,7 @@ function playTestFile (filename, url) {
     try {
       data = JSON.parse(data)
       if (typeof data != 'object' || !data) throw Error()
+      DEFAULT_URL = root.url
       EventCache = data.event
       ViewportCache = [EventCache[0].msg]
       PageClip = data.clip

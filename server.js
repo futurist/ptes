@@ -208,7 +208,7 @@ function startRec (arg, name) {
 
   // return console.log(arg, folder, title, name, Config)
 
-  toPhantom({ type: 'command', meta: 'server', data: 'page.open("'+ url +'")' }, function (msg) {
+  toPhantom({ type: 'command', meta: 'server', data: 'openPage("'+ url +'")' }, function (msg) {
     if (msg.result === 'success') {
       name = name || 'test' + (+new Date())
       ImageName = name

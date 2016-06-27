@@ -14,12 +14,15 @@ function assertError (msg, stack) {
   console.log(msg, '\n' + stack.map(function (v) { return 'Line ' + v.line + ' ' + (v.function ? '[' + v.function + '] ' : '') + v.file }).join('\n'))
   phantom.exit(1)
 }
+
+var ARG_URL = sys.args.length>1 && sys.args[1]
 var PageClip = {}
 var DBLCLICK_INTERVAL = 500 // windows default double click time is 500ms
 var WHICH_MOUSE_BUTTON = {'0': '', '1': 'left', '2': 'middle', '3': 'right'}
 var ASYNC_COMMAND = {
   'page.reload': null,
-  'page.open': null
+  'page.open': null,
+  'openPage':null
 }
 var asyncCB = function (cmd) {
   var args = [].slice.call(arguments, 1)
@@ -310,14 +313,14 @@ page.onLoadFinished = function (status) { // success
   })
 }
 
-function init () {
-  if (sys.args.length === 1) return
-  var url = sys.args[1]
+function openPage (url) {
+  // if (sys.args.length === 1) return
+  url = url || ARG_URL
   // URL = 'http://bing.com'
   if (page.clearMemoryCache) page.clearMemoryCache()
   page.open(url)
 }
-init()
+openPage()
 
 // key code map, for sendEvent of key
 var keyNameAlias = {

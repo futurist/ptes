@@ -188,10 +188,19 @@ var com = {
       return dest
     }
 
+    function isValidTree(arg) {
+      if( treeHelper.deepFindKV(data, v=>v._edit, 1).length ){
+        alert('Cannot proceed when in edit status')
+        return false
+      }
+      return true
+    }
+
     function oneAction (obj) {
       return m('a[href=#]', {class: 'action', onmousedown: e => {
         e.stopPropagation()
         e.preventDefault()
+        if(!isValidTree()) return
         if(obj.save) saveConfig(true, (err, ret)=>{
           args.onclose(obj)
         })
@@ -523,6 +532,7 @@ var com = {
     }
 
     function saveConfig (silent, callback) {
+      if(!isValidTree()) return
       var d = cleanData(data)
       m.request({method: 'POST', url: '/config', data: d})
         .then(

@@ -690,10 +690,21 @@
 	      return dest;
 	    }
 
+	    function isValidTree(arg) {
+	      if (treeHelper.deepFindKV(data, function (v) {
+	        return v._edit;
+	      }, 1).length) {
+	        alert('Cannot proceed when in edit status');
+	        return false;
+	      }
+	      return true;
+	    }
+
 	    function oneAction(obj) {
 	      return m('a[href=#]', { class: 'action', onmousedown: function onmousedown(e) {
 	          e.stopPropagation();
 	          e.preventDefault();
+	          if (!isValidTree()) return;
 	          if (obj.save) saveConfig(true, function (err, ret) {
 	            args.onclose(obj);
 	          });else args.onclose(obj);
@@ -994,6 +1005,7 @@
 	    }
 
 	    function saveConfig(silent, callback) {
+	      if (!isValidTree()) return;
 	      var d = cleanData(data);
 	      m.request({ method: 'POST', url: '/config', data: d }).then(function (ret) {
 	        if (!ret.error) {

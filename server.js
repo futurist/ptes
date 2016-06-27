@@ -190,16 +190,22 @@ function showDiff (a, b) {
   })
 }
 
-function startRec (folder, title, name) {
+function startRec (arg, name) {
   if (playBack.status != STOPPED) {
     return client_console('cannot record when in playback')
   }
   try {
     // title is base64+JSON-stringify, so decode it
-    title = JSON.parse(querystring.unescape(atob(title)))
-  } catch(e) { return console.log('startRec: bad title') }
+    arg = JSON.parse(querystring.unescape(atob(arg)))
+  } catch(e) { return console.log('startRec: bad argument') }
 
-  DATA_DIR = folder
+  DATA_DIR = arg.folder
+  var title = arg.path
+  var folder = arg.folder
+
+  Config = readPtestConfig(true)
+
+  return console.log(arg, folder, title, name, Config)
 
   toPhantom({ type: 'command', meta: 'server', data: 'page.reload()' }, function (msg) {
     if (msg.result === 'success') {

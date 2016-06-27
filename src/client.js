@@ -187,9 +187,10 @@ function cc (str, isPhantom) {
   })
 }
 
-function startStopRec (e, title, folder) {
+function startStopRec (e, arg) {
   if (e) e.preventDefault()
-  // let title = ''
+  arg=arg||{}
+  let title = arg.path
   if (stage == null) {
     if (!title)
       while(1) {
@@ -199,7 +200,7 @@ function startStopRec (e, title, folder) {
         else if (/\/$/.test(title)) alert('cannot end of /')
         else {
           // title is string of json: ['a','b']
-          title = JSON.stringify(title.split('/'))
+          arg.path = title = JSON.stringify(title.split('/'))
           break
         }
       }
@@ -208,7 +209,7 @@ function startStopRec (e, title, folder) {
     // document.title = 'recording...'+title
     flashTitle('RECORDING')
     currentName = 'test' + (+new Date())
-    sc(' startRec("'+folder+'", "' + btoa(encodeURIComponent(title)) + '", "' + currentName + '") ')
+    sc(' startRec("' + btoa(encodeURIComponent(JSON.stringify(arg))) + '", "' + currentName + '") ')
     stage = RECORDING
   } else if (stage == RECORDING) {
     return saveRec(null, true)
@@ -230,7 +231,7 @@ var oncloseSetup = function (arg) {
   const path =JSON.stringify(arg.path)
   if (arg.action=='add') {
     if(confirm('Confirm to begin record new test for path:\n\n    ' + path+'\n    '+ arg.folder))
-      startStopRec(null, path, arg.folder)
+      startStopRec(null, arg)
   }
   if(arg.action=='play'){
     stage = PLAYING

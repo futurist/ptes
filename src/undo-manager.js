@@ -5,7 +5,7 @@ https://github.com/ArthurClemens/Javascript-Undo-Manager
 
 ;(function() {
 
-  'use strict';
+	'use strict';
 
     function removeFromTo(array, from, to) {
         array.splice(from,
@@ -83,7 +83,6 @@ https://github.com/ArthurClemens/Javascript-Undo-Manager
                 }
               var g = command.group;
               while(command.group === g){
-                console.log('undo',index, command)
                 execute(command, "undo");
                 index -= 1;
                 command = commands[index];
@@ -105,7 +104,6 @@ https://github.com/ArthurClemens/Javascript-Undo-Manager
                 }
               var g = command.group;
               while(command.group === g){
-                console.log('redo',index+1, command)
                 execute(command, "redo");
                 index += 1;
                 command = commands[index+1];
@@ -172,15 +170,15 @@ https://github.com/ArthurClemens/Javascript-Undo-Manager
         };
     };
 
-  if (typeof define === 'function' && typeof define.amd === 'object' && define.amd) {
-    // AMD. Register as an anonymous module.
-    define(function() {
-      return UndoManager;
-    });
-  } else if (typeof module !== 'undefined' && module.exports) {
-    module.exports = UndoManager;
-  } else {
-    window.UndoManager = UndoManager;
-  }
+	if (typeof define === 'function' && typeof define.amd === 'object' && define.amd) {
+		// AMD. Register as an anonymous module.
+		define(function() {
+			return UndoManager;
+		});
+	} else if (typeof module !== 'undefined' && module.exports) {
+		module.exports = UndoManager;
+	} else {
+		window.UndoManager = UndoManager;
+	}
 
 }());

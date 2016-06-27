@@ -262,23 +262,24 @@
 	  });
 	}
 
-	function startStopRec(e, title, folder) {
+	function startStopRec(e, arg) {
 	  if (e) e.preventDefault();
-	  // let title = ''
+	  arg = arg || {};
+	  var title = arg.path;
 	  if (stage == null) {
 	    if (!title) while (1) {
 	      title = currentPath = window.prompt('which title', currentPath) || '';
 	      if (!title) return;
 	      if (INVALID_NAME_REGEXP.test(title)) alert('path name cannot contain ' + INVALID_NAME);else if (/\/$/.test(title)) alert('cannot end of /');else {
 	        // title is string of json: ['a','b']
-	        title = JSON.stringify(title.split('/'));
+	        arg.path = title = JSON.stringify(title.split('/'));
 	        break;
 	      }
 	    } else currentPath = title;
 	    // document.title = 'recording...'+title
 	    flashTitle('RECORDING');
 	    currentName = 'test' + +new Date();
-	    sc(' startRec("' + folder + '", "' + btoa(encodeURIComponent(title)) + '", "' + currentName + '") ');
+	    sc(' startRec("' + btoa(encodeURIComponent(JSON.stringify(arg))) + '", "' + currentName + '") ');
 	    stage = RECORDING;
 	  } else if (stage == RECORDING) {
 	    return saveRec(null, true);
@@ -299,7 +300,7 @@
 	  if (!arg.retain) hideSetup();
 	  var path = JSON.stringify(arg.path);
 	  if (arg.action == 'add') {
-	    if (confirm('Confirm to begin record new test for path:\n\n    ' + path + '\n    ' + arg.folder)) startStopRec(null, path, arg.folder);
+	    if (confirm('Confirm to begin record new test for path:\n\n    ' + path + '\n    ' + arg.folder)) startStopRec(null, arg);
 	  }
 	  if (arg.action == 'play') {
 	    stage = PLAYING;
@@ -693,7 +694,9 @@
 	      return m('a[href=#]', { class: 'action', onmousedown: function onmousedown(e) {
 	          e.stopPropagation();
 	          e.preventDefault();
-	          args.onclose(obj);
+	          if (obj.save) saveConfig(true, function (err, ret) {
+	            args.onclose(obj);
+	          });else args.onclose(obj);
 	        } }, obj.text || obj.action);
 	    }
 
@@ -707,11 +710,11 @@
 	      var folder = getRootVar(v._path, 'folder');
 	      var url = getRootVar(v._path, 'url');
 	      if (!v._leaf) {
-	        node.push({ action: 'add', text: 'Add', path: path, folder: folder }, { action: 'test', text: 'Test', path: path, file: getLeaf(v).map(function (x) {
+	        node.push({ action: 'add', text: 'Add', _path: v._path, path: path, folder: folder, save: true, url: url }, { action: 'test', text: 'Test', _path: v._path, path: path, file: getLeaf(v).map(function (x) {
 	            return x.item.name;
-	          }), folder: folder, retain: true });
+	          }), folder: folder, retain: true, url: url });
 	      } else {
-	        node.push({ action: 'play', text: 'Play', path: path, file: v.name, folder: folder, url: url }, { action: 'test', text: 'Test', path: path, file: [v.name], folder: folder, url: url, retain: true }, { action: 'view', text: 'View', path: path, file: v.name, folder: folder, retain: true });
+	        node.push({ action: 'play', text: 'Play', _path: v._path, path: path, file: v.name, folder: folder, url: url }, { action: 'test', text: 'Test', _path: v._path, path: path, file: [v.name], folder: folder, url: url, retain: true }, { action: 'view', text: 'View', _path: v._path, path: path, file: v.name, folder: folder, retain: true });
 	      }
 	      return node.map(oneAction);
 	    }
@@ -990,12 +993,16 @@
 	      };
 	    }
 
-	    function saveConfig() {
+	    function saveConfig(silent, callback) {
 	      var d = cleanData(data);
 	      m.request({ method: 'POST', url: '/config', data: d }).then(function (ret) {
-	        if (!ret.error) alert('Save success.');
+	        if (!ret.error) {
+	          if (!silent) alert('Save success.');
+	          if (callback) callback(null, ret);
+	        }
 	      }, function (e) {
 	        alert('save failed!!!!' + e.message);
+	        if (callback) callback(e);
 	      });
 	    }
 
@@ -1230,7 +1237,7 @@
 /* 2 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var __WEBPACK_AMD_DEFINE_RESULT__;'use strict';
+	var __WEBPACK_AMD_DEFINE_RESULT__;"use strict";
 
 	var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol ? "symbol" : typeof obj; };
 
@@ -1318,7 +1325,6 @@
 	                }
 	                var g = command.group;
 	                while (command.group === g) {
-	                    console.log('undo', index, command);
 	                    execute(command, "undo");
 	                    index -= 1;
 	                    command = commands[index];
@@ -1340,7 +1346,6 @@
 	                }
 	                var g = command.group;
 	                while (command.group === g) {
-	                    console.log('redo', index + 1, command);
 	                    execute(command, "redo");
 	                    index += 1;
 	                    command = commands[index + 1];

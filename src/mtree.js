@@ -192,7 +192,10 @@ var com = {
       return m('a[href=#]', {class: 'action', onmousedown: e => {
         e.stopPropagation()
         e.preventDefault()
-        args.onclose(obj)
+        if(obj.save) saveConfig(true, (err, ret)=>{
+          args.onclose(obj)
+        })
+        else args.onclose(obj)
       }}, obj.text || obj.action)
     }
 
@@ -207,14 +210,14 @@ var com = {
       let url = getRootVar(v._path, 'url')
       if (!v._leaf) {
         node.push(
-          {action: 'add', text: 'Add', path: path, folder: folder},
-          {action: 'test', text: 'Test', path: path, file:getLeaf(v).map(x=>x.item.name), folder: folder, retain:true},
+          {action: 'add', text: 'Add', _path:v._path, path: path, folder: folder, save:true, url:url},
+          {action: 'test', text: 'Test', _path:v._path, path: path, file:getLeaf(v).map(x=>x.item.name), folder: folder, retain:true, url:url},
         )
       } else {
         node.push(
-          {action: 'play', text: 'Play', path: path, file: v.name, folder: folder, url: url},
-          {action: 'test', text: 'Test', path: path, file: [v.name], folder: folder, url: url, retain:true},
-          {action: 'view', text: 'View', path: path, file: v.name, folder: folder, retain:true},
+          {action: 'play', text: 'Play', _path:v._path, path: path, file: v.name, folder: folder, url: url},
+          {action: 'test', text: 'Test', _path:v._path, path: path, file: [v.name], folder: folder, url: url, retain:true},
+          {action: 'view', text: 'View', _path:v._path, path: path, file: v.name, folder: folder, retain:true},
         )
       }
       return node.map(oneAction)
@@ -519,16 +522,21 @@ var com = {
       }
     }
 
-    function saveConfig () {
+    function saveConfig (silent, callback) {
       var d = cleanData(data)
       m.request({method: 'POST', url: '/config', data: d})
-        .then(function (ret) {
-          if (!ret.error) alert('Save success.')
-        },
-              function (e) {
-                alert('save failed!!!!' + e.message)
-              }
-             )
+        .then(
+          function (ret) {
+            if (!ret.error){
+              if(!silent) alert('Save success.')
+              if(callback) callback(null, ret)
+            }
+          },
+          function (e) {
+            alert('save failed!!!!' + e.message)
+            if(callback) callback(e)
+          }
+        )
     }
 
     function getMenu (items) {

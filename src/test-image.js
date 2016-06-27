@@ -19,20 +19,20 @@ const style = mj2c.sheet({
   },
   'menu.top': {
     background: '#ccc',
-    ' a, span':{
-      margin_left:'10px'
+    ' a, span': {
+      margin_left: '10px'
     },
-    ' span.current':{
-      color:'red'
+    ' span.current': {
+      color: 'red'
     }
   },
   '.imageBox': {
-    position:'relative',
-    ' .info':{
-      position:'absolute',
-      right:'10px',
-      top:'10px',
-      z_index:999
+    position: 'relative',
+    ' .info': {
+      position: 'absolute',
+      right: '10px',
+      top: '10px',
+      z_index: 999
     },
     ' .image': {
       position: 'absolute'
@@ -54,11 +54,11 @@ const gallary = {
     var test = data.test
     var a = data.a
     var images = m.request({method: 'GET', url: [PTEST_PATH, 'testimage'].join(''), data: {folder, test} })
-          .then(f => {
-            const found = f.findIndex(v=>v.a==a)
-            if(found>-1) group=found
-            return f
-          })
+        .then(f => {
+          const found = f.findIndex(v => v.a == a)
+          if (found > -1) group = found
+          return f
+        })
 
     ctrl.cycleVisible = (diff) => {
       var obj = images()[group]
@@ -68,34 +68,45 @@ const gallary = {
       m.redraw(true)
     }
 
-    ctrl.getImageList = ()=>{
-      return images().map((v,i)=>mc('span', {class:group==i?'current':'',onclick:e=>group=i}, v.a))
+    ctrl.getImageList = () => {
+      return images().map((v, i) => mc('span', {class: group == i ? 'current' : '',onclick: e => group = i}, v.a))
+    }
+
+    ctrl.getInfoTag = (keys, index) => {
+      if (keys[index] == 'last')
+        return m('a[href=javascript:;]', {onmousedown:e=>{
+          e.preventDefault()
+          e.stopPropagation()
+          alert('Apply this test image?\nWARNING: original test image will be lost!!!')
+        }}, 'last')
+      else
+        return keys[index]
     }
 
     ctrl.getImageTag = () => {
       var obj = images()[group]
       var keys = Object.keys(obj)
       return [
-        mc('.info', keys[index]),
+        mc('.info', ctrl.getInfoTag(keys, index)),
         keys.map((v, i) => {
           return mc('.image', {class: index !== i ? '  :global(hide)   hide  ' : ''}, mc('img', {src: PTEST_PATH + folder + '/' + obj[v]}))
         })
       ]
     }
 
-    ctrl.onunload = (e)=>{
+    ctrl.onunload = (e) => {
       /** tested bug below: preventdefault will trigger 2 unloaded??? */
       // e.preventDefault()
       console.log('unloaded', e)
       Mousetrap.unbind(keyNumber)
     }
 
-    var keyNumber = ['1','2','3','4']
+    var keyNumber = ['1', '2', '3', '4']
     /** Bind to short cut to switch images */
     Mousetrap.unbind(keyNumber)
-    Mousetrap.bind(keyNumber, function (e,key) {
+    Mousetrap.bind(keyNumber, function (e, key) {
       e.preventDefault()
-      index = parseInt(key)-1
+      index = parseInt(key) - 1
       m.redraw(true)
     })
   },

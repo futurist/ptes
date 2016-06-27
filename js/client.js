@@ -2294,10 +2294,18 @@
 	      });
 	    };
 
+	    ctrl.getInfoTag = function (keys, index) {
+	      if (keys[index] == 'last') return m('a[href=javascript:;]', { onmousedown: function onmousedown(e) {
+	          e.preventDefault();
+	          e.stopPropagation();
+	          alert('Apply this test image?\nWARNING: original test image will be lost!!!');
+	        } }, 'last');else return keys[index];
+	    };
+
 	    ctrl.getImageTag = function () {
 	      var obj = images()[group];
 	      var keys = Object.keys(obj);
-	      return [mc('.info', keys[index]), keys.map(function (v, i) {
+	      return [mc('.info', ctrl.getInfoTag(keys, index)), keys.map(function (v, i) {
 	        return mc('.image', { class: index !== i ? '  :global(hide)   hide  ' : '' }, mc('img', { src: PTEST_PATH + folder + '/' + obj[v] }));
 	      })];
 	    };

@@ -75,11 +75,21 @@ function init () {
 }
 init()
 
+function addPageBG () {
+  var head = document.querySelector('head')
+  style = document.createElement('style')
+  text = document.createTextNode('body { background: #fff }')
+  style.setAttribute('type', 'text/css')
+  style.appendChild(text)
+  head.insertBefore(style, head.firstChild)
+}
+
 page.onLoadFinished = function (status) {
   if (status !== 'success') {
     logError('page open failed')
     return phantom.exit(1)
   }
+  page.evaluate(addPageBG)
   p = 0
   prev = EventCache[0]
   testStep()

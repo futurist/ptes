@@ -130,7 +130,7 @@ function connectWS() {
           ws._send(msg)
         }
         var isAsync = cmd && cmd[1] in ASYNC_COMMAND
-        if(isAsync && cmd[1]=='page.open'){
+        if(isAsync){
         }
         if (msg.__id && isAsync) ASYNC_COMMAND[cmd[1]] = cb
 
@@ -225,6 +225,10 @@ function connectWS() {
 }
 connectWS()
 
+page.onResourceError = function(resourceError) {
+  ws._send({type: 'client_error', data: {msg: resourceError}})
+  // console.log('Unable to load resource (#' + resourceError.id + 'URL:' + resourceError.url + ')')
+}
 page.onError = function (msg, stack) {
   ws._send({type: 'client_error', data: {msg: msg, stack: stack}})
 }
@@ -279,18 +283,20 @@ function createCursor () {
   })
 }
 
+function addPageBG () {
+  var head = document.querySelector('head')
+  style = document.createElement('style')
+  text = document.createTextNode('body { background: #fff }')
+  style.setAttribute('type', 'text/css')
+  style.appendChild(text)
+  head.insertBefore(style, head.firstChild)
+}
+
 page.onLoadFinished = function (status) { // success
   page.status = status
   console.log('onLoadFinished', page.url, page.status)
   // set background to white to prevent transparent
-  page.evaluate(function () {
-    var head = document.querySelector('head')
-    style = document.createElement('style')
-    text = document.createTextNode('body { background: #fff }')
-    style.setAttribute('type', 'text/css')
-    style.appendChild(text)
-    head.insertBefore(style, head.firstChild)
-  })
+  page.evaluate(addPageBG)
 
   createCursor()
 

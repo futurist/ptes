@@ -256,6 +256,8 @@ function stopRec () {
   }
   snapKeyFrame(name)
 
+  toPhantom({type:'command', meta:'client', data:'__randomStore'})
+
   var testPath = Config.unsaved.path
   delete Config.unsaved.path
 

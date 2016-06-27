@@ -261,6 +261,8 @@
 	    if (msg.result !== undefined) console.log(msg.result);
 	  });
 	}
+	window.sc = sc;
+	window.cc = cc;
 
 	function startStopRec(e, arg) {
 	  if (e) e.preventDefault();

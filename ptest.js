@@ -309,11 +309,11 @@ page.onLoadFinished = function (status) { // success
   renderLoop()
 
   page.evaluate(function () {
-    var __randomStore = []
+    window.__randomStore = []
     var __old_math_random = Math.random
     Math.random = function () {
       var val = __old_math_random()
-      __randomStore.push(val)
+      window.__randomStore.push(val)
       return val
     }
   })

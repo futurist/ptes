@@ -209,12 +209,13 @@ function startRec (arg, name) {
 
   // return console.log(arg, folder, title, name, Config)
 
+  stage = RECORDING
+  toPhantom({ type: 'stage', data:{stage:stage}})
   toPhantom({ type: 'command', meta: 'server', data: 'openPage("'+ url +'")' }, function (msg) {
     if (msg.result === 'success') {
       name = name || 'test' + (+new Date())
       ImageName = name
       Config.unsaved = { name: name, path: title, span: Date.now() }
-      stage = RECORDING
       EventCache = [ { time: Date.now(), msg: arrayLast(ViewportCache) }, { time: Date.now(), msg: {type: 'page_clip', data: PageClip} } ]
       // ViewportCache = [  ]
     } else {

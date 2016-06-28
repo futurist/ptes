@@ -76,7 +76,7 @@ function connectWS() {
 
       case 'stage':
         stage = msg.data.stage
-        StoreRandom = msg.data.storeRandom
+        StoreRandom = msg.data.storeRandom||[]
         break
 
       case 'broadcast':
@@ -146,6 +146,7 @@ function connectWS() {
             msg.result = page.evaluate(function (str) {
               return eval(str)
             }, msg.data)
+            console.log(2222222, JSON.stringify(msg))
           } else {
             msg.result = eval(msg.data)
           }
@@ -323,6 +324,12 @@ function hookRandom() {
   })
 }
 
+page.onInitialized = function() {
+  console.log('stage', stage, StoreRandom)
+  if(stage===RECORDING) hookRandom()
+  else applyRandom()
+}
+
 page.onLoadFinished = function (status) { // success
   page.status = status
   console.log('onLoadFinished', page.url, page.status)
@@ -338,10 +345,6 @@ page.onLoadFinished = function (status) { // success
   clearTimeout(renderRun)
   renderRun = 0
   renderLoop()
-
-  console.log('stage', RECORDING, StoreRandom)
-  if(stage===RECORDING) hookRandom()
-  else applyRandom()
 
   page.evaluate(function () {
     window.addEventListener('mousemove', function (evt) {

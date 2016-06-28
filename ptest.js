@@ -15,6 +15,8 @@ function assertError (msg, stack) {
   phantom.exit(1)
 }
 
+var StoreRandom = []
+var STOPPED = 0, STOPPING = 1, PAUSING = 2, PAUSED = 4, RUNNING = 8, PLAYING = 16, RECORDING = 32
 var ARG_URL = sys.args.length>1 && sys.args[1] || 'about:blank'
 var PageClip = {}
 var DBLCLICK_INTERVAL = 500 // windows default double click time is 500ms
@@ -70,6 +72,11 @@ function connectWS() {
       case 'ping':
         // beat heart ping
         return
+        break
+
+      case 'stage':
+        stage = msg.data.stage
+        StoreRandom = msg.data.storeRandom
         break
 
       case 'broadcast':
@@ -304,6 +311,17 @@ function applyRandom() {
   }, StoreRandom)
 }
 
+function hookRandom() {
+  page.evaluate(function () {
+    window._phantom.__storeRandom = []
+    var __old_math_random = Math.random
+    Math.random = function () {
+      var val = __old_math_random()
+      window._phantom.__storeRandom.push(val)
+      return val
+    }
+  })
+}
 
 page.onLoadFinished = function (status) { // success
   page.status = status
@@ -321,15 +339,9 @@ page.onLoadFinished = function (status) { // success
   renderRun = 0
   renderLoop()
 
-  page.evaluate(function () {
-    window._phantom.__randomStore = []
-    var __old_math_random = Math.random
-    Math.random = function () {
-      var val = __old_math_random()
-      window._phantom.__randomStore.push(val)
-      return val
-    }
-  })
+  console.log('stage', RECORDING, StoreRandom)
+  if(stage===RECORDING) hookRandom()
+  else applyRandom()
 
   page.evaluate(function () {
     window.addEventListener('mousemove', function (evt) {

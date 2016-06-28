@@ -163,13 +163,13 @@ console.log('server started at %s:%s', HTTP_HOST, HTTP_PORT)
 
 var stage = null
 var EventCache = []
+var StoreRandom = []
 var ViewportCache = []
 var PageClip = {}
 var Config = {url: DEFAULT_URL}
 
 var ImageName = ''
 var PlayCount = 0
-var RECORDING = false
 var Options = {
   syncReload: true, // after recording, reload phantom page
   playBackOnInit: false, // with --play option, auto play test when socket open
@@ -214,7 +214,7 @@ function startRec (arg, name) {
       name = name || 'test' + (+new Date())
       ImageName = name
       Config.unsaved = { name: name, path: title, span: Date.now() }
-      RECORDING = true
+      stage = RECORDING
       EventCache = [ { time: Date.now(), msg: arrayLast(ViewportCache) }, { time: Date.now(), msg: {type: 'page_clip', data: PageClip} } ]
       // ViewportCache = [  ]
     } else {
@@ -246,7 +246,7 @@ function readPtestConfig (toJSON) {
 }
 
 function stopRec () {
-  RECORDING = false
+  stage = null
   const name = Config.unsaved.name
   // var Config = {unsaved:{path:'a/b'}}
   try {
@@ -274,10 +274,10 @@ function stopRec () {
 
   writePtestConfig(Config)
 
-  toPhantom({type:'command', meta:'client', role:'server', data:'_phantom.__randomStore'}, function(msg) {
-    var randomStore = msg.result
+  toPhantom({type:'command', meta:'client', role:'server', data:'_phantom.__storeRandom'}, function(msg) {
+    var storeRandom = msg.result
 
-    fs.writeFileSync(path.join(TEST_FOLDER, DATA_DIR, name + '.json'), JSON.stringify({url:DEFAULT_URL, testPath: testPath, storeRandom:randomStore, clip: PageClip, event: EventCache }))
+    fs.writeFileSync(path.join(TEST_FOLDER, DATA_DIR, name + '.json'), JSON.stringify({url:DEFAULT_URL, testPath: testPath, storeRandom:storeRandom, clip: PageClip, event: EventCache }))
     // reloadPhantom()
   })
 
@@ -342,7 +342,7 @@ wss.on('connection', function connection (ws) {
 
     var relay = function () {
       if (ws.name === 'client') {
-        RECORDING && EventCache.push({ time: Date.now(), msg: _util._extend({}, msg) }) // , viewport: arrayLast(ViewportCache)
+        stage===RECORDING && EventCache.push({ time: Date.now(), msg: _util._extend({}, msg) }) // , viewport: arrayLast(ViewportCache)
         toPhantom(msg)
       } else {
         toClient(msg)
@@ -412,7 +412,7 @@ wss.on('connection', function connection (ws) {
 })
 
 // *** EventPlayBack will be rewritten, don't use at this time
-var STOPPED = 0, STOPPING = 1, PAUSING = 2, PAUSED = 4, RUNNING = 8, PLAYING = 16
+var STOPPED = 0, STOPPING = 1, PAUSING = 2, PAUSED = 4, RUNNING = 8, PLAYING = 16, RECORDING = 32
 class EventPlayBack {
   constructor () {
     this._status = STOPPED
@@ -434,7 +434,7 @@ class EventPlayBack {
 
   play () {
     var self = this
-    if (RECORDING) return client_console('cannot play when recording')
+    if (stage===RECORDING) return client_console('cannot play when recording')
     if (self.status === RUNNING) return
     if (self.status === PAUSED) return self.resume()
     if (EventCache.length < 3) return
@@ -445,6 +445,7 @@ class EventPlayBack {
     co(function * () {
       // refresh phantom page before play
       yield new Promise(function (ok, error) {
+        toPhantom({type:'stage', data:{stage:stage, storeRandom: StoreRandom}})
         toPhantom({ type: 'command', meta: 'server', data: 'openPage("'+DEFAULT_URL+'")' }, function (msg) {
           if (msg.result == 'success') ok()
           else error()
@@ -498,10 +499,12 @@ class EventPlayBack {
       self.status = STOPPED
       client_console(ret)
       stage = null
+      toPhantom({type:'stage', data:{stage:stage}})
     }, (err) => {
       self.status = STOPPED
       client_console('playback incomplete:', err)
       stage = null
+      toPhantom({type:'stage', data:{stage:stage}})
     })
   }
 
@@ -620,6 +623,7 @@ function playTestFile (filename, url) {
       if (typeof data != 'object' || !data) throw Error()
       DEFAULT_URL = root.url
       EventCache = data.event
+      StoreRandom = data.storeRandom
       ViewportCache = [EventCache[0].msg]
       PageClip = data.clip
       ImageName = data.image

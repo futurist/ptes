@@ -4,10 +4,15 @@ var page = require('webpage').create()
 var fs = require('fs')
 var sys = require('system')
 
+var DEBUG = sys.env['DEBUG']
+var debug = function (arg) {
+  var args = [].slice.call(arguments)
+  if(DEBUG) console.log.apply(console, args)
+}
 var ASYNC_COMMAND = {}
 var RunCount = 1
 var Data, ImageName, URL, p, prev
-var PageClip, EventCache, ViewportCache
+var PageClip, EventCache, ViewportCache, StoreRandom
 var WHICH_MOUSE_BUTTON = {'0': '', '1': 'left', '2': 'middle', '3': 'right'}
 
 page.zoomFactor = 1
@@ -43,6 +48,12 @@ function logError () {
   sys.stderr.write(args.join(' '))
 }
 phantom.onError = function () {}
+
+page.onConsoleMessage = function (msg) {
+  var args = [].slice.call(arguments)
+  debug.call(null, args)
+}
+
 function init () {
   // fill all vars from args & json file
   if (sys.args.length < 3) {
@@ -65,6 +76,7 @@ function init () {
   }
 
   EventCache = Data.event
+  StoreRandom = Data.storeRandom
   ViewportCache = [EventCache[0].msg]
   PageClip = Data.clip
   totalImage = EventCache.reduce(function (t, v) {
@@ -84,12 +96,26 @@ function addPageBG () {
   head.insertBefore(style, head.firstChild)
 }
 
+function hookRandom() {
+  StoreRandom = StoreRandom||[]
+  page.evaluate(function(store) {
+    var __old_math_random = Math.random
+    Math.random = function () {
+      var val = __old_math_random()
+      if(store.length) console.log(store[0]) // cannot use DEBUG here
+      return store.shift() || val
+    }
+  }, StoreRandom)
+}
+
 page.onLoadFinished = function (status) {
   if (status !== 'success') {
     logError('page open failed')
     return phantom.exit(1)
   }
   page.evaluate(addPageBG)
+  debug(StoreRandom.join(','))
+  hookRandom()
   p = 0
   prev = EventCache[0]
   testStep()

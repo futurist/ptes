@@ -10,6 +10,7 @@ var split2 = require('split2')
 var spawn = require('child_process').spawn
 var imageDiff = require('image-diff')
 var pointer = require('json-pointer')
+var debug = require('debug')('ptest:runner')
 var commander = require('commander')
 var pkg = require('../package.json')
 var treeHelper = require('../src/tree-helper')
@@ -301,7 +302,7 @@ function runTestFile (fileName) {
       })
 
       phantom.stdout.pipe(split2()).on('data', function (line) {
-        // console.log('stdout', line)
+        debug('stdout', line)
         if (line[0] === '>') {
           // >{id:12345, type:'type', data:data, cur:1, total:5} format is special!!
           try {

@@ -139,7 +139,6 @@ function connectWS() {
             msg.result = page.evaluate(function (str) {
               return eval(str)
             }, msg.data)
-            console.log(3333333333, msg.result)
           } else {
             msg.result = eval(msg.data)
           }
@@ -292,6 +291,19 @@ function addPageBG () {
   style.appendChild(text)
   head.insertBefore(style, head.firstChild)
 }
+
+function applyRandom() {
+  StoreRandom = StoreRandom||[]
+  page.evaluate(function(store) {
+    var __old_math_random = Math.random
+    Math.random = function () {
+      var val = __old_math_random()
+      if(store.length) console.log(store[0])
+      return store.shift() || val
+    }
+  }, StoreRandom)
+}
+
 
 page.onLoadFinished = function (status) { // success
   page.status = status

@@ -280,6 +280,8 @@ function runTestFile (fileName) {
   var span = arrayLast(obj.event).time - obj.event[0].time
   if(!url) return
 
+  debug('loading url:', url)
+
   it(testPath, fileName, function (done) {
     var self = this
     this.setTest(fileName)

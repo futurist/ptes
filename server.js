@@ -216,7 +216,7 @@ function startRec (arg, name) {
     if (msg.result === 'success') {
       name = name || 'test' + (+new Date())
       ImageName = name
-      Config.unsaved = { name: name, path: title, span: Date.now() }
+      Config.unsaved = { url:url, name: name, path: title, span: Date.now() }
       EventCache = [ { time: Date.now(), msg: arrayLast(ViewportCache) }, { time: Date.now(), msg: {type: 'page_clip', data: PageClip} } ]
       // ViewportCache = [  ]
     } else {
@@ -259,6 +259,7 @@ function stopRec () {
   snapKeyFrame(name)
 
   var testPath = Config.unsaved.path
+  var url = Config.unsaved.url
   delete Config.unsaved.path
 
   var objPath = pointer.compile(simplePathToStandardPath(Config, testPath, true).concat('-'))
@@ -279,7 +280,7 @@ function stopRec () {
   toPhantom({type:'command', meta:'client', role:'server', data:'_phantom.__storeRandom'}, function(msg) {
     var storeRandom = msg.result
 
-    fs.writeFileSync(path.join(TEST_FOLDER, DATA_DIR, name + '.json'), JSON.stringify({url:DEFAULT_URL, testPath: testPath, storeRandom:storeRandom, clip: PageClip, event: EventCache }))
+    fs.writeFileSync(path.join(TEST_FOLDER, DATA_DIR, name + '.json'), JSON.stringify({url:url, testPath: testPath, storeRandom:storeRandom, clip: PageClip, event: EventCache }))
     // reloadPhantom()
   })
 
@@ -338,7 +339,7 @@ wss.on('connection', function connection (ws) {
     try { msg = JSON.parse(message) } catch(e) { msg = message }
     if (typeof msg !== 'object') return
 
-    msg.type!=='render' && debug('received: %s', message)
+    ['render', 'ping'].indexOf(msg.type)<0 && debug('received: %s', message)
 
     // beat heart ping to keep alive
     if (msg.type === 'ping')return

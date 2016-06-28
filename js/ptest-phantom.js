@@ -108,14 +108,18 @@ function hookRandom() {
   }, StoreRandom)
 }
 
+page.onInitialized = function () {
+  debug('onInitialized')
+  debug(StoreRandom.join(','))
+  hookRandom()
+}
+
 page.onLoadFinished = function (status) {
   if (status !== 'success') {
     logError('page open failed')
     return phantom.exit(1)
   }
   page.evaluate(addPageBG)
-  debug(StoreRandom.join(','))
-  hookRandom()
   p = 0
   prev = EventCache[0]
   testStep()

@@ -256,8 +256,6 @@ function stopRec () {
   }
   snapKeyFrame(name)
 
-  toPhantom({type:'command', meta:'client', data:'__randomStore'})
-
   var testPath = Config.unsaved.path
   delete Config.unsaved.path
 
@@ -274,9 +272,15 @@ function stopRec () {
   pointer.set(Config, objPath, {_leaf:true, name:Config.unsaved.name, desc:''})
   delete Config.unsaved
 
-  fs.writeFileSync(path.join(TEST_FOLDER, DATA_DIR, name + '.json'), JSON.stringify({url:DEFAULT_URL, testPath: testPath, clip: PageClip, event: EventCache }))
   writePtestConfig(Config)
-  // reloadPhantom()
+
+  toPhantom({type:'command', meta:'client', role:'server', data:'_phantom.__randomStore'}, function(msg) {
+    var randomStore = msg.result
+
+    fs.writeFileSync(path.join(TEST_FOLDER, DATA_DIR, name + '.json'), JSON.stringify({url:DEFAULT_URL, testPath: testPath, storeRandom:randomStore, clip: PageClip, event: EventCache }))
+    // reloadPhantom()
+  })
+
 }
 
 function simplePathToStandardPath(data, path, newIfNotFound) {
@@ -378,7 +382,7 @@ wss.on('connection', function connection (ws) {
 
       // get callback from ws._call
     case 'command_result':
-      if (msg.__id && msg.meta == 'server') {
+      if (msg.__id && (msg.meta == 'server' || msg.role=='server')) {
         var cb = WS_CALLBACK[msg.__id]
         delete WS_CALLBACK[msg.__id]
         cb && cb(msg)

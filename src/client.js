@@ -176,15 +176,17 @@ ws._send_debounce = util_debounce_throttle._debounce(ws._send, 30)
 ws._send_throttle = util_debounce_throttle._throttle(ws._send, 30, true)
 ws._send_throttle2 = util_debounce_throttle._throttle(ws._send, 30, false)
 
-function sc (str) {
-  ws._send({type: 'command', meta: 'server', data: str}, function (msg) {
+function sc (str, cb) {
+  cb = cb || function (msg) {
     if (msg.result !== undefined) console.log(msg.result)
-  })
+  }
+  ws._send({type: 'command', meta: 'server', data: str}, cb)
 }
-function cc (str, isPhantom) {
-  ws._send({type: 'command', meta: isPhantom ? 'phantom' : 'client', data: str}, function (msg) {
+function cc (str, isPhantom, cb) {
+  cb = cb || function (msg) {
     if (msg.result !== undefined) console.log(msg.result)
-  })
+  }
+  ws._send({type: 'command', meta: isPhantom ? 'phantom' : 'client', data: str}, cb)
 }
 window.sc=sc
 window.cc=cc

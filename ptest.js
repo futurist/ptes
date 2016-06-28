@@ -139,6 +139,7 @@ function connectWS() {
             msg.result = page.evaluate(function (str) {
               return eval(str)
             }, msg.data)
+            console.log(3333333333, msg.result)
           } else {
             msg.result = eval(msg.data)
           }
@@ -309,11 +310,11 @@ page.onLoadFinished = function (status) { // success
   renderLoop()
 
   page.evaluate(function () {
-    window.__randomStore = []
+    window._phantom.__randomStore = []
     var __old_math_random = Math.random
     Math.random = function () {
       var val = __old_math_random()
-      window.__randomStore.push(val)
+      window._phantom.__randomStore.push(val)
       return val
     }
   })

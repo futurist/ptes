@@ -339,6 +339,7 @@
 
 	function hideSetup(arg) {
 	  _overlay2.default.hide('#overlay');
+	  $(window).trigger('resize');
 	  stage = null;
 	}
 

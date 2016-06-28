@@ -1,7 +1,7 @@
 /*
- Copyright @ Michael Yang
- License MIT
- */
+  Copyright @ Michael Yang
+  License MIT
+*/
 
 // phantomjs module
 var sys = require('system')
@@ -10,7 +10,7 @@ var page = require('webpage').create()
 var DEBUG = sys.env['DEBUG']
 var debug = function (arg) {
   var args = [].slice.call(arguments)
-  if(DEBUG) console.log.apply(console, args)
+  if (DEBUG) console.log.apply(console, args)
 }
 
 phantom.onError = assertError
@@ -23,14 +23,14 @@ function assertError (msg, stack) {
 
 var StoreRandom = []
 var STOPPED = 0, STOPPING = 1, PAUSING = 2, PAUSED = 4, RUNNING = 8, PLAYING = 16, RECORDING = 32
-var ARG_URL = (sys.args.length>1 && sys.args[1]) || 'about:blank'
+var ARG_URL = (sys.args.length > 1 && sys.args[1]) || 'about:blank'
 var PageClip = {}
 var DBLCLICK_INTERVAL = 500 // windows default double click time is 500ms
 var WHICH_MOUSE_BUTTON = {'0': '', '1': 'left', '2': 'middle', '3': 'right'}
 var ASYNC_COMMAND = {
   'page.reload': null,
   'page.open': null,
-  'openPage':null
+  'openPage': null
 }
 var asyncCB = function (cmd) {
   var args = [].slice.call(arguments, 1)
@@ -59,10 +59,9 @@ page.customHeaders = {
 
 console.log('phantom started')
 
-
 var ws = null
 
-function connectWS() {
+function connectWS () {
   var WS_CALLBACK = {}
   ws = new WebSocket('ws://localhost:1280')
   ws.onopen = function (e) {
@@ -82,7 +81,7 @@ function connectWS() {
 
       case 'stage':
         stage = msg.data.stage
-        StoreRandom = msg.data.storeRandom||[]
+        StoreRandom = msg.data.storeRandom || []
         break
 
       case 'broadcast':
@@ -143,7 +142,7 @@ function connectWS() {
           ws._send(msg)
         }
         var isAsync = cmd && cmd[1] in ASYNC_COMMAND
-        if(isAsync){
+        if (isAsync) {
         }
         if (msg.__id && isAsync) ASYNC_COMMAND[cmd[1]] = cb
 
@@ -152,7 +151,6 @@ function connectWS() {
             msg.result = page.evaluate(function (str) {
               return eval(str)
             }, msg.data)
-            console.log(2222222, JSON.stringify(msg))
           } else {
             msg.result = eval(msg.data)
           }
@@ -239,7 +237,7 @@ function connectWS() {
 }
 connectWS()
 
-page.onResourceError = function(resourceError) {
+page.onResourceError = function (resourceError) {
   ws._send({type: 'client_error', data: {msg: resourceError}})
   // console.log('Unable to load resource (#' + resourceError.id + 'URL:' + resourceError.url + ')')
 }
@@ -247,7 +245,13 @@ page.onError = function (msg, stack) {
   ws._send({type: 'client_error', data: {msg: msg, stack: stack}})
 }
 page.onConsoleMessage = function (msg) {
-  ws._send({type: 'client_console', data: msg})
+  var e = msg.split(':')
+  if (e.length > 1 && e[0] == 'PageEvent') {
+    console.log(e[0], e[1])
+    if (e[1] == 'DOMContentLoaded') createCursor()
+  } else {
+    ws._send({type: 'client_console', data: msg})
+  }
 }
 
 var renderRun = 0
@@ -285,14 +289,19 @@ function createCursor () {
   page.evaluate(function () {
     window._phantom.dot = (function () {
       var dot = document.createElement('div')
-      dot.style.cssText = 'pointer-events:none; border-radius:100px; background:rgba(255,0,0,0.8); width:10px; height:10px; position:absolute; z-index:9999999999;'
+      dot.id = '__phantom_dot'
+      dot.style.cssText = 'pointer-events:none; border-radius:100px; border:1px solid green; background:rgba(255,0,0,0.8); width:9px; height:9px; position:absolute; z-index:9999999999;'
       dot.style.zIndex = Math.pow(2, 53)
       document.body.appendChild(dot)
       return dot
     })()
     window._phantom.setDot = function (x, y) {
-      window._phantom.dot.style.left = x - 5 + 'px'
-      window._phantom.dot.style.top = y - 5 + 'px'
+      var dot = window._phantom.dot
+      if (!dot.parentElement) {
+        document.body.appendChild(dot)
+      }
+      dot.style.left = x - 5 + 'px'
+      dot.style.top = y - 5 + 'px'
     }
   })
 }
@@ -306,19 +315,19 @@ function addPageBG () {
   head.insertBefore(style, head.firstChild)
 }
 
-function applyRandom() {
-  StoreRandom = StoreRandom||[]
-  page.evaluate(function(store) {
+function applyRandom () {
+  StoreRandom = StoreRandom || []
+  page.evaluate(function (store) {
     var __old_math_random = Math.random
     Math.random = function () {
       var val = __old_math_random()
-      if(store.length) console.log(store[0])
+      if (store.length) console.log(store[0])
       return store.shift() || val
     }
   }, StoreRandom)
 }
 
-function hookRandom() {
+function hookRandom () {
   page.evaluate(function () {
     window._phantom.__storeRandom = []
     var __old_math_random = Math.random
@@ -330,39 +339,48 @@ function hookRandom() {
   })
 }
 
-page.onInitialized = function() {
+page.onInitialized = function () {
   debug('onInitialized')
   debug('stage', stage, StoreRandom)
-  if(stage===RECORDING) hookRandom()
+  if (stage === RECORDING) hookRandom()
   else applyRandom()
+
+  // below will create dot ASAP
+  page.evaluate(function () {
+    document.addEventListener('DOMContentLoaded', function () {
+      console.log('PageEvent:DOMContentLoaded')
+    }, false)
+  })
 }
 
-
-page.onResourceReceived = function(res) {
+page.onResourceReceived = function (res) {
   debug('onResourceReceived', res.url, res.stage)
 }
-page.onResourceRequested = function(res) {
+page.onResourceRequested = function (res) {
   debug('onResourceRequested', res.url)
 }
-page.onNavigationRequested = function(url, type, willNavigate, main) {
+page.onNavigationRequested = function (url, type, willNavigate, main) {
   debug('onNavigationrequested')
 }
-page.onPageCreated = function(url, type, willNavigate, main) {
+page.onPageCreated = function (newPage) {
   debug('onPageCreated')
 }
-page.onLoadStarted = function(url, type, willNavigate, main) {
+page.onLoadStarted = function () {
   debug('onLoadStarted')
 }
 
 page.onLoadFinished = function (status) { // success
   page.status = status
-  console.log('onLoadFinished', page.url, page.status)
+  console.log('onLoadFinished', page.url, page.url == '', page.status)
+
+  // At first blank page event order: (no DOMContentloaded)
+  // onLoadFinished->onInitialized (other url inversed)
+  if (page.url === '') createCursor()
+
   // set background to white to prevent transparent
   page.evaluate(addPageBG)
 
-  createCursor()
-
-  Object.keys(ASYNC_COMMAND).forEach(function(cmd) {
+  Object.keys(ASYNC_COMMAND).forEach(function (cmd) {
     asyncCB(cmd, status)
   })
 

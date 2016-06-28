@@ -270,6 +270,7 @@ var oncloseSetup = function (arg) {
 
 function hideSetup (arg) {
   mOverlay.hide('#overlay')
+  $(window).trigger('resize')
   stage = null
 }
 

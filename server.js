@@ -19,6 +19,7 @@ var process = require('process')
 var co = require('co')
 var commander = require('commander')
 var debug = require('debug')('ptest:server')
+var debugHttp = require('debug')('ptest:http')
 var imageDiff = require('image-diff')
 var _util = require('util_extend_exclude')
 var spawn = require('child_process').spawn
@@ -95,7 +96,7 @@ var PTEST_PATH = '/ptestfolder/'
 
 // create Http Server
 var HttpServer = http.createServer(function (req, res) {
-  console.log((new Date).toLocaleString(), req.method, req.url)
+  debugHttp((new Date()).toLocaleString(), req.method, req.url)
 
   if (req.url === '/config' && req.method == 'GET') {
     res.writeHeader(200, {'Content-Type': 'application/json'})
@@ -113,7 +114,7 @@ var HttpServer = http.createServer(function (req, res) {
         res.end(JSON.stringify({error: null}))
       } catch(e) {
         var msg = 'Config data not valid json'
-        console.log(msg, body)
+        debugHttp(msg, body)
         res.end(JSON.stringify({error: msg}))
       }
     })

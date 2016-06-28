@@ -18,6 +18,7 @@ var path = require('path')
 var process = require('process')
 var co = require('co')
 var commander = require('commander')
+var debug = require('debug')('ptest:server')
 var imageDiff = require('image-diff')
 var _util = require('util_extend_exclude')
 var spawn = require('child_process').spawn
@@ -333,10 +334,11 @@ wss.on('connection', function connection (ws) {
   })
 
   ws.on('message', function incoming (message) {
-    // console.log('received: %s', message)
     var msg
     try { msg = JSON.parse(message) } catch(e) { msg = message }
     if (typeof msg !== 'object') return
+
+    msg.type!=='render' && debug('received: %s', message)
 
     // beat heart ping to keep alive
     if (msg.type === 'ping')return
@@ -353,7 +355,6 @@ wss.on('connection', function connection (ws) {
     switch (msg.type) {
     case 'connection':
       ws.name = msg.name
-      console.log(msg)
       broadcast({ meta: 'clientList', data: clientList() })
       if (ws.name == 'client') {
         if (Options.playBackOnInit || stage === PLAYING) playBack.play()
@@ -558,7 +559,7 @@ function runTestFile(filenames) {
   runner = spawn('node', [path.join(__dirname, 'js', 'ptest-runner.js')].concat(filenames), {cwd: process.cwd()})
   console.log(process.cwd(), typeof filenames, filenames)
   runner.stdout.pipe(split2()).on('data', function (line) {
-    console.log('----'+line+'----')
+    debug('----'+line+'----')
     var ret = JSON.parse(line)
     // var filenames = ret.filter(v=>v.test).map(v=>v.test)
     toClient({type:'test_output', data: ret})
@@ -577,7 +578,9 @@ var phantom
 
 function startPhantom (url) {
   console.log(url)
-  phantom = spawn('phantomjs', ['--config', path.join(__dirname, 'phantom.config'), path.join(__dirname, 'ptest.js'), url], {cwd: process.cwd(), stdio: 'pipe' })
+  var args = ['--config', path.join(__dirname, 'phantom.config'), path.join(__dirname, 'ptest.js')]
+  if(url) args.concat(url)
+  phantom = spawn('phantomjs', args, {cwd: process.cwd(), stdio: 'pipe' })
 
   phantom.stdout.setEncoding('utf8')
   phantom.stderr.setEncoding('utf8')

@@ -7,6 +7,12 @@
 var sys = require('system')
 var page = require('webpage').create()
 
+var DEBUG = sys.env['DEBUG']
+var debug = function (arg) {
+  var args = [].slice.call(arguments)
+  if(DEBUG) console.log.apply(console, args)
+}
+
 phantom.onError = assertError
 function assertError (msg, stack) {
   console.log('phantom onerror:', msg)
@@ -17,7 +23,7 @@ function assertError (msg, stack) {
 
 var StoreRandom = []
 var STOPPED = 0, STOPPING = 1, PAUSING = 2, PAUSED = 4, RUNNING = 8, PLAYING = 16, RECORDING = 32
-var ARG_URL = sys.args.length>1 && sys.args[1] || 'about:blank'
+var ARG_URL = (sys.args.length>1 && sys.args[1]) || 'about:blank'
 var PageClip = {}
 var DBLCLICK_INTERVAL = 500 // windows default double click time is 500ms
 var WHICH_MOUSE_BUTTON = {'0': '', '1': 'left', '2': 'middle', '3': 'right'}
@@ -325,9 +331,27 @@ function hookRandom() {
 }
 
 page.onInitialized = function() {
-  console.log('stage', stage, StoreRandom)
+  debug('onInitialized')
+  debug('stage', stage, StoreRandom)
   if(stage===RECORDING) hookRandom()
   else applyRandom()
+}
+
+
+page.onResourceReceived = function(res) {
+  debug('onResourceReceived', res.url, res.stage)
+}
+page.onResourceRequested = function(res) {
+  debug('onResourceRequested', res.url)
+}
+page.onNavigationRequested = function(url, type, willNavigate, main) {
+  debug('onNavigationrequested')
+}
+page.onPageCreated = function(url, type, willNavigate, main) {
+  debug('onPageCreated')
+}
+page.onLoadStarted = function(url, type, willNavigate, main) {
+  debug('onLoadStarted')
 }
 
 page.onLoadFinished = function (status) { // success

@@ -738,9 +738,10 @@
 	      return node.map(oneAction);
 	    }
 
-	    function getText(v) {
-	      var text = v.desc || '';
-	      var node = v.name ? [m('span.name', '[' + v.name + ']'), getAction(v), m('br'), text] : [text, getAction(v)];
+	    function getText(v, path) {
+	      var text = [m('span', v.desc || '')];
+	      if (isRoot(v)) text.push(m('em', '[' + v.folder + ']@' + v.url));
+	      var node = v.name ? [m('span.name', '[', m(isRoot(v) ? 'strong' : 'span', v.name), ']'), getAction(v), m('br'), text] : [text, getAction(v)];
 	      return node;
 	    }
 
@@ -910,6 +911,10 @@
 	          })]);
 	        });
 	      }
+	    }
+
+	    function isRoot(node) {
+	      return node._path.length < 2;
 	    }
 	    /**
 	     * interTree interate tree node for children

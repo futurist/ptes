@@ -232,11 +232,12 @@ var com = {
       return node.map(oneAction)
     }
 
-    function getText (v) {
-      let text = (v.desc || '')
+    function getText (v, path) {
+      let text = [m('span', v.desc || '')]
+      if(isRoot(v)) text.push(m('em', '['+v.folder+']@'+v.url))
       let node = v.name
-            ? [m('span.name', '[' + v.name + ']'), getAction(v), m('br'), text]
-            : [text, getAction(v)]
+          ? [m('span.name', '[',  m(isRoot(v)?'strong':'span', v.name) , ']'), getAction(v), m('br'), text]
+          : [text, getAction(v)]
       return node
     }
 
@@ -420,6 +421,10 @@ var com = {
             })
           ]))
       }
+    }
+
+    function isRoot(node) {
+      return node._path.length<2
     }
     /**
      * interTree interate tree node for children

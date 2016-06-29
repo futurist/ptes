@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 
 /*
- Copyright @ Michael Yang
- License MIT
- */
+  Copyright @ Michael Yang
+  License MIT
+*/
 'use strict'
 
 var DEBUG_MODE = true
@@ -38,7 +38,7 @@ var HTTP_PORT = 8080
 var WS_PORT = 1280
 var DATA_DIR = 'ptest_data/'
 var TEST_FOLDER = './'
-var TEST_FILE = ''              // test_dir/test12345.json
+var TEST_FILE = '' // test_dir/test12345.json
 
 commander
   .version(pkg.version)
@@ -127,17 +127,17 @@ var HttpServer = http.createServer(function (req, res) {
   }
 
   var ROOT = __dirname
-  if(req.url.indexOf(PTEST_PATH)===0){
+  if (req.url.indexOf(PTEST_PATH) === 0) {
     ROOT = './'
     req.url = req.url.replace(PTEST_PATH, '/')
   }
 
-  var urlObj = url.parse(req.url,true)
+  var urlObj = url.parse(req.url, true)
   if (urlObj.pathname === '/testimage' && req.method == 'GET') {
     var folder = urlObj.query.folder
     var test = urlObj.query.test
     var base = urlObj.query.base
-    getImageArray(folder, test, base, ret=>{
+    getImageArray(folder, test, base, ret => {
       res.writeHead(200, 'OK', {'Content-Type': 'application/json'})
       res.end(JSON.stringify(ret))
     })
@@ -212,12 +212,12 @@ function startRec (arg, name) {
   // return console.log(arg, folder, title, name, Config)
 
   stage = RECORDING
-  toPhantom({ type: 'stage', data:{stage:stage}})
-  toPhantom({ type: 'command', meta: 'server', data: 'openPage("'+ url +'")' }, function (msg) {
+  toPhantom({ type: 'stage', data: {stage: stage}})
+  toPhantom({ type: 'command', meta: 'server', data: 'openPage("' + url + '")' }, function (msg) {
     if (msg.result === 'success') {
       name = name || 'test' + (+new Date())
       ImageName = name
-      Config.unsaved = { url:url, name: name, path: title, span: Date.now() }
+      Config.unsaved = { url: url, name: name, path: title, span: Date.now() }
       EventCache = [ { time: Date.now(), msg: arrayLast(ViewportCache) }, { time: Date.now(), msg: {type: 'page_clip', data: PageClip} } ]
       // ViewportCache = [  ]
     } else {
@@ -240,12 +240,12 @@ function readPtestConfig (toJSON) {
   } catch(e) {
     if (e.code !== 'ENOENT') {
       console.log(e, 'error parse ptest.json...')
-    }else{
+    } else {
       console.log('please run server from folder:', TEST_FOLDER)
     }
     return process.exit()
   }
-  return toJSON?json: content
+  return toJSON ? json : content
 }
 
 function stopRec () {
@@ -273,32 +273,31 @@ function stopRec () {
   // else while(p = a.shift()) b[p] = (b[p] || {}), a.length > 1 ? b = b[p] : b = b[p][a.shift()] = Config.unsaved
   // delete Config.unsaved
 
-  pointer.set(Config, objPath, {_leaf:true, name:Config.unsaved.name, desc:''})
+  pointer.set(Config, objPath, {_leaf: true, name: Config.unsaved.name, desc: ''})
   delete Config.unsaved
 
   writePtestConfig(Config)
 
-  toPhantom({type:'command', meta:'client', role:'server', data:'_phantom.__storeRandom'}, function(msg) {
+  toPhantom({type: 'command', meta: 'client', role: 'server', data: '_phantom.__storeRandom'}, function (msg) {
     var storeRandom = msg.result
 
-    fs.writeFileSync(path.join(TEST_FOLDER, DATA_DIR, name + '.json'), JSON.stringify({url:url, testPath: testPath, storeRandom:storeRandom, clip: PageClip, event: EventCache }))
+    fs.writeFileSync(path.join(TEST_FOLDER, DATA_DIR, name + '.json'), JSON.stringify({url: url, testPath: testPath, storeRandom: storeRandom, clip: PageClip, event: EventCache }))
     // reloadPhantom()
   })
-
 }
 
-function simplePathToStandardPath(data, path, newIfNotFound) {
+function simplePathToStandardPath (data, path, newIfNotFound) {
   var newPath = []
-  path.forEach((p,idx)=>{
-    var i = data.findIndex(v=>v.name==p)
-    if(newIfNotFound && i===-1){
-      data.push({name:p, children:[]})
-      newPath.push(data.length-1)
-    }else{
+  path.forEach((p, idx) => {
+    var i = data.findIndex(v => v.name == p)
+    if (newIfNotFound && i === -1) {
+      data.push({name: p, children: []})
+      newPath.push(data.length - 1)
+    } else {
       newPath.push(i)
     }
-    var d = data.find(v=>v.name==p)
-    data=d.children
+    var d = data.find(v => v.name == p)
+    data = d.children
     newPath.push('children')
   })
   return newPath
@@ -325,7 +324,7 @@ wss.on('connection', function connection (ws) {
     ws.send(typeof msg == 'string' ? msg : JSON.stringify(msg))
   }
 
-  var heartbeat = setInterval(function () { ws._send({type:'ping'}) }, 10000)
+  var heartbeat = setInterval(function () { ws._send({type: 'ping'}) }, 10000)
   ws._send({type: 'ws', msg: 'connected to socket 8080'})
   // console.log('protocolVersion', ws.protocolVersion)
 
@@ -338,16 +337,14 @@ wss.on('connection', function connection (ws) {
   ws.on('message', function incoming (message) {
     var msg
     try { msg = JSON.parse(message) } catch(e) { msg = message }
-    if (typeof msg !== 'object') return
-
-    ['render', 'ping'].indexOf(msg.type)<0 && debug('received: %s', message)
+    if (typeof msg !== 'object') return;['render', 'ping'].indexOf(msg.type) < 0 && debug('received: %s', message)
 
     // beat heart ping to keep alive
     if (msg.type === 'ping')return
 
     var relay = function () {
       if (ws.name === 'client') {
-        stage===RECORDING && EventCache.push({ time: Date.now(), msg: _util._extend({}, msg) }) // , viewport: arrayLast(ViewportCache)
+        stage === RECORDING && EventCache.push({ time: Date.now(), msg: _util._extend({}, msg) }) // , viewport: arrayLast(ViewportCache)
         toPhantom(msg)
       } else {
         toClient(msg)
@@ -386,7 +383,7 @@ wss.on('connection', function connection (ws) {
 
       // get callback from ws._call
     case 'command_result':
-      if (msg.__id && (msg.meta == 'server' || msg.role=='server')) {
+      if (msg.__id && (msg.meta == 'server' || msg.role == 'server')) {
         var cb = WS_CALLBACK[msg.__id]
         delete WS_CALLBACK[msg.__id]
         cb && cb(msg)
@@ -438,7 +435,7 @@ class EventPlayBack {
 
   play () {
     var self = this
-    if (stage===RECORDING) return client_console('cannot play when recording')
+    if (stage === RECORDING) return client_console('cannot play when recording')
     if (self.status === RUNNING) return
     if (self.status === PAUSED) return self.resume()
     if (EventCache.length < 3) return
@@ -449,8 +446,8 @@ class EventPlayBack {
     co(function * () {
       // refresh phantom page before play
       yield new Promise(function (ok, error) {
-        toPhantom({type:'stage', data:{stage:stage, storeRandom: StoreRandom}})
-        toPhantom({ type: 'command', meta: 'server', data: 'openPage("'+DEFAULT_URL+'")' }, function (msg) {
+        toPhantom({type: 'stage', data: {stage: stage, storeRandom: StoreRandom}})
+        toPhantom({ type: 'command', meta: 'server', data: 'openPage("' + DEFAULT_URL + '")' }, function (msg) {
           if (msg.result == 'success') ok()
           else error()
         })
@@ -503,12 +500,12 @@ class EventPlayBack {
       self.status = STOPPED
       client_console(ret)
       stage = null
-      toPhantom({type:'stage', data:{stage:stage}})
+      toPhantom({type: 'stage', data: {stage: stage}})
     }, (err) => {
       self.status = STOPPED
       client_console('playback incomplete:', err)
       stage = null
-      toPhantom({type:'stage', data:{stage:stage}})
+      toPhantom({type: 'stage', data: {stage: stage}})
     })
   }
 
@@ -556,19 +553,19 @@ function broadcast (data) {
 }
 
 var runner
-function runTestFile(filenames) {
-  filenames = filenames||[]
+function runTestFile (filenames) {
+  filenames = filenames || []
   runner = spawn('node', [path.join(__dirname, 'js', 'ptest-runner.js')].concat(filenames), {cwd: process.cwd()})
   console.log(process.cwd(), typeof filenames, filenames)
   runner.stdout.pipe(split2()).on('data', function (line) {
-    debug('----'+line+'----')
+    debug('----' + line + '----')
     var ret = JSON.parse(line)
     // var filenames = ret.filter(v=>v.test).map(v=>v.test)
-    toClient({type:'test_output', data: ret})
+    toClient({type: 'test_output', data: ret})
   })
   runner.stderr.pipe(split2()).on('data', function (line) {
     console.log('runner stderr', line)
-    toClient({type:'test_error', data: line})
+    toClient({type: 'test_error', data: line})
   })
 }
 
@@ -581,7 +578,7 @@ var phantom
 function startPhantom (url) {
   console.log(url)
   var args = ['--config', path.join(__dirname, 'phantom.config'), path.join(__dirname, 'ptest.js')]
-  if(url) args.concat(url)
+  if (url) args.concat(url)
   phantom = spawn('phantomjs', args, {cwd: process.cwd(), stdio: 'pipe' })
 
   phantom.stdout.setEncoding('utf8')
@@ -609,14 +606,14 @@ function stopPhantom () {
   if (phantom && phantom.connected) phantom.kill()
 }
 
-function getTestRoot(filename) {
-  var found = treeHelper.deepFindKV(Config, v=>v['name']==filename, 1).pop()
+function getTestRoot (filename) {
+  var found = treeHelper.deepFindKV(Config, v => v['name'] == filename, 1).pop()
   return found ? Config[found.path[0]] : null
 }
 
 function playTestFile (filename, url) {
   var root = getTestRoot(filename)
-  if(!root) return
+  if (!root) return
   DATA_DIR = root.folder
   if (!path.extname(filename)) filename += '.json'
   fs.readFile(path.join(TEST_FOLDER, DATA_DIR, filename), 'utf8', (err, data) => {
@@ -665,11 +662,10 @@ function init () {
 }
 init()
 
-
 //
 // Clear function
 function clearTest () {
-  if(phantom) phantom.kill()
+  if (phantom) phantom.kill()
 }
 
 process.on('SIGINT', function () {

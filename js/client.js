@@ -2213,9 +2213,13 @@
 
 	'use strict';
 
-	var _mithrilJ2c = __webpack_require__(6);
+	var _cssobjMithril = __webpack_require__(19);
 
-	var _mithrilJ2c2 = _interopRequireDefault(_mithrilJ2c);
+	var _cssobjMithril2 = _interopRequireDefault(_cssobjMithril);
+
+	var _cssobjPluginPostStylize = __webpack_require__(20);
+
+	var _cssobjPluginPostStylize2 = _interopRequireDefault(_cssobjPluginPostStylize);
 
 	var _util = __webpack_require__(9);
 
@@ -2223,47 +2227,44 @@
 
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-	/**
-	 * @fileOverview Display test images for ptest.
-	 * @global Mousetrap.js, mithril.js
-	 * @name test-image.js
-	 * @author Micheal Yang
-	 * @license MIT
-	 */
+	var PTEST_PATH = '/ptestfolder/'; /**
+	                                   * @fileOverview Display test images for ptest.
+	                                   * @global Mousetrap.js, mithril.js
+	                                   * @name test-image.js
+	                                   * @author Micheal Yang
+	                                   * @license MIT
+	                                   */
 
-	var mc = _mithrilJ2c2.default.bindM();
-
-	var PTEST_PATH = '/ptestfolder/';
-
-	var style = _mithrilJ2c2.default.sheet({
+	var style = {
 	  '.test-image-con': {
 	    text_align: 'left'
 	  },
 	  'menu.top': {
 	    background: '#ccc',
-	    ' a, span': {
+	    'a, span': {
 	      margin_left: '10px'
 	    },
-	    ' span.current': {
+	    'span.current': {
 	      color: 'red'
 	    }
 	  },
 	  '.imageBox': {
 	    position: 'relative',
-	    ' .info': {
+	    '.info': {
 	      position: 'absolute',
 	      right: '10px',
 	      top: '10px',
 	      z_index: 999
 	    },
-	    ' .image': {
+	    '.image': {
 	      position: 'absolute'
 	    }
 	  },
 	  '.hide': {
 	    display: 'none'
 	  }
-	});
+	};
+	var mc = (0, _cssobjMithril2.default)(m, style, { post: [(0, _cssobjPluginPostStylize2.default)()] });
 
 	var gallary = {
 	  controller: function controller(arg) {
@@ -2332,7 +2333,7 @@
 	    });
 	  },
 	  view: function view(ctrl, arg) {
-	    return mc('.test-image-con', [mc.style(style), mc('menu.top', [mc('a[href=#]', { onclick: function onclick(e) {
+	    return mc('.test-image-con', [mc('menu.top', [mc('a[href=#]', { onclick: function onclick(e) {
 	        return arg.onclose && arg.onclose();
 	      } }, 'close'), ctrl.getImageList()]), mc('.imageBox', { onmousedown: function onmousedown(e) {
 	        return ctrl.cycleVisible(detectRightButton() ? -1 : 1);
@@ -3852,6 +3853,463 @@
 	        }
 	    }
 	};
+
+/***/ },
+/* 17 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;'use strict';
+
+	var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol ? "symbol" : typeof obj; };
+
+	!function (root, factory) {
+	  if (true) {
+	    !(__WEBPACK_AMD_DEFINE_ARRAY__ = [__webpack_require__(18)], __WEBPACK_AMD_DEFINE_FACTORY__ = (factory), __WEBPACK_AMD_DEFINE_RESULT__ = (typeof __WEBPACK_AMD_DEFINE_FACTORY__ === 'function' ? (__WEBPACK_AMD_DEFINE_FACTORY__.apply(exports, __WEBPACK_AMD_DEFINE_ARRAY__)) : __WEBPACK_AMD_DEFINE_FACTORY__), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__)); // define(['jquery'], factory)
+	  } else if ((typeof exports === 'undefined' ? 'undefined' : _typeof(exports)) === 'object' && typeof module !== 'undefined') {
+	      module.exports = factory(require('extend_exclude')); // factory(require('jquery'))
+	    } else {
+	        root.cssobj = factory(extend_exclude); // should return obj in factory
+	      }
+	}(undefined, function (util) {
+	  'use strict';
+
+	  // better type check
+
+	  var type = {}.toString;
+	  var own = {}.hasOwnProperty;
+	  var OBJECT = type.call({});
+	  var ARRAY = type.call([]);
+
+	  function isPrimitive(val) {
+	    return (typeof val === 'undefined' ? 'undefined' : _typeof(val)) !== 'object' || !val;
+	  }
+
+	  /**
+	   * convert simple Object into tree data
+	   *
+	   format:
+	   {"a":{"b":{"c":{"":["leaf 1"]}}},"abc":123, e:[2,3,4], f:null}
+	   *        1. every key is folder node
+	   *        2. "":[] is leaf node
+	   *        3. except leaf node, array value will return as is
+	   *        4. {abc:123} is shortcut for {abc:{"": [123]}}
+	   *
+	   * @param {object} d - simple object data
+	   * @param {function} [prop] - function(key,val){} to return {object} to merge into current
+	   * @param {array} [path] - array path represent root to parent
+	   * @returns {object} tree data object
+	   */
+	  function convertSimpleData(d, options, prop, path) {
+	    path = path || [];
+	    if (isPrimitive(d)) {
+	      // {abc:123} is shortcut for {abc:{"": [123]}}
+	      return [util._extend({ name: d, _leaf: true }, prop && prop(d, path))];
+	    }
+	    if (type.call(d) === ARRAY) {
+	      return d;
+	      // return d.map(function (v, i) {
+	      //   return convertSimpleData(v, prop, path.concat(i))
+	      // })
+	    }
+	    if (type.call(d) === OBJECT) {
+	      var node = [];
+	      var propArray = [];
+	      for (var k in d) {
+	        var child = convertSimpleData(d[k], options, prop, path.concat({ name: k, value: d[k] }));
+	        // node.push(util._extend({name: k, children:child }, prop && prop(k, path)))
+	        if (child.length && child[0]._leaf) propArray.push(k.replace(/_/g, '-').replace(/[A-Z]/g, cam2Dash) + ':' + child[0].name);
+	      }
+	      if (path.length) objKV(store, getSelector(path, options), propArray);
+	      return node;
+	    }
+	    return [];
+	  }
+
+	  var propStart = '{\n';
+	  var propEnd = '\n}';
+	  var reClass = /:global\s*\(\s*((?:\.[-\w]+\s*)+)\s*\)|(\.)([!-\w]+)/g;
+	  var reComma = /\s*,\s*/;
+
+	  var store = {};
+	  var localNames = {};
+
+	  var count = 0;
+	  var random = function random() {
+	    count++;
+	    return '_' + Math.floor(Math.random() * Math.pow(2, 32)).toString(36) + count + '_';
+	  };
+
+	  function propFormatter(propArray) {
+	    return propArray.map(function (v) {
+	      return '\t' + v;
+	    }).join(';\n');
+	  }
+
+	  function getSelector(path, options) {
+	    var replacer = function replacer(match, global, dot, name) {
+	      if (global) {
+	        return global;
+	      }
+	      if (name[0] === '!') {
+	        return dot + name.substr(1);
+	      }
+	      if (!localNames[name]) localNames[name] = options.local ? (options.prefix = options.prefix || random(), options.prefix + name) : name;
+	      return dot + localNames[name].match(/\S+$/);
+	    };
+
+	    var localize = function localize(name) {
+	      return name.replace(reClass, replacer);
+	    };
+
+	    var item,
+	        parent = '';
+	    for (var i = 0, len = path.length; i < len; i++) {
+	      item = path[i];
+	      if (!item.selector) {
+	        item.selector = item.name.split(reComma).map(function (v) {
+	          return parent.split(reComma).map(function (p) {
+	            return v.match(/^&|[^\\]&/) ? v.replace(/&/, p) : p.split(' ').concat(v.replace(/\\&/g, '&')).join(' ');
+	          }).join(', ');
+	        }).join(', ').replace(/^\s+/, '');
+	      }
+	      parent = item.selector;
+	    }
+	    return localize(parent);
+	  }
+
+	  function getCSS() {
+	    return Object.keys(store).map(function (k) {
+	      return k + ' ' + propStart + propFormatter(store[k]) + propEnd;
+	    }).join('\n');
+	  }
+
+	  function cam2Dash(c) {
+	    return '-' + c.toLowerCase();
+	  }
+
+	  function objKV(obj, k, v) {
+	    return obj[k] = v;
+	  }
+
+	  var obj = {
+	    'ul.menu': {
+	      background_color: 'red',
+	      borderRadius: '2px',
+	      'li.item, li.cc': {
+	        '&:before, .link': {
+	          ".foo[title*='\\&'], :global(.xy)": { color: 'blue' },
+	          color: 'red'
+	        },
+	        'html:global(.ie8) &': { color: 'purple' },
+	        font_size: '12px'
+	      }
+	    }
+	  };
+
+	  function safeSelector(name) {
+	    if (name) return '_'.concat(name).replace(/^_+/, '_').replace(/[^-\w]/g, '');
+	  }
+
+	  var defaultOption = { local: true };
+	  function cssobj(obj, options) {
+	    options = options || {};
+
+	    // set default options
+	    util._deepIt(options, defaultOption, function (a, b, key) {
+	      if (!(key in a)) a[key] = b[key];
+	    });
+
+	    // ensure it's valid selector name
+	    options.prefix = safeSelector(options.prefix);
+
+	    convertSimpleData(obj, options);
+	    var result = { css: getCSS(), map: localNames, options: options };
+	    localNames = {};
+	    store = {};
+	    if (options.post) options.post.forEach(function (f) {
+	      f(result);
+	    });
+	    return result;
+	  }
+
+	  // window.a = cssobj(obj, window.a? window.a.options : {})
+	  // console.log(a.css)
+
+	  // module exports
+	  return cssobj;
+	});
+
+/***/ },
+/* 18 */
+/***/ function(module, exports) {
+
+	'use strict';
+
+	var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol ? "symbol" : typeof obj; };
+
+	var type = {}.toString;
+	var own = {}.hasOwnProperty;
+	var OBJECT = type.call({});
+
+	function _deepIt(a, b, callback) {
+	  if (a == null || b == null) {
+	    return a;
+	  }
+	  for (var key in b) {
+	    if (!own.call(b, key)) continue;
+	    if (type.call(b[key]) == OBJECT) {
+	      if (type.call(a[key]) != OBJECT) {
+	        callback(a, b, key);
+	      } else {
+	        a[key] = _deepIt(a[key], b[key], callback);
+	      }
+	    } else {
+	      callback(a, b, key);
+	    }
+	  }
+	  return a;
+	}
+
+	function _extend() {
+	  var arg = arguments,
+	      last;
+	  for (var i = arg.length; i--;) {
+	    last = _deepIt(arg[i], last, function (a, b, key) {
+	      a[key] = b[key];
+	    });
+	  }
+	  return last;
+	}
+
+	/*Usage: _exlucde(obj, {x:{y:1, z:1} }, [null] ) will delete x.y,x.z on obj, or set to newVal if present */
+	// _exclude( {a:1,b:{d:{ c:2} } }, { b:{d:{ c:1} } } )
+	function _exclude(x, y, newVal) {
+	  var args = arguments;
+	  return _deepIt(x, y, function (a, b, key) {
+	    if (_typeof(b[key]) !== 'object' && b[key]) {
+	      args.length == 3 ? a[key] = newVal : delete a[key];
+	    } else {
+	      a[key] = b[key];
+	    }
+	  });
+	}
+
+	var extend_exclude = {
+	  _deepIt: _deepIt,
+	  _extend: _extend,
+	  _exclude: _exclude
+	};
+
+	module.exports = extend_exclude;
+
+/***/ },
+/* 19 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;'use strict';
+
+	var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol ? "symbol" : typeof obj; };
+
+	!function (root, factory) {
+	  if (true) {
+	    !(__WEBPACK_AMD_DEFINE_ARRAY__ = [__webpack_require__(17), __webpack_require__(18)], __WEBPACK_AMD_DEFINE_FACTORY__ = (factory), __WEBPACK_AMD_DEFINE_RESULT__ = (typeof __WEBPACK_AMD_DEFINE_FACTORY__ === 'function' ? (__WEBPACK_AMD_DEFINE_FACTORY__.apply(exports, __WEBPACK_AMD_DEFINE_ARRAY__)) : __WEBPACK_AMD_DEFINE_FACTORY__), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__)); // define(['jquery'], factory)
+	  } else if ((typeof exports === 'undefined' ? 'undefined' : _typeof(exports)) === 'object' && typeof module !== 'undefined') {
+	      module.exports = factory(require('cssobj'), require('extend_exclude')); // factory(require('jquery'))
+	    } else {
+	        root.cssobj_m = factory(cssobj, extend_exclude); // should return obj in factory
+	      }
+	}(undefined, function (cssobj, util) {
+	  var hasOwn = {}.hasOwnProperty;
+	  var type = {}.toString;
+	  var OBJECT = type.call({});
+
+	  function isObject(object) {
+	    return type.call(object) === OBJECT;
+	  }
+
+	  function bindM(M, objStore, optionStore) {
+	    M = M || m;
+	    if (!M) throw new Error('cannot find mithril, make sure you have `m` available in this scope.');
+
+	    objStore = objStore || {};
+	    optionStore = optionStore || {};
+
+	    var cssStore = cssobj(objStore, optionStore);
+
+	    var c = function c(tag, pairs) {
+	      var args = [];
+
+	      for (var i = 1, length = arguments.length; i < length; i++) {
+	        args[i - 1] = arguments[i];
+	      }
+
+	      if (isObject(tag)) {
+	        var classAttr = 'class' in tag.attrs ? 'class' : 'className';
+	        var classObj = tag.attrs && tag.attrs[classAttr];
+	        if (classObj) tag.attrs[classAttr] = classObj.split(/ +/).map(function (c) {
+	          return cssStore.map[c] || c;
+	        }).join(' ');
+	        return M.apply(null, tag);
+	      }
+
+	      var hasAttrs = pairs != null && isObject(pairs) && !('tag' in pairs || 'view' in pairs || 'subtree' in pairs);
+
+	      var attrs = hasAttrs ? pairs : {};
+	      var cell = {
+	        tag: 'div',
+	        attrs: {}
+	      };
+
+	      assignAttrs(cell.attrs, attrs, parseTagAttrs(cell, tag, cssStore), cssStore);
+	      // console.log(hasAttrs, cell, args)
+
+	      return M.apply(null, [cell.tag, cell.attrs].concat(hasAttrs ? args.slice(1) : args));
+	    };
+
+	    c.option = function () {
+	      return optionStore;
+	    };
+	    c.obj = function () {
+	      return objStore;
+	    };
+	    c.css = function (obj, option) {
+	      if (option) optionStore = option;
+	      if (obj) {
+	        objStore = obj;
+	        cssStore = cssobj(objStore, optionStore);
+	        M.redraw();
+	      }
+	      return cssStore;
+	    };
+	    c.add = function (obj) {
+	      cssStore = cssobj(util._extend(objStore, obj), optionStore);
+	      M.redraw();
+	      return cssStore;
+	    };
+	    c.remove = function (obj) {
+	      cssStore = cssobj(util._exclude(objStore, obj), optionStore);
+	      M.redraw();
+	      return cssStore;
+	    };
+
+	    return c;
+	  }
+
+	  //
+	  /** helper functions **/
+
+	  function getStyle(cssStore, cls) {
+	    var globalRe = /:global\(([^)]+)\)/i;
+	    var classes = cls.split(/\s+/);
+	    return classes.map(function (v) {
+	      var match = v.match(globalRe);
+	      if (match) return match.pop();else return cssStore.map[v] || v;
+	    }).join(' ');
+	  }
+
+	  // get from mithril.js, which not exposed
+
+	  function parseTagAttrs(cell, tag, cssStore) {
+	    var classes = [];
+	    var parser = /(?:(^|#|\.)([^#\.\[\]]+))|(\[.+?\])/g;
+	    var match;
+
+	    while (match = parser.exec(tag)) {
+	      if (match[1] === '' && match[2]) {
+	        cell.tag = match[2];
+	      } else if (match[1] === '#') {
+	        cell.attrs.id = match[2];
+	      } else if (match[1] === '.') {
+	        classes.push(getStyle(cssStore, match[2]));
+	      } else if (match[3][0] === '[') {
+	        var pair = /\[(.+?)(?:=("|'|)(.*?)\2)?\]/.exec(match[3]);
+	        cell.attrs[pair[1]] = pair[3] || '';
+	      }
+	    }
+
+	    return classes;
+	  }
+
+	  function assignAttrs(target, attrs, classes, cssStore) {
+	    var classAttr = 'class' in attrs ? 'class' : 'className';
+
+	    for (var attrName in attrs) {
+	      if (hasOwn.call(attrs, attrName)) {
+	        if (attrName === classAttr && attrs[attrName] != null && attrs[attrName] !== '') {
+	          classes.push(getStyle(cssStore, attrs[attrName]));
+	          // create key in correct iteration order
+	          target[attrName] = '';
+	        } else {
+	          target[attrName] = attrs[attrName];
+	        }
+	      }
+	    }
+
+	    if (classes.length) target[classAttr] = classes.join(' ');
+	  }
+
+	  // module exports
+	  return bindM;
+	});
+
+/***/ },
+/* 20 */
+/***/ function(module, exports) {
+
+	'use strict';
+
+	/**
+	 * @fileOverview cssobj plugin for apply style into browser head
+	 * @name cssobj-plugin-post-stylize.js • src
+	 * @author James Yang [jamesyang999@gmail.com]
+	 * @license MIT
+	 * @usage
+	cssobj(obj, {
+	  post:[cssobj_plugin_post_stylize({name:'gaga', attrs: {media: 'screen'}})]
+	})
+	 */
+
+	var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol ? "symbol" : typeof obj; };
+
+	function escapeHTML(str) {
+	  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+	}
+
+	function stylize(element, sheet) {
+	  if (element.cachedCSS === sheet) return;
+	  element.cachedCSS = sheet;
+	  if (element.styleSheet) {
+	    element.styleSheet.cssText = sheet;
+	  } else {
+	    // empty all style when re-apply new style
+	    while (element.firstChild) {
+	      element.removeChild(element.firstChild);
+	    }element.appendChild(document.createTextNode(sheet));
+	  }
+	  return element;
+	}
+
+	function addStyleToHead(option) {
+	  option = option || {};
+	  if (!option.name) option.name = +new Date() + '_';
+	  return function (sheet) {
+	    var id = 'style_cssobj_' + escapeHTML(option.name);
+	    var styleDom = document.getElementById(id);
+	    if (!styleDom) {
+	      var el = document.createElement('style');
+	      document.head.appendChild(el);
+	      styleDom = el;
+	    }
+	    styleDom.setAttribute('id', id);
+	    styleDom.setAttribute('type', 'text/css');
+	    if (option && (typeof option === 'undefined' ? 'undefined' : _typeof(option)) == 'object' && option.attrs) for (var i in option.attrs) {
+	      styleDom.setAttribute(i, option.attrs[i]);
+	    }
+	    return stylize(styleDom, sheet.css);
+	  };
+	}
+
+	module.exports = addStyleToHead;
 
 /***/ }
 /******/ ]);

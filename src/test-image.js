@@ -6,42 +6,42 @@
  * @license MIT
  */
 
-import mj2c from './mithril-j2c.js'
+import cssobj from 'cssobj-mithril'
+import cssobjHead from 'cssobj-plugin-post-stylize'
 import util from 'util'
-
-const mc = mj2c.bindM()
 
 var PTEST_PATH = '/ptestfolder/'
 
-const style = mj2c.sheet({
+const style = {
   '.test-image-con': {
     text_align: 'left'
   },
   'menu.top': {
     background: '#ccc',
-    ' a, span': {
+    'a, span': {
       margin_left: '10px'
     },
-    ' span.current': {
+    'span.current': {
       color: 'red'
     }
   },
   '.imageBox': {
     position: 'relative',
-    ' .info': {
+    '.info': {
       position: 'absolute',
       right: '10px',
       top: '10px',
       z_index: 999
     },
-    ' .image': {
+    '.image': {
       position: 'absolute'
     }
   },
   '.hide': {
     display: 'none'
   }
-})
+}
+const mc = cssobj(m, style, {post:[cssobjHead()]})
 
 const gallary = {
   controller: function (arg) {
@@ -112,7 +112,6 @@ const gallary = {
   },
   view: function (ctrl, arg) {
     return mc('.test-image-con', [
-      mc.style(style),
       mc('menu.top', [
         mc('a[href=#]', {onclick: e => arg.onclose && arg.onclose()}, 'close'),
         ctrl.getImageList()

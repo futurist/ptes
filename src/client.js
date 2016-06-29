@@ -314,8 +314,10 @@ function registerEvent () {
     if (stage !== null) return
     stage = CLIPPING
   })
-  Mousetrap.bind('ctrl+s', function (e) {
+  Mousetrap.bind('f8', function (e) {
     e.preventDefault()
+    e.stopPropagation()
+    e.stopImmediatePropagation()
     if (!currentPath || stage!==RECORDING) return
     sc(' snapKeyFrame("' + currentName + '") ')
     keyframeCount++
@@ -348,7 +350,7 @@ function registerEvent () {
     // 'dblclick',
   ]
   eventList.forEach(function (v) {
-    $(window).on(v, function (evt) {
+    $(document).on(v, function (evt) {
       if (stage !== RECORDING && stage!==null) return
       const e = evt.originalEvent
       const isKey = /key/.test(e.type)
@@ -362,7 +364,8 @@ function registerEvent () {
       const evtData = { type: e.type, which: e.which, modifier: modifier }
       if (isKey) {
         evtData.keyName = e.key || e.keyIdentifier
-        // console.log(e,  e.key||e.keyIdentifier, e.keyIdentifier )
+        // console.log(e,  e.key||e.keyIdentifier, modifier )
+        if(modifier===0 && evtData.keyName==='F8') return
       } else {
         evtData.pageX = e.pageX // -window.scrollX
         evtData.pageY = e.pageY // -window.scrollY

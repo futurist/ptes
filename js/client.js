@@ -383,8 +383,10 @@
 	    if (stage !== null) return;
 	    stage = CLIPPING;
 	  });
-	  Mousetrap.bind('ctrl+s', function (e) {
+	  Mousetrap.bind('f8', function (e) {
 	    e.preventDefault();
+	    e.stopPropagation();
+	    e.stopImmediatePropagation();
 	    if (!currentPath || stage !== RECORDING) return;
 	    sc(' snapKeyFrame("' + currentName + '") ');
 	    keyframeCount++;
@@ -412,7 +414,7 @@
 	  // 'click',
 	  // 'dblclick',
 	  eventList.forEach(function (v) {
-	    $(window).on(v, function (evt) {
+	    $(document).on(v, function (evt) {
 	      if (stage !== RECORDING && stage !== null) return;
 	      var e = evt.originalEvent;
 	      var isKey = /key/.test(e.type);
@@ -426,11 +428,12 @@
 	      var evtData = { type: e.type, which: e.which, modifier: modifier };
 	      if (isKey) {
 	        evtData.keyName = e.key || e.keyIdentifier;
-	        // console.log(e,  e.key||e.keyIdentifier, e.keyIdentifier )
+	        // console.log(e,  e.key||e.keyIdentifier, modifier )
+	        if (modifier === 0 && evtData.keyName === 'F8') return;
 	      } else {
-	          evtData.pageX = e.pageX; // -window.scrollX
-	          evtData.pageY = e.pageY; // -window.scrollY
-	        }
+	        evtData.pageX = e.pageX; // -window.scrollX
+	        evtData.pageY = e.pageY; // -window.scrollY
+	      }
 	      // if(evtData.type=='mousemove') ws._send_throttle({ type:'event_mouse', data:evtData })
 	      // else ws._send({ type:'event_mouse', data:evtData })
 	      ws._send({ type: isKey ? 'event_key' : 'event_mouse', data: evtData });

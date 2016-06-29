@@ -241,7 +241,7 @@ function readPtestConfig (toJSON) {
     if (e.code !== 'ENOENT') {
       console.log(e, 'error parse ptest.json...')
     } else {
-      console.log('please run server from folder:', TEST_FOLDER)
+      console.log('please run ptest-server from folder contains file: ptest.json')
     }
     return process.exit()
   }
@@ -307,7 +307,8 @@ function snapKeyFrame (testName) {
   var name = path.join(testName, String(+new Date()) + '.png')
   console.log('------snapshot:', name)
   snapShot(name)
-  EventCache.push({ time: Date.now(), msg: _util._extend({}, { type: 'snapshot', data: name }) })
+  var prevMsg = EventCache[EventCache.length-1]||{}
+  EventCache.push({ time: Date.now(), msg: _util._extend({}, { type: 'snapshot', data: name }), prevMsg:prevMsg.msg })
 }
 
 // create WS Server

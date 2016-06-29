@@ -6,13 +6,11 @@
  * @license MIT
  */
 
-import mj2c from './mithril-j2c.js'
-import testImage from './test-image'
+import cssobj from 'cssobj-mithril'
+import cssobjHead from 'cssobj-plugin-post-stylize'
 import util from 'util'
 
-const mc = mj2c.bindM()
-
-const style = mj2c.sheet({
+const mc = cssobj(m, {
   '.runner-result':{
     text_align:'left'
   },
@@ -37,7 +35,7 @@ const style = mj2c.sheet({
     margin_top: '1em',
     margin_bottom: '3em',
     margin_left: '1.5em',
-    ' .finished':{
+    '.finished':{
       color:'blue'
     }
   },
@@ -49,11 +47,11 @@ const style = mj2c.sheet({
       content:"'-'",
       color:'grey'
     },
-    ' span, a':{
+    'span, a':{
       margin_left:'10px'
     }
   },
-})
+}, {post:[cssobjHead()]})
 
 const footer = {
   controller: function(arg) {
@@ -97,7 +95,6 @@ const reporter = {
   },
   view: function (ctrl, arg) {
     return mc('.runner-result', [
-      mc.style(style),
       ctrl.result ? mc('menu.top', [ mc('a[href=#]',{onclick:e=>arg.onclose&&arg.onclose()}, 'close') ]) : [],
       mc('h3', {style: {margin: '1em 0 0 1em'}}, 'Result for ptest-runner'),
       mc('.reporter',
@@ -105,7 +102,7 @@ const reporter = {
            return mc(
              '.item',
              {
-               class: style[v.status],
+               class: mc.css().map[v.status],
                style: {
                  marginLeft: v.level * 1 + 'em'
                }

@@ -47,7 +47,7 @@ function _clone (obj) {
 page.zoomFactor = 1
 // page.clipRect = { top: 10, left: 0, width: 640, height: 490 }
 page.viewportSize = { width: 1000, height: 610 }
-// page.settings.userAgent = 'Mozilla/5.0 (Windows NT 5.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/31.0.1650.57 Safari/537.36'
+page.settings.userAgent = 'Mozilla/5.0 (Windows NT 5.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/31.0.1650.57 Safari/537.36'
 page.settings.resourceTimeout = 50000 // 5 seconds
 page.settings.localToRemoteUrlAccessEnabled = true
 page.settings.webSecurityEnabled = false

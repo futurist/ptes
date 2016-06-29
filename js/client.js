@@ -59,15 +59,15 @@
 
 	var _reporter2 = _interopRequireDefault(_reporter);
 
-	var _testImage = __webpack_require__(8);
+	var _testImage = __webpack_require__(14);
 
 	var _testImage2 = _interopRequireDefault(_testImage);
 
-	var _overlay = __webpack_require__(13);
+	var _overlay = __webpack_require__(15);
 
 	var _overlay2 = _interopRequireDefault(_overlay);
 
-	var _jsonPointer = __webpack_require__(15);
+	var _jsonPointer = __webpack_require__(17);
 
 	var _jsonPointer2 = _interopRequireDefault(_jsonPointer);
 
@@ -1580,29 +1580,21 @@
 
 	'use strict';
 
-	var _mithrilJ2c = __webpack_require__(6);
+	var _cssobjMithril = __webpack_require__(6);
 
-	var _mithrilJ2c2 = _interopRequireDefault(_mithrilJ2c);
+	var _cssobjMithril2 = _interopRequireDefault(_cssobjMithril);
 
-	var _testImage = __webpack_require__(8);
+	var _cssobjPluginPostStylize = __webpack_require__(9);
 
-	var _testImage2 = _interopRequireDefault(_testImage);
+	var _cssobjPluginPostStylize2 = _interopRequireDefault(_cssobjPluginPostStylize);
 
-	var _util = __webpack_require__(9);
+	var _util = __webpack_require__(10);
 
 	var _util2 = _interopRequireDefault(_util);
 
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-	var mc = _mithrilJ2c2.default.bindM(); /**
-	                                        * @fileOverview Render html view from ptest-runner reporter
-	                                        * @requires ptest-runner output JSON format file/response
-	                                        * @name ptest-resu@lt.js
-	                                        * @author Micheal Yang
-	                                        * @license MIT
-	                                        */
-
-	var style = _mithrilJ2c2.default.sheet({
+	var mc = (0, _cssobjMithril2.default)(m, {
 	  '.runner-result': {
 	    text_align: 'left'
 	  },
@@ -1627,7 +1619,7 @@
 	    margin_top: '1em',
 	    margin_bottom: '3em',
 	    margin_left: '1.5em',
-	    ' .finished': {
+	    '.finished': {
 	      color: 'blue'
 	    }
 	  },
@@ -1639,11 +1631,17 @@
 	      content: "'-'",
 	      color: 'grey'
 	    },
-	    ' span, a': {
+	    'span, a': {
 	      margin_left: '10px'
 	    }
 	  }
-	});
+	}, { post: [(0, _cssobjPluginPostStylize2.default)()] }); /**
+	                                                           * @fileOverview Render html view from ptest-runner reporter
+	                                                           * @requires ptest-runner output JSON format file/response
+	                                                           * @name ptest-resu@lt.js
+	                                                           * @author Micheal Yang
+	                                                           * @license MIT
+	                                                           */
 
 	var footer = {
 	  controller: function controller(arg) {
@@ -1675,11 +1673,11 @@
 	    this.result = this.data.length && this.data[0].result;
 	  },
 	  view: function view(ctrl, arg) {
-	    return mc('.runner-result', [mc.style(style), ctrl.result ? mc('menu.top', [mc('a[href=#]', { onclick: function onclick(e) {
+	    return mc('.runner-result', [ctrl.result ? mc('menu.top', [mc('a[href=#]', { onclick: function onclick(e) {
 	        return arg.onclose && arg.onclose();
 	      } }, 'close')]) : [], mc('h3', { style: { margin: '1em 0 0 1em' } }, 'Result for ptest-runner'), mc('.reporter', ctrl.data.map(function (v, i) {
 	      return mc('.item', {
-	        class: style[v.status],
+	        class: mc.css().map[v.status],
 	        style: {
 	          marginLeft: v.level * 1 + 'em'
 	        }
@@ -1714,35 +1712,33 @@
 
 	var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol ? "symbol" : typeof obj; };
 
-	;(function (root, factory) {
+	!function (root, factory) {
 	  if (true) {
-	    !(__WEBPACK_AMD_DEFINE_ARRAY__ = [], __WEBPACK_AMD_DEFINE_FACTORY__ = (factory), __WEBPACK_AMD_DEFINE_RESULT__ = (typeof __WEBPACK_AMD_DEFINE_FACTORY__ === 'function' ? (__WEBPACK_AMD_DEFINE_FACTORY__.apply(exports, __WEBPACK_AMD_DEFINE_ARRAY__)) : __WEBPACK_AMD_DEFINE_FACTORY__), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__)); // define(['jquery'], factory)
+	    !(__WEBPACK_AMD_DEFINE_ARRAY__ = [__webpack_require__(7), __webpack_require__(8)], __WEBPACK_AMD_DEFINE_FACTORY__ = (factory), __WEBPACK_AMD_DEFINE_RESULT__ = (typeof __WEBPACK_AMD_DEFINE_FACTORY__ === 'function' ? (__WEBPACK_AMD_DEFINE_FACTORY__.apply(exports, __WEBPACK_AMD_DEFINE_ARRAY__)) : __WEBPACK_AMD_DEFINE_FACTORY__), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__)); // define(['jquery'], factory)
 	  } else if ((typeof exports === 'undefined' ? 'undefined' : _typeof(exports)) === 'object' && typeof module !== 'undefined') {
-	      module.exports = factory(); // factory(require('jquery'))
+	      module.exports = factory(require('cssobj'), require('extend_exclude')); // factory(require('jquery'))
 	    } else {
-	        root.mj2c = factory(); // should return obj in factory
+	        root.cssobj_m = factory(cssobj, extend_exclude); // should return obj in factory
 	      }
-	})(undefined, function () {
-	  var self = this;
-	  var mj2c = __webpack_require__(7);
+	}(undefined, function (cssobj, util) {
 	  var hasOwn = {}.hasOwnProperty;
 	  var type = {}.toString;
+	  var OBJECT = type.call({});
 
 	  function isObject(object) {
-	    return type.call(object) === '[object Object]';
+	    return type.call(object) === OBJECT;
 	  }
 
-	  function isString(object) {
-	    return type.call(object) === '[object String]';
-	  }
-
-	  function bindM(M) {
-	    M = M || self.m || m;
+	  function bindM(M, objStore, optionStore) {
+	    M = M || m;
 	    if (!M) throw new Error('cannot find mithril, make sure you have `m` available in this scope.');
 
-	    var style = {};
+	    objStore = objStore || {};
+	    optionStore = optionStore || {};
 
-	    M.c = function (tag, pairs) {
+	    var cssStore = cssobj(objStore, optionStore);
+
+	    var c = function c(tag, pairs) {
 	      var args = [];
 
 	      for (var i = 1, length = arguments.length; i < length; i++) {
@@ -1753,7 +1749,7 @@
 	        var classAttr = 'class' in tag.attrs ? 'class' : 'className';
 	        var classObj = tag.attrs && tag.attrs[classAttr];
 	        if (classObj) tag.attrs[classAttr] = classObj.split(/ +/).map(function (c) {
-	          return style[c] || c;
+	          return cssStore.map[c] || c;
 	        }).join(' ');
 	        return M.apply(null, tag);
 	      }
@@ -1766,46 +1762,56 @@
 	        attrs: {}
 	      };
 
-	      assignAttrs(cell.attrs, attrs, parseTagAttrs(cell, tag, style), style);
+	      assignAttrs(cell.attrs, attrs, parseTagAttrs(cell, tag, cssStore), cssStore);
 	      // console.log(hasAttrs, cell, args)
 
 	      return M.apply(null, [cell.tag, cell.attrs].concat(hasAttrs ? args.slice(1) : args));
 	    };
 
-	    M.c.style = function (j2cObject) {
-	      if (!arguments.length) return style;
-	      if (!j2cObject) {
-	        style = {};
-	        return [];
+	    c.option = function () {
+	      return optionStore;
+	    };
+	    c.obj = function () {
+	      return objStore;
+	    };
+	    c.css = function (obj, option) {
+	      if (option) optionStore = option;
+	      if (obj) {
+	        objStore = obj;
+	        cssStore = cssobj(objStore, optionStore);
+	        M.redraw();
 	      }
-	      if (isString(j2cObject)) {
-	        style = j2cObject;
-	        return M('style', { type: 'text/css' }, style);
-	      }
+	      return cssStore;
+	    };
+	    c.add = function (obj) {
+	      cssStore = cssobj(util._extend(objStore, obj), optionStore);
+	      M.redraw();
+	      return cssStore;
+	    };
+	    c.remove = function (obj) {
+	      cssStore = cssobj(util._exclude(objStore, obj), optionStore);
+	      M.redraw();
+	      return cssStore;
 	    };
 
-	    return M.c;
+	    return c;
 	  }
-
-	  mj2c.bindM = bindM;
-
-	  // module.exports = mj2c
 
 	  //
 	  /** helper functions **/
 
-	  function getStyle(style, cls) {
-	    var globalRe = /:global\(([^)]+)\)|!([^.#]+)/i;
+	  function getStyle(cssStore, cls) {
+	    var globalRe = /:global\(([^)]+)\)/i;
 	    var classes = cls.split(/\s+/);
 	    return classes.map(function (v) {
 	      var match = v.match(globalRe);
-	      if (match) return match.pop() || match.pop();else return style[v] || v;
+	      if (match) return match.pop();else return cssStore.map[v] || v;
 	    }).join(' ');
 	  }
 
 	  // get from mithril.js, which not exposed
 
-	  function parseTagAttrs(cell, tag, style) {
+	  function parseTagAttrs(cell, tag, cssStore) {
 	    var classes = [];
 	    var parser = /(?:(^|#|\.)([^#\.\[\]]+))|(\[.+?\])/g;
 	    var match;
@@ -1816,7 +1822,7 @@
 	      } else if (match[1] === '#') {
 	        cell.attrs.id = match[2];
 	      } else if (match[1] === '.') {
-	        classes.push(getStyle(style, match[2]));
+	        classes.push(getStyle(cssStore, match[2]));
 	      } else if (match[3][0] === '[') {
 	        var pair = /\[(.+?)(?:=("|'|)(.*?)\2)?\]/.exec(match[3]);
 	        cell.attrs[pair[1]] = pair[3] || '';
@@ -1826,537 +1832,337 @@
 	    return classes;
 	  }
 
-	  function assignAttrs(target, attrs, classes, style) {
-	    var classAttr = "class" in attrs ? "class" : "className";
+	  function assignAttrs(target, attrs, classes, cssStore) {
+	    var classAttr = 'class' in attrs ? 'class' : 'className';
 
 	    for (var attrName in attrs) {
 	      if (hasOwn.call(attrs, attrName)) {
-	        if (attrName === classAttr && attrs[attrName] != null && attrs[attrName] !== "") {
-	          classes.push(getStyle(style, attrs[attrName]));
+	        if (attrName === classAttr && attrs[attrName] != null && attrs[attrName] !== '') {
+	          classes.push(getStyle(cssStore, attrs[attrName]));
 	          // create key in correct iteration order
-	          target[attrName] = "";
+	          target[attrName] = '';
 	        } else {
 	          target[attrName] = attrs[attrName];
 	        }
 	      }
 	    }
 
-	    if (classes.length) target[classAttr] = classes.join(" ");
+	    if (classes.length) target[classAttr] = classes.join(' ');
 	  }
 
 	  // module exports
-	  return mj2c;
+	  return bindM;
 	});
 
 /***/ },
 /* 7 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;'use strict';
+
+	var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol ? "symbol" : typeof obj; };
+
+	!function (root, factory) {
+	  if (true) {
+	    !(__WEBPACK_AMD_DEFINE_ARRAY__ = [__webpack_require__(8)], __WEBPACK_AMD_DEFINE_FACTORY__ = (factory), __WEBPACK_AMD_DEFINE_RESULT__ = (typeof __WEBPACK_AMD_DEFINE_FACTORY__ === 'function' ? (__WEBPACK_AMD_DEFINE_FACTORY__.apply(exports, __WEBPACK_AMD_DEFINE_ARRAY__)) : __WEBPACK_AMD_DEFINE_FACTORY__), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__)); // define(['jquery'], factory)
+	  } else if ((typeof exports === 'undefined' ? 'undefined' : _typeof(exports)) === 'object' && typeof module !== 'undefined') {
+	      module.exports = factory(require('extend_exclude')); // factory(require('jquery'))
+	    } else {
+	        root.cssobj = factory(extend_exclude); // should return obj in factory
+	      }
+	}(undefined, function (util) {
+	  'use strict';
+
+	  // better type check
+
+	  var type = {}.toString;
+	  var own = {}.hasOwnProperty;
+	  var OBJECT = type.call({});
+	  var ARRAY = type.call([]);
+
+	  function isPrimitive(val) {
+	    return (typeof val === 'undefined' ? 'undefined' : _typeof(val)) !== 'object' || !val;
+	  }
+
+	  /**
+	   * convert simple Object into tree data
+	   *
+	   format:
+	   {"a":{"b":{"c":{"":["leaf 1"]}}},"abc":123, e:[2,3,4], f:null}
+	   *        1. every key is folder node
+	   *        2. "":[] is leaf node
+	   *        3. except leaf node, array value will return as is
+	   *        4. {abc:123} is shortcut for {abc:{"": [123]}}
+	   *
+	   * @param {object} d - simple object data
+	   * @param {function} [prop] - function(key,val){} to return {object} to merge into current
+	   * @param {array} [path] - array path represent root to parent
+	   * @returns {object} tree data object
+	   */
+	  function convertSimpleData(d, options, prop, path) {
+	    path = path || [];
+	    if (isPrimitive(d)) {
+	      // {abc:123} is shortcut for {abc:{"": [123]}}
+	      return [util._extend({ name: d, _leaf: true }, prop && prop(d, path))];
+	    }
+	    if (type.call(d) === ARRAY) {
+	      return d;
+	      // return d.map(function (v, i) {
+	      //   return convertSimpleData(v, prop, path.concat(i))
+	      // })
+	    }
+	    if (type.call(d) === OBJECT) {
+	      var node = [];
+	      var propArray = [];
+	      for (var k in d) {
+	        var child = convertSimpleData(d[k], options, prop, path.concat({ name: k, value: d[k] }));
+	        // node.push(util._extend({name: k, children:child }, prop && prop(k, path)))
+	        if (child.length && child[0]._leaf) propArray.push(k.replace(/_/g, '-').replace(/[A-Z]/g, cam2Dash) + ':' + child[0].name);
+	      }
+	      if (path.length) objKV(store, getSelector(path, options), propArray);
+	      return node;
+	    }
+	    return [];
+	  }
+
+	  var propStart = '{\n';
+	  var propEnd = '\n}';
+	  var reClass = /:global\s*\(\s*((?:\.[-\w]+\s*)+)\s*\)|(\.)([!-\w]+)/g;
+	  var reComma = /\s*,\s*/;
+
+	  var store = {};
+	  var localNames = {};
+
+	  var count = 0;
+	  var random = function random() {
+	    count++;
+	    return '_' + Math.floor(Math.random() * Math.pow(2, 32)).toString(36) + count + '_';
+	  };
+
+	  function propFormatter(propArray) {
+	    return propArray.map(function (v) {
+	      return '\t' + v;
+	    }).join(';\n');
+	  }
+
+	  function getSelector(path, options) {
+	    var replacer = function replacer(match, global, dot, name) {
+	      if (global) {
+	        return global;
+	      }
+	      if (name[0] === '!') {
+	        return dot + name.substr(1);
+	      }
+	      if (!localNames[name]) localNames[name] = options.local ? (options.prefix = options.prefix || random(), options.prefix + name) : name;
+	      return dot + localNames[name].match(/\S+$/);
+	    };
+
+	    var localize = function localize(name) {
+	      return name.replace(reClass, replacer);
+	    };
+
+	    var item,
+	        parent = '';
+	    for (var i = 0, len = path.length; i < len; i++) {
+	      item = path[i];
+	      if (!item.selector) {
+	        item.selector = item.name.split(reComma).map(function (v) {
+	          return parent.split(reComma).map(function (p) {
+	            return v.match(/^&|[^\\]&/) ? v.replace(/&/, p) : p.split(' ').concat(v.replace(/\\&/g, '&')).join(' ');
+	          }).join(', ');
+	        }).join(', ').replace(/^\s+/, '');
+	      }
+	      parent = item.selector;
+	    }
+	    return localize(parent);
+	  }
+
+	  function getCSS() {
+	    return Object.keys(store).map(function (k) {
+	      return k + ' ' + propStart + propFormatter(store[k]) + propEnd;
+	    }).join('\n');
+	  }
+
+	  function cam2Dash(c) {
+	    return '-' + c.toLowerCase();
+	  }
+
+	  function objKV(obj, k, v) {
+	    return obj[k] = v;
+	  }
+
+	  var obj = {
+	    'ul.menu': {
+	      background_color: 'red',
+	      borderRadius: '2px',
+	      'li.item, li.cc': {
+	        '&:before, .link': {
+	          ".foo[title*='\\&'], :global(.xy)": { color: 'blue' },
+	          color: 'red'
+	        },
+	        'html:global(.ie8) &': { color: 'purple' },
+	        font_size: '12px'
+	      }
+	    }
+	  };
+
+	  function safeSelector(name) {
+	    if (name) return '_'.concat(name).replace(/^_+/, '_').replace(/[^-\w]/g, '');
+	  }
+
+	  var defaultOption = { local: true };
+	  function cssobj(obj, options) {
+	    options = options || {};
+
+	    // set default options
+	    util._deepIt(options, defaultOption, function (a, b, key) {
+	      if (!(key in a)) a[key] = b[key];
+	    });
+
+	    // ensure it's valid selector name
+	    options.prefix = safeSelector(options.prefix);
+
+	    convertSimpleData(obj, options);
+	    var result = { css: getCSS(), map: localNames, options: options };
+	    localNames = {};
+	    store = {};
+	    if (options.post) options.post.forEach(function (f) {
+	      f(result);
+	    });
+	    return result;
+	  }
+
+	  // window.a = cssobj(obj, window.a? window.a.options : {})
+	  // console.log(a.css)
+
+	  // module exports
+	  return cssobj;
+	});
+
+/***/ },
+/* 8 */
 /***/ function(module, exports) {
 
 	'use strict';
 
-	var emptyObject = {};
-	var emptyArray = [];
-	var type = emptyObject.toString;
-	var own = emptyObject.hasOwnProperty;
-	var OBJECT = type.call(emptyObject);
-	var ARRAY = type.call(emptyArray);
-	var STRING = type.call('');
-	/*/-inline-/*/
-	// function cartesian(a, b, res, i, j) {
-	//   res = [];
-	//   for (j in b) if (own.call(b, j))
-	//     for (i in a) if (own.call(a, i))
-	//       res.push(a[i] + b[j]);
-	//   return res;
-	// }
-	/*/-inline-/*/
+	var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol ? "symbol" : typeof obj; };
 
-	/* /-statements-/*/
-	function cartesian(a, b, selectorP, res, i, j) {
-	  res = [];
-	  for (j in b) {
-	    if (own.call(b, j)) for (i in a) {
-	      if (own.call(a, i)) res.push(concat(a[i], b[j], selectorP));
-	    }
-	  }return res;
-	}
+	var type = {}.toString;
+	var own = {}.hasOwnProperty;
+	var OBJECT = type.call({});
 
-	function concat(a, b, selectorP) {
-	  // `b.replace(/&/g, a)` is never falsy, since the
-	  // 'a' of cartesian can't be the empty string
-	  // in selector mode.
-	  return selectorP && (/^[-\w$]+$/.test(b) && ':-error-bad-sub-selector-' + b || /&/.test(b) && /* never falsy */b.replace(/&/g, a)) || a + b;
-	}
-
-	function decamelize(match) {
-	  return '-' + match.toLowerCase();
-	}
-
-	/**
-	 * Handles the property:value; pairs.
-	 *
-	 * @param {array|object|string} o - the declarations.
-	 * @param {string[]} buf - the buffer in which the final style sheet is built.
-	 * @param {string} prefix - the current property or a prefix in case of nested
-	 *                          sub-properties.
-	 * @param {string} vendors - a list of vendor prefixes.
-	 * @Param {boolean} local - are we in @local or in @global scope.
-	 * @param {object} ns - helper functions to populate or create the @local namespace
-	 *                      and to @extend classes.
-	 * @param {function} ns.e - @extend helper.
-	 * @param {function} ns.l - @local helper.
-	 */
-
-	function declarations(o, buf, prefix, vendors, local, ns, /*var*/k, v, kk) {
-	  if (o == null) return;
-	  if (/\$/.test(prefix)) {
-	    for (kk in prefix = prefix.split('$')) {
-	      if (own.call(prefix, kk)) {
-	        declarations(o, buf, prefix[kk], vendors, local, ns);
-	      }
-	    }return;
+	function _deepIt(a, b, callback) {
+	  if (a == null || b == null) {
+	    return a;
 	  }
-	  switch (type.call(o = o.valueOf())) {
-	    case ARRAY:
-	      for (k = 0; k < o.length; k++) {
-	        declarations(o[k], buf, prefix, vendors, local, ns);
-	      }break;
-	    case OBJECT:
-	      // prefix is falsy iif it is the empty string, which means we're at the root
-	      // of the declarations list.
-	      prefix = prefix && prefix + '-';
-	      for (k in o) {
-	        if (own.call(o, k)) {
-	          v = o[k];
-	          if (/\$/.test(k)) {
-	            for (kk in k = k.split('$')) {
-	              if (own.call(k, kk)) declarations(v, buf, prefix + k[kk], vendors, local, ns);
-	            }
-	          } else {
-	            declarations(v, buf, prefix + k, vendors, local, ns);
-	          }
-	        }
-	      }break;
-	    default:
-	      // prefix is falsy when it is "", which means that we're
-	      // at the top level.
-	      // `o` is then treated as a `property:value` pair.
-	      // otherwise, `prefix` is the property name, and
-	      // `o` is the value.
-	      k = prefix.replace(/_/g, '-').replace(/[A-Z]/g, decamelize);
-
-	      if (local && (k == 'animation-name' || k == 'animation')) {
-	        o = o.split(',').map(function (o) {
-	          return o.replace(/()(?::global\(\s*([-\w]+)\s*\)|()([-\w]+))/, ns.l);
-	        }).join(',');
-	      }
-	      if (/^animation|^transition/.test(k)) vendors = ['webkit'];
-	      // '@' in properties also triggers the *ielte7 hack
-	      // Since plugins dispatch on the /^@/ for at-rules
-	      // we swap the at for an asterisk
-	      // http://browserhacks.com/#hack-6d49e92634f26ae6d6e46b3ebc10019a
-
-	      k = k.replace(/^@/, '*');
-
-	      /*/-statements-/*/
-	      // vendorify
-	      for (kk = 0; kk < vendors.length; kk++) {
-	        buf.push('-', vendors[kk], '-', k, k ? ':' : '', o, ';\n');
-	      } /*/-statements-/*/
-
-	      buf.push(k, k ? ':' : '', o, ';\n');
-
-	  }
-	}
-
-	var findClass = /()(?::global\(\s*(\.[-\w]+)\s*\)|(\.)([-\w]+))/g;
-
-	/**
-	 * Hanldes at-rules
-	 *
-	 * @param {string} k - The at-rule name, and, if takes both parameters and a
-	 *                     block, the parameters.
-	 * @param {string[]} buf - the buffer in which the final style sheet is built
-	 * @param {string[]} v - Either parameters for block-less rules or their block
-	 *                       for the others.
-	 * @param {string} prefix - the current selector or a prefix in case of nested rules
-	 * @param {string} rawPrefix - as above, but without localization transformations
-	 * @param {string} vendors - a list of vendor prefixes
-	 * @Param {boolean} local - are we in @local or in @global scope?
-	 * @param {object} ns - helper functions to populate or create the @local namespace
-	 *                      and to @extend classes
-	 * @param {function} ns.e - @extend helper
-	 * @param {function} ns.l - @local helper
-	 */
-
-	function at(k, v, buf, prefix, rawPrefix, vendors, local, ns) {
-	  var kk;
-	  if (/^@(?:namespace|import|charset)$/.test(k)) {
-	    if (type.call(v) == ARRAY) {
-	      for (kk = 0; kk < v.length; kk++) {
-	        buf.push(k, ' ', v[kk], ';\n');
+	  for (var key in b) {
+	    if (!own.call(b, key)) continue;
+	    if (type.call(b[key]) == OBJECT) {
+	      if (type.call(a[key]) != OBJECT) {
+	        callback(a, b, key);
+	      } else {
+	        a[key] = _deepIt(a[key], b[key], callback);
 	      }
 	    } else {
-	      buf.push(k, ' ', v, ';\n');
+	      callback(a, b, key);
 	    }
-	  } else if (/^@keyframes /.test(k)) {
-	    k = local ? k.replace(
-	    // generated by script/regexps.js
-	    /( )(?::global\(\s*([-\w]+)\s*\)|()([-\w]+))/, ns.l) : k;
-	    // add a @-webkit-keyframes block too.
-
-	    buf.push('@-webkit-', k.slice(1), ' {\n');
-	    sheet(v, buf, '', '', ['webkit']);
-	    buf.push('}\n');
-
-	    buf.push(k, ' {\n');
-	    sheet(v, buf, '', '', vendors, local, ns);
-	    buf.push('}\n');
-	  } else if (/^@extends?$/.test(k)) {
-
-	    /*eslint-disable no-cond-assign*/
-	    // pick the last class to be extended
-	    while (kk = findClass.exec(rawPrefix)) {
-	      k = kk[4];
-	    } /*eslint-enable no-cond-assign*/
-	    if (k == null || !local) {
-	      // we're in a @global{} block
-	      buf.push('@-error-cannot-extend-in-global-context ', JSON.stringify(rawPrefix), ';\n');
-	      return;
-	    } else if (/^@extends?$/.test(k)) {
-	      // no class in the selector
-	      buf.push('@-error-no-class-to-extend-in ', JSON.stringify(rawPrefix), ';\n');
-	      return;
-	    }
-	    ns.e(type.call(v) == ARRAY ? v.map(function (parent) {
-	      return parent.replace(/()(?::global\(\s*(\.[-\w]+)\s*\)|()\.([-\w]+))/, ns.l);
-	    }).join(' ') : v.replace(/()(?::global\(\s*(\.[-\w]+)\s*\)|()\.([-\w]+))/, ns.l), k);
-	  } else if (/^@(?:font-face$|viewport$|page )/.test(k)) {
-	    sheet(v, buf, k, k, emptyArray);
-	  } else if (/^@global$/.test(k)) {
-	    sheet(v, buf, prefix, rawPrefix, vendors, 0, ns);
-	  } else if (/^@local$/.test(k)) {
-	    sheet(v, buf, prefix, rawPrefix, vendors, 1, ns);
-	  } else if (/^@(?:media |supports |document )./.test(k)) {
-	    buf.push(k, ' {\n');
-	    sheet(v, buf, prefix, rawPrefix, vendors, local, ns);
-	    buf.push('}\n');
-	  } else {
-	    buf.push('@-error-unsupported-at-rule ', JSON.stringify(k), ';\n');
 	  }
+	  return a;
 	}
 
-	/**
-	 * Add rulesets and other CSS statements to the sheet.
-	 *
-	 * @param {array|string|object} statements - a source object or sub-object.
-	 * @param {string[]} buf - the buffer in which the final style sheet is built
-	 * @param {string} prefix - the current selector or a prefix in case of nested rules
-	 * @param {string} rawPrefix - as above, but without localization transformations
-	 * @param {string} vendors - a list of vendor prefixes
-	 * @Param {boolean} local - are we in @local or in @global scope?
-	 * @param {object} ns - helper functions to populate or create the @local namespace
-	 *                      and to @extend classes
-	 * @param {function} ns.e - @extend helper
-	 * @param {function} ns.l - @local helper
-	 */
-	function sheet(statements, buf, prefix, rawPrefix, vendors, local, ns) {
-	  var k, kk, v, inDeclaration;
-
-	  switch (type.call(statements)) {
-
-	    case ARRAY:
-	      for (k = 0; k < statements.length; k++) {
-	        sheet(statements[k], buf, prefix, rawPrefix, vendors, local, ns);
-	      }break;
-
-	    case OBJECT:
-	      for (k in statements) {
-	        v = statements[k];
-	        if (prefix && /^[-\w$]+$/.test(k)) {
-	          if (!inDeclaration) {
-	            inDeclaration = 1;
-	            buf.push(prefix || '*', ' {\n');
-	          }
-	          declarations(v, buf, k, vendors, local, ns);
-	        } else if (/^@/.test(k)) {
-	          // Handle At-rules
-	          inDeclaration = inDeclaration && buf.push('}\n') && 0;
-
-	          at(k, v, buf, prefix, rawPrefix, vendors, local, ns);
-	        } else {
-	          // selector or nested sub-selectors
-
-	          inDeclaration = inDeclaration && buf.push('}\n') && 0;
-
-	          sheet(v, buf, (kk = /,/.test(prefix) || prefix && /,/.test(k)) ? cartesian(prefix.split(','), (local ? k.replace(/()(?::global\(\s*(\.[-\w]+)\s*\)|(\.)([-\w]+))/g, ns.l) : k).split(','), prefix).join(',') : concat(prefix, local ? k.replace(/()(?::global\(\s*(\.[-\w]+)\s*\)|(\.)([-\w]+))/g, ns.l) : k, prefix), kk ? cartesian(rawPrefix.split(','), k.split(','), rawPrefix).join(',') : concat(rawPrefix, k, rawPrefix), vendors, local, ns);
-	        }
-	      }
-	      if (inDeclaration) buf.push('}\n');
-	      break;
-	    case STRING:
-	      buf.push(prefix || ':-error-no-selector', ' {\n');
-	      declarations(statements, buf, '', vendors, local, ns);
-	      buf.push('}\n');
-	  }
-	}
-
-	var scope_root = '_j2c_' + Math.floor(Math.random() * 0x100000000).toString(36) + '_' + Math.floor(Math.random() * 0x100000000).toString(36) + '_' + Math.floor(Math.random() * 0x100000000).toString(36) + '_' + Math.floor(Math.random() * 0x100000000).toString(36) + '_';
-	var counter = 0;
-	function j2c(res) {
-	  res = res || {};
-	  var extensions = [];
-
-	  function finalize(buf, i) {
-	    for (i = 0; i < extensions.length; i++) {
-	      buf = extensions[i](buf) || buf;
-	    }return buf.join('');
-	  }
-
-	  res.use = function () {
-	    var args = arguments;
-	    for (var i = 0; i < args.length; i++) {
-	      extensions.push(args[i]);
-	    }
-	    return res;
-	  };
-	  /*/-statements-/*/
-	  res.sheet = function (ns, statements) {
-	    if (arguments.length === 1) {
-	      statements = ns;ns = {};
-	    }
-	    var suffix = scope_root + counter++,
-	        locals = {},
-	        k,
-	        buf = [];
-	    // pick only non-numeric keys since `(NaN != NaN) === true`
-	    for (k in ns) {
-	      if (k - 0 != k - 0 && own.call(ns, k)) {
-	        locals[k] = ns[k];
-	      }
-	    }sheet(statements, buf, '', '', emptyArray /*vendors*/
-	    , 1, // local
-	    {
-	      e: function extend(parent, child) {
-	        var nameList = locals[child];
-	        locals[child] = nameList.slice(0, nameList.lastIndexOf(' ') + 1) + parent + ' ' + nameList.slice(nameList.lastIndexOf(' ') + 1);
-	      },
-	      l: function localize(match, space, global, dot, name) {
-	        if (global) {
-	          return space + global;
-	        }
-	        if (!locals[name]) locals[name] = name + suffix;
-	        return space + dot + locals[name].match(/\S+$/);
-	      }
+	function _extend() {
+	  var arg = arguments,
+	      last;
+	  for (var i = arg.length; i--;) {
+	    last = _deepIt(arg[i], last, function (a, b, key) {
+	      a[key] = b[key];
 	    });
-	    /*jshint -W053 */
-	    buf = new String(finalize(buf));
-	    /*jshint +W053 */
-	    for (k in locals) {
-	      if (own.call(locals, k)) buf[k] = locals[k];
-	    }return buf;
-	  };
-	  /*/-statements-/*/
-	  res.inline = function (locals, decl, buf) {
-	    if (arguments.length === 1) {
-	      decl = locals;locals = {};
-	    }
-	    declarations(decl, buf = [], '', // prefix
-	    emptyArray, // vendors
-	    1, {
-	      l: function localize(match, space, global, dot, name) {
-	        if (global) return space + global;
-	        if (!locals[name]) return name;
-	        return space + dot + locals[name];
-	      }
-	    });
-	    return finalize(buf);
-	  };
-
-	  res.prefix = function (val, vendors) {
-	    return cartesian(vendors.map(function (p) {
-	      return '-' + p + '-';
-	    }).concat(['']), [val]);
-	  };
-	  return res;
+	  }
+	  return last;
 	}
 
-	j2c.global = function (x) {
-	  return ':global(' + x + ')';
+	/*Usage: _exlucde(obj, {x:{y:1, z:1} }, [null] ) will delete x.y,x.z on obj, or set to newVal if present */
+	// _exclude( {a:1,b:{d:{ c:2} } }, { b:{d:{ c:1} } } )
+	function _exclude(x, y, newVal) {
+	  var args = arguments;
+	  return _deepIt(x, y, function (a, b, key) {
+	    if (_typeof(b[key]) !== 'object' && b[key]) {
+	      args.length == 3 ? a[key] = newVal : delete a[key];
+	    } else {
+	      a[key] = b[key];
+	    }
+	  });
+	}
+
+	var extend_exclude = {
+	  _deepIt: _deepIt,
+	  _extend: _extend,
+	  _exclude: _exclude
 	};
 
-	j2c.kv = kv;
-	function kv(k, v, o) {
-	  o = {};
-	  o[k] = v;
-	  return o;
-	}
-
-	j2c.at = function at(rule, params, block) {
-	  if (arguments.length < 3) {
-	    var _at = at.bind.apply(at, [null].concat([].slice.call(arguments, 0)));
-	    _at.toString = function () {
-	      return '@' + rule + ' ' + params;
-	    };
-	    return _at;
-	  } else return kv('@' + rule + ' ' + params, block);
-	};
-
-	j2c(j2c);
-	delete j2c.use;
-
-	module.exports = j2c;
-
-/***/ },
-/* 8 */
-/***/ function(module, exports, __webpack_require__) {
-
-	'use strict';
-
-	var _cssobjMithril = __webpack_require__(19);
-
-	var _cssobjMithril2 = _interopRequireDefault(_cssobjMithril);
-
-	var _cssobjPluginPostStylize = __webpack_require__(20);
-
-	var _cssobjPluginPostStylize2 = _interopRequireDefault(_cssobjPluginPostStylize);
-
-	var _util = __webpack_require__(9);
-
-	var _util2 = _interopRequireDefault(_util);
-
-	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-	var PTEST_PATH = '/ptestfolder/'; /**
-	                                   * @fileOverview Display test images for ptest.
-	                                   * @global Mousetrap.js, mithril.js
-	                                   * @name test-image.js
-	                                   * @author Micheal Yang
-	                                   * @license MIT
-	                                   */
-
-	var style = {
-	  '.test-image-con': {
-	    text_align: 'left'
-	  },
-	  'menu.top': {
-	    background: '#ccc',
-	    'a, span': {
-	      margin_left: '10px'
-	    },
-	    'span.current': {
-	      color: 'red'
-	    }
-	  },
-	  '.imageBox': {
-	    position: 'relative',
-	    '.info': {
-	      position: 'absolute',
-	      right: '10px',
-	      top: '10px',
-	      z_index: 999
-	    },
-	    '.image': {
-	      position: 'absolute'
-	    }
-	  },
-	  '.hide': {
-	    display: 'none'
-	  }
-	};
-	var mc = (0, _cssobjMithril2.default)(m, style, { post: [(0, _cssobjPluginPostStylize2.default)()] });
-
-	var gallary = {
-	  controller: function controller(arg) {
-	    var ctrl = this;
-	    var group = 0;
-	    var index = 0;
-
-	    var data = arg.data || testdata;
-	    var folder = data.folder;
-	    var test = data.test;
-	    var a = data.a;
-	    var images = m.request({ method: 'GET', url: [PTEST_PATH, 'testimage'].join(''), data: { folder: folder, test: test } }).then(function (f) {
-	      var found = f.findIndex(function (v) {
-	        return v.a == a;
-	      });
-	      if (found > -1) group = found;
-	      return f;
-	    });
-
-	    ctrl.cycleVisible = function (diff) {
-	      var obj = images()[group];
-	      var keys = Object.keys(obj);
-	      index += diff || 1;
-	      index = (index + keys.length) % keys.length;
-	      m.redraw(true);
-	    };
-
-	    ctrl.getImageList = function () {
-	      return images().map(function (v, i) {
-	        return mc('span', { class: group == i ? 'current' : '', onclick: function onclick(e) {
-	            return group = i;
-	          } }, v.a);
-	      });
-	    };
-
-	    ctrl.getInfoTag = function (keys, index) {
-	      if (keys[index] == 'last') return m('a[href=javascript:;]', { onmousedown: function onmousedown(e) {
-	          e.preventDefault();
-	          e.stopPropagation();
-	          alert('Apply this test image?\nWARNING: original test image will be lost!!!');
-	        } }, 'last');else return keys[index];
-	    };
-
-	    ctrl.getImageTag = function () {
-	      var obj = images()[group];
-	      var keys = Object.keys(obj);
-	      return [mc('.info', ctrl.getInfoTag(keys, index)), keys.map(function (v, i) {
-	        return mc('.image', { class: index !== i ? '  :global(hide)   hide  ' : '' }, mc('img', { src: PTEST_PATH + folder + '/' + obj[v] }));
-	      })];
-	    };
-
-	    ctrl.onunload = function (e) {
-	      /** tested bug below: preventdefault will trigger 2 unloaded??? */
-	      // e.preventDefault()
-	      console.log('unloaded', e);
-	      Mousetrap.unbind(keyNumber);
-	    };
-
-	    var keyNumber = ['1', '2', '3', '4'];
-	    /** Bind to short cut to switch images */
-	    Mousetrap.unbind(keyNumber);
-	    Mousetrap.bind(keyNumber, function (e, key) {
-	      e.preventDefault();
-	      index = parseInt(key) - 1;
-	      m.redraw(true);
-	    });
-	  },
-	  view: function view(ctrl, arg) {
-	    return mc('.test-image-con', [mc('menu.top', [mc('a[href=#]', { onclick: function onclick(e) {
-	        return arg.onclose && arg.onclose();
-	      } }, 'close'), ctrl.getImageList()]), mc('.imageBox', { onmousedown: function onmousedown(e) {
-	        return ctrl.cycleVisible(detectRightButton() ? -1 : 1);
-	      } }, ctrl.getImageTag())]);
-	  }
-	};
-
-	module.exports = gallary;
-
-	var testdata = { 'test': 'test1465218335247', 'folder': 'ptest_data', 'a': 'test1465218335247/1465218058523.png', 'b': 'test1465218335247/1465218058523.png_test.png', 'diff': 'test1465218335247/1465218058523.png_diff.png' };
-
-	//
-	// helper functions
-
-	function detectRightButton(e) {
-	  var rightclick;
-	  if (!e) var e = window.event;
-	  if (e.which) rightclick = e.which == 3;else if (e.button) rightclick = e.button == 2;
-	  return rightclick;
-	}
+	module.exports = extend_exclude;
 
 /***/ },
 /* 9 */
+/***/ function(module, exports) {
+
+	'use strict';
+
+	/**
+	 * @fileOverview cssobj plugin for apply style into browser head
+	 * @name cssobj-plugin-post-stylize.js • src
+	 * @author James Yang [jamesyang999@gmail.com]
+	 * @license MIT
+	 * @usage
+	cssobj(obj, {
+	  post:[cssobj_plugin_post_stylize({name:'gaga', attrs: {media: 'screen'}})]
+	})
+	 */
+
+	var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol ? "symbol" : typeof obj; };
+
+	function escapeHTML(str) {
+	  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+	}
+
+	function stylize(element, sheet) {
+	  if (element.cachedCSS === sheet) return;
+	  element.cachedCSS = sheet;
+	  if (element.styleSheet) {
+	    element.styleSheet.cssText = sheet;
+	  } else {
+	    // empty all style when re-apply new style
+	    while (element.firstChild) {
+	      element.removeChild(element.firstChild);
+	    }element.appendChild(document.createTextNode(sheet));
+	  }
+	  return element;
+	}
+
+	function addStyleToHead(option) {
+	  option = option || {};
+	  if (!option.name) option.name = +new Date() + '_';
+	  return function (sheet) {
+	    var id = 'style_cssobj_' + escapeHTML(option.name);
+	    var styleDom = document.getElementById(id);
+	    if (!styleDom) {
+	      var el = document.createElement('style');
+	      document.head.appendChild(el);
+	      styleDom = el;
+	    }
+	    styleDom.setAttribute('id', id);
+	    styleDom.setAttribute('type', 'text/css');
+	    if (option && (typeof option === 'undefined' ? 'undefined' : _typeof(option)) == 'object' && option.attrs) for (var i in option.attrs) {
+	      styleDom.setAttribute(i, option.attrs[i]);
+	    }
+	    return stylize(styleDom, sheet.css);
+	  };
+	}
+
+	module.exports = addStyleToHead;
+
+/***/ },
+/* 10 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(global, process) {'use strict';
@@ -2853,7 +2659,7 @@
 	}
 	exports.isPrimitive = isPrimitive;
 
-	exports.isBuffer = __webpack_require__(11);
+	exports.isBuffer = __webpack_require__(12);
 
 	function objectToString(o) {
 	  return Object.prototype.toString.call(o);
@@ -2890,7 +2696,7 @@
 	 *     prototype.
 	 * @param {function} superCtor Constructor function to inherit prototype from.
 	 */
-	exports.inherits = __webpack_require__(12);
+	exports.inherits = __webpack_require__(13);
 
 	exports._extend = function (origin, add) {
 	  // Don't do anything if add isn't an object
@@ -2907,10 +2713,10 @@
 	function hasOwnProperty(obj, prop) {
 	  return Object.prototype.hasOwnProperty.call(obj, prop);
 	}
-	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }()), __webpack_require__(10)))
+	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }()), __webpack_require__(11)))
 
 /***/ },
-/* 10 */
+/* 11 */
 /***/ function(module, exports) {
 
 	'use strict';
@@ -3015,7 +2821,7 @@
 	};
 
 /***/ },
-/* 11 */
+/* 12 */
 /***/ function(module, exports) {
 
 	'use strict';
@@ -3027,7 +2833,7 @@
 	};
 
 /***/ },
-/* 12 */
+/* 13 */
 /***/ function(module, exports) {
 
 	'use strict';
@@ -3057,7 +2863,155 @@
 	}
 
 /***/ },
-/* 13 */
+/* 14 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+
+	var _cssobjMithril = __webpack_require__(6);
+
+	var _cssobjMithril2 = _interopRequireDefault(_cssobjMithril);
+
+	var _cssobjPluginPostStylize = __webpack_require__(9);
+
+	var _cssobjPluginPostStylize2 = _interopRequireDefault(_cssobjPluginPostStylize);
+
+	var _util = __webpack_require__(10);
+
+	var _util2 = _interopRequireDefault(_util);
+
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+	var PTEST_PATH = '/ptestfolder/'; /**
+	                                   * @fileOverview Display test images for ptest.
+	                                   * @global Mousetrap.js, mithril.js
+	                                   * @name test-image.js
+	                                   * @author Micheal Yang
+	                                   * @license MIT
+	                                   */
+
+	var style = {
+	  '.test-image-con': {
+	    text_align: 'left'
+	  },
+	  'menu.top': {
+	    background: '#ccc',
+	    'a, span': {
+	      margin_left: '10px'
+	    },
+	    'span.current': {
+	      color: 'red'
+	    }
+	  },
+	  '.imageBox': {
+	    position: 'relative',
+	    '.info': {
+	      position: 'absolute',
+	      right: '10px',
+	      top: '10px',
+	      z_index: 999
+	    },
+	    '.image': {
+	      position: 'absolute'
+	    }
+	  },
+	  '.hide': {
+	    display: 'none'
+	  }
+	};
+	var mc = (0, _cssobjMithril2.default)(m, style, { post: [(0, _cssobjPluginPostStylize2.default)()] });
+
+	var gallary = {
+	  controller: function controller(arg) {
+	    var ctrl = this;
+	    var group = 0;
+	    var index = 0;
+
+	    var data = arg.data || testdata;
+	    var folder = data.folder;
+	    var test = data.test;
+	    var a = data.a;
+	    var images = m.request({ method: 'GET', url: [PTEST_PATH, 'testimage'].join(''), data: { folder: folder, test: test } }).then(function (f) {
+	      var found = f.findIndex(function (v) {
+	        return v.a == a;
+	      });
+	      if (found > -1) group = found;
+	      return f;
+	    });
+
+	    ctrl.cycleVisible = function (diff) {
+	      var obj = images()[group];
+	      var keys = Object.keys(obj);
+	      index += diff || 1;
+	      index = (index + keys.length) % keys.length;
+	      m.redraw(true);
+	    };
+
+	    ctrl.getImageList = function () {
+	      return images().map(function (v, i) {
+	        return mc('span', { class: group == i ? 'current' : '', onclick: function onclick(e) {
+	            return group = i;
+	          } }, v.a);
+	      });
+	    };
+
+	    ctrl.getInfoTag = function (keys, index) {
+	      if (keys[index] == 'last') return m('a[href=javascript:;]', { onmousedown: function onmousedown(e) {
+	          e.preventDefault();
+	          e.stopPropagation();
+	          alert('Apply this test image?\nWARNING: original test image will be lost!!!');
+	        } }, 'last');else return keys[index];
+	    };
+
+	    ctrl.getImageTag = function () {
+	      var obj = images()[group];
+	      var keys = Object.keys(obj);
+	      return [mc('.info', ctrl.getInfoTag(keys, index)), keys.map(function (v, i) {
+	        return mc('.image', { class: index !== i ? '  :global(hide)   hide  ' : '' }, mc('img', { src: PTEST_PATH + folder + '/' + obj[v] }));
+	      })];
+	    };
+
+	    ctrl.onunload = function (e) {
+	      /** tested bug below: preventdefault will trigger 2 unloaded??? */
+	      // e.preventDefault()
+	      console.log('unloaded', e);
+	      Mousetrap.unbind(keyNumber);
+	    };
+
+	    var keyNumber = ['1', '2', '3', '4'];
+	    /** Bind to short cut to switch images */
+	    Mousetrap.unbind(keyNumber);
+	    Mousetrap.bind(keyNumber, function (e, key) {
+	      e.preventDefault();
+	      index = parseInt(key) - 1;
+	      m.redraw(true);
+	    });
+	  },
+	  view: function view(ctrl, arg) {
+	    return mc('.test-image-con', [mc('menu.top', [mc('a[href=#]', { onclick: function onclick(e) {
+	        return arg.onclose && arg.onclose();
+	      } }, 'close'), ctrl.getImageList()]), mc('.imageBox', { onmousedown: function onmousedown(e) {
+	        return ctrl.cycleVisible(detectRightButton() ? -1 : 1);
+	      } }, ctrl.getImageTag())]);
+	  }
+	};
+
+	module.exports = gallary;
+
+	var testdata = { 'test': 'test1465218335247', 'folder': 'ptest_data', 'a': 'test1465218335247/1465218058523.png', 'b': 'test1465218335247/1465218058523.png_test.png', 'diff': 'test1465218335247/1465218058523.png_diff.png' };
+
+	//
+	// helper functions
+
+	function detectRightButton(e) {
+	  var rightclick;
+	  if (!e) var e = window.event;
+	  if (e.which) rightclick = e.which == 3;else if (e.button) rightclick = e.button == 2;
+	  return rightclick;
+	}
+
+/***/ },
+/* 15 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;'use strict';
@@ -3075,7 +3029,7 @@
 	})(undefined, function () {
 	  'use strict';
 
-	  var debounce = __webpack_require__(14);
+	  var debounce = __webpack_require__(16);
 
 	  /**
 	   * @fileOverview Popup toolkit using mithril
@@ -3207,7 +3161,7 @@
 	});
 
 /***/ },
-/* 14 */
+/* 16 */
 /***/ function(module, exports) {
 
 	'use strict';
@@ -3606,14 +3560,14 @@
 	module.exports = debounce;
 
 /***/ },
-/* 15 */
+/* 17 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 
 	var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol ? "symbol" : typeof obj; };
 
-	var each = __webpack_require__(16);
+	var each = __webpack_require__(18);
 	module.exports = api;
 
 	/**
@@ -3828,7 +3782,7 @@
 	};
 
 /***/ },
-/* 16 */
+/* 18 */
 /***/ function(module, exports) {
 
 	'use strict';
@@ -3853,463 +3807,6 @@
 	        }
 	    }
 	};
-
-/***/ },
-/* 17 */
-/***/ function(module, exports, __webpack_require__) {
-
-	var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;'use strict';
-
-	var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol ? "symbol" : typeof obj; };
-
-	!function (root, factory) {
-	  if (true) {
-	    !(__WEBPACK_AMD_DEFINE_ARRAY__ = [__webpack_require__(18)], __WEBPACK_AMD_DEFINE_FACTORY__ = (factory), __WEBPACK_AMD_DEFINE_RESULT__ = (typeof __WEBPACK_AMD_DEFINE_FACTORY__ === 'function' ? (__WEBPACK_AMD_DEFINE_FACTORY__.apply(exports, __WEBPACK_AMD_DEFINE_ARRAY__)) : __WEBPACK_AMD_DEFINE_FACTORY__), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__)); // define(['jquery'], factory)
-	  } else if ((typeof exports === 'undefined' ? 'undefined' : _typeof(exports)) === 'object' && typeof module !== 'undefined') {
-	      module.exports = factory(require('extend_exclude')); // factory(require('jquery'))
-	    } else {
-	        root.cssobj = factory(extend_exclude); // should return obj in factory
-	      }
-	}(undefined, function (util) {
-	  'use strict';
-
-	  // better type check
-
-	  var type = {}.toString;
-	  var own = {}.hasOwnProperty;
-	  var OBJECT = type.call({});
-	  var ARRAY = type.call([]);
-
-	  function isPrimitive(val) {
-	    return (typeof val === 'undefined' ? 'undefined' : _typeof(val)) !== 'object' || !val;
-	  }
-
-	  /**
-	   * convert simple Object into tree data
-	   *
-	   format:
-	   {"a":{"b":{"c":{"":["leaf 1"]}}},"abc":123, e:[2,3,4], f:null}
-	   *        1. every key is folder node
-	   *        2. "":[] is leaf node
-	   *        3. except leaf node, array value will return as is
-	   *        4. {abc:123} is shortcut for {abc:{"": [123]}}
-	   *
-	   * @param {object} d - simple object data
-	   * @param {function} [prop] - function(key,val){} to return {object} to merge into current
-	   * @param {array} [path] - array path represent root to parent
-	   * @returns {object} tree data object
-	   */
-	  function convertSimpleData(d, options, prop, path) {
-	    path = path || [];
-	    if (isPrimitive(d)) {
-	      // {abc:123} is shortcut for {abc:{"": [123]}}
-	      return [util._extend({ name: d, _leaf: true }, prop && prop(d, path))];
-	    }
-	    if (type.call(d) === ARRAY) {
-	      return d;
-	      // return d.map(function (v, i) {
-	      //   return convertSimpleData(v, prop, path.concat(i))
-	      // })
-	    }
-	    if (type.call(d) === OBJECT) {
-	      var node = [];
-	      var propArray = [];
-	      for (var k in d) {
-	        var child = convertSimpleData(d[k], options, prop, path.concat({ name: k, value: d[k] }));
-	        // node.push(util._extend({name: k, children:child }, prop && prop(k, path)))
-	        if (child.length && child[0]._leaf) propArray.push(k.replace(/_/g, '-').replace(/[A-Z]/g, cam2Dash) + ':' + child[0].name);
-	      }
-	      if (path.length) objKV(store, getSelector(path, options), propArray);
-	      return node;
-	    }
-	    return [];
-	  }
-
-	  var propStart = '{\n';
-	  var propEnd = '\n}';
-	  var reClass = /:global\s*\(\s*((?:\.[-\w]+\s*)+)\s*\)|(\.)([!-\w]+)/g;
-	  var reComma = /\s*,\s*/;
-
-	  var store = {};
-	  var localNames = {};
-
-	  var count = 0;
-	  var random = function random() {
-	    count++;
-	    return '_' + Math.floor(Math.random() * Math.pow(2, 32)).toString(36) + count + '_';
-	  };
-
-	  function propFormatter(propArray) {
-	    return propArray.map(function (v) {
-	      return '\t' + v;
-	    }).join(';\n');
-	  }
-
-	  function getSelector(path, options) {
-	    var replacer = function replacer(match, global, dot, name) {
-	      if (global) {
-	        return global;
-	      }
-	      if (name[0] === '!') {
-	        return dot + name.substr(1);
-	      }
-	      if (!localNames[name]) localNames[name] = options.local ? (options.prefix = options.prefix || random(), options.prefix + name) : name;
-	      return dot + localNames[name].match(/\S+$/);
-	    };
-
-	    var localize = function localize(name) {
-	      return name.replace(reClass, replacer);
-	    };
-
-	    var item,
-	        parent = '';
-	    for (var i = 0, len = path.length; i < len; i++) {
-	      item = path[i];
-	      if (!item.selector) {
-	        item.selector = item.name.split(reComma).map(function (v) {
-	          return parent.split(reComma).map(function (p) {
-	            return v.match(/^&|[^\\]&/) ? v.replace(/&/, p) : p.split(' ').concat(v.replace(/\\&/g, '&')).join(' ');
-	          }).join(', ');
-	        }).join(', ').replace(/^\s+/, '');
-	      }
-	      parent = item.selector;
-	    }
-	    return localize(parent);
-	  }
-
-	  function getCSS() {
-	    return Object.keys(store).map(function (k) {
-	      return k + ' ' + propStart + propFormatter(store[k]) + propEnd;
-	    }).join('\n');
-	  }
-
-	  function cam2Dash(c) {
-	    return '-' + c.toLowerCase();
-	  }
-
-	  function objKV(obj, k, v) {
-	    return obj[k] = v;
-	  }
-
-	  var obj = {
-	    'ul.menu': {
-	      background_color: 'red',
-	      borderRadius: '2px',
-	      'li.item, li.cc': {
-	        '&:before, .link': {
-	          ".foo[title*='\\&'], :global(.xy)": { color: 'blue' },
-	          color: 'red'
-	        },
-	        'html:global(.ie8) &': { color: 'purple' },
-	        font_size: '12px'
-	      }
-	    }
-	  };
-
-	  function safeSelector(name) {
-	    if (name) return '_'.concat(name).replace(/^_+/, '_').replace(/[^-\w]/g, '');
-	  }
-
-	  var defaultOption = { local: true };
-	  function cssobj(obj, options) {
-	    options = options || {};
-
-	    // set default options
-	    util._deepIt(options, defaultOption, function (a, b, key) {
-	      if (!(key in a)) a[key] = b[key];
-	    });
-
-	    // ensure it's valid selector name
-	    options.prefix = safeSelector(options.prefix);
-
-	    convertSimpleData(obj, options);
-	    var result = { css: getCSS(), map: localNames, options: options };
-	    localNames = {};
-	    store = {};
-	    if (options.post) options.post.forEach(function (f) {
-	      f(result);
-	    });
-	    return result;
-	  }
-
-	  // window.a = cssobj(obj, window.a? window.a.options : {})
-	  // console.log(a.css)
-
-	  // module exports
-	  return cssobj;
-	});
-
-/***/ },
-/* 18 */
-/***/ function(module, exports) {
-
-	'use strict';
-
-	var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol ? "symbol" : typeof obj; };
-
-	var type = {}.toString;
-	var own = {}.hasOwnProperty;
-	var OBJECT = type.call({});
-
-	function _deepIt(a, b, callback) {
-	  if (a == null || b == null) {
-	    return a;
-	  }
-	  for (var key in b) {
-	    if (!own.call(b, key)) continue;
-	    if (type.call(b[key]) == OBJECT) {
-	      if (type.call(a[key]) != OBJECT) {
-	        callback(a, b, key);
-	      } else {
-	        a[key] = _deepIt(a[key], b[key], callback);
-	      }
-	    } else {
-	      callback(a, b, key);
-	    }
-	  }
-	  return a;
-	}
-
-	function _extend() {
-	  var arg = arguments,
-	      last;
-	  for (var i = arg.length; i--;) {
-	    last = _deepIt(arg[i], last, function (a, b, key) {
-	      a[key] = b[key];
-	    });
-	  }
-	  return last;
-	}
-
-	/*Usage: _exlucde(obj, {x:{y:1, z:1} }, [null] ) will delete x.y,x.z on obj, or set to newVal if present */
-	// _exclude( {a:1,b:{d:{ c:2} } }, { b:{d:{ c:1} } } )
-	function _exclude(x, y, newVal) {
-	  var args = arguments;
-	  return _deepIt(x, y, function (a, b, key) {
-	    if (_typeof(b[key]) !== 'object' && b[key]) {
-	      args.length == 3 ? a[key] = newVal : delete a[key];
-	    } else {
-	      a[key] = b[key];
-	    }
-	  });
-	}
-
-	var extend_exclude = {
-	  _deepIt: _deepIt,
-	  _extend: _extend,
-	  _exclude: _exclude
-	};
-
-	module.exports = extend_exclude;
-
-/***/ },
-/* 19 */
-/***/ function(module, exports, __webpack_require__) {
-
-	var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;'use strict';
-
-	var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol ? "symbol" : typeof obj; };
-
-	!function (root, factory) {
-	  if (true) {
-	    !(__WEBPACK_AMD_DEFINE_ARRAY__ = [__webpack_require__(17), __webpack_require__(18)], __WEBPACK_AMD_DEFINE_FACTORY__ = (factory), __WEBPACK_AMD_DEFINE_RESULT__ = (typeof __WEBPACK_AMD_DEFINE_FACTORY__ === 'function' ? (__WEBPACK_AMD_DEFINE_FACTORY__.apply(exports, __WEBPACK_AMD_DEFINE_ARRAY__)) : __WEBPACK_AMD_DEFINE_FACTORY__), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__)); // define(['jquery'], factory)
-	  } else if ((typeof exports === 'undefined' ? 'undefined' : _typeof(exports)) === 'object' && typeof module !== 'undefined') {
-	      module.exports = factory(require('cssobj'), require('extend_exclude')); // factory(require('jquery'))
-	    } else {
-	        root.cssobj_m = factory(cssobj, extend_exclude); // should return obj in factory
-	      }
-	}(undefined, function (cssobj, util) {
-	  var hasOwn = {}.hasOwnProperty;
-	  var type = {}.toString;
-	  var OBJECT = type.call({});
-
-	  function isObject(object) {
-	    return type.call(object) === OBJECT;
-	  }
-
-	  function bindM(M, objStore, optionStore) {
-	    M = M || m;
-	    if (!M) throw new Error('cannot find mithril, make sure you have `m` available in this scope.');
-
-	    objStore = objStore || {};
-	    optionStore = optionStore || {};
-
-	    var cssStore = cssobj(objStore, optionStore);
-
-	    var c = function c(tag, pairs) {
-	      var args = [];
-
-	      for (var i = 1, length = arguments.length; i < length; i++) {
-	        args[i - 1] = arguments[i];
-	      }
-
-	      if (isObject(tag)) {
-	        var classAttr = 'class' in tag.attrs ? 'class' : 'className';
-	        var classObj = tag.attrs && tag.attrs[classAttr];
-	        if (classObj) tag.attrs[classAttr] = classObj.split(/ +/).map(function (c) {
-	          return cssStore.map[c] || c;
-	        }).join(' ');
-	        return M.apply(null, tag);
-	      }
-
-	      var hasAttrs = pairs != null && isObject(pairs) && !('tag' in pairs || 'view' in pairs || 'subtree' in pairs);
-
-	      var attrs = hasAttrs ? pairs : {};
-	      var cell = {
-	        tag: 'div',
-	        attrs: {}
-	      };
-
-	      assignAttrs(cell.attrs, attrs, parseTagAttrs(cell, tag, cssStore), cssStore);
-	      // console.log(hasAttrs, cell, args)
-
-	      return M.apply(null, [cell.tag, cell.attrs].concat(hasAttrs ? args.slice(1) : args));
-	    };
-
-	    c.option = function () {
-	      return optionStore;
-	    };
-	    c.obj = function () {
-	      return objStore;
-	    };
-	    c.css = function (obj, option) {
-	      if (option) optionStore = option;
-	      if (obj) {
-	        objStore = obj;
-	        cssStore = cssobj(objStore, optionStore);
-	        M.redraw();
-	      }
-	      return cssStore;
-	    };
-	    c.add = function (obj) {
-	      cssStore = cssobj(util._extend(objStore, obj), optionStore);
-	      M.redraw();
-	      return cssStore;
-	    };
-	    c.remove = function (obj) {
-	      cssStore = cssobj(util._exclude(objStore, obj), optionStore);
-	      M.redraw();
-	      return cssStore;
-	    };
-
-	    return c;
-	  }
-
-	  //
-	  /** helper functions **/
-
-	  function getStyle(cssStore, cls) {
-	    var globalRe = /:global\(([^)]+)\)/i;
-	    var classes = cls.split(/\s+/);
-	    return classes.map(function (v) {
-	      var match = v.match(globalRe);
-	      if (match) return match.pop();else return cssStore.map[v] || v;
-	    }).join(' ');
-	  }
-
-	  // get from mithril.js, which not exposed
-
-	  function parseTagAttrs(cell, tag, cssStore) {
-	    var classes = [];
-	    var parser = /(?:(^|#|\.)([^#\.\[\]]+))|(\[.+?\])/g;
-	    var match;
-
-	    while (match = parser.exec(tag)) {
-	      if (match[1] === '' && match[2]) {
-	        cell.tag = match[2];
-	      } else if (match[1] === '#') {
-	        cell.attrs.id = match[2];
-	      } else if (match[1] === '.') {
-	        classes.push(getStyle(cssStore, match[2]));
-	      } else if (match[3][0] === '[') {
-	        var pair = /\[(.+?)(?:=("|'|)(.*?)\2)?\]/.exec(match[3]);
-	        cell.attrs[pair[1]] = pair[3] || '';
-	      }
-	    }
-
-	    return classes;
-	  }
-
-	  function assignAttrs(target, attrs, classes, cssStore) {
-	    var classAttr = 'class' in attrs ? 'class' : 'className';
-
-	    for (var attrName in attrs) {
-	      if (hasOwn.call(attrs, attrName)) {
-	        if (attrName === classAttr && attrs[attrName] != null && attrs[attrName] !== '') {
-	          classes.push(getStyle(cssStore, attrs[attrName]));
-	          // create key in correct iteration order
-	          target[attrName] = '';
-	        } else {
-	          target[attrName] = attrs[attrName];
-	        }
-	      }
-	    }
-
-	    if (classes.length) target[classAttr] = classes.join(' ');
-	  }
-
-	  // module exports
-	  return bindM;
-	});
-
-/***/ },
-/* 20 */
-/***/ function(module, exports) {
-
-	'use strict';
-
-	/**
-	 * @fileOverview cssobj plugin for apply style into browser head
-	 * @name cssobj-plugin-post-stylize.js • src
-	 * @author James Yang [jamesyang999@gmail.com]
-	 * @license MIT
-	 * @usage
-	cssobj(obj, {
-	  post:[cssobj_plugin_post_stylize({name:'gaga', attrs: {media: 'screen'}})]
-	})
-	 */
-
-	var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol ? "symbol" : typeof obj; };
-
-	function escapeHTML(str) {
-	  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
-	}
-
-	function stylize(element, sheet) {
-	  if (element.cachedCSS === sheet) return;
-	  element.cachedCSS = sheet;
-	  if (element.styleSheet) {
-	    element.styleSheet.cssText = sheet;
-	  } else {
-	    // empty all style when re-apply new style
-	    while (element.firstChild) {
-	      element.removeChild(element.firstChild);
-	    }element.appendChild(document.createTextNode(sheet));
-	  }
-	  return element;
-	}
-
-	function addStyleToHead(option) {
-	  option = option || {};
-	  if (!option.name) option.name = +new Date() + '_';
-	  return function (sheet) {
-	    var id = 'style_cssobj_' + escapeHTML(option.name);
-	    var styleDom = document.getElementById(id);
-	    if (!styleDom) {
-	      var el = document.createElement('style');
-	      document.head.appendChild(el);
-	      styleDom = el;
-	    }
-	    styleDom.setAttribute('id', id);
-	    styleDom.setAttribute('type', 'text/css');
-	    if (option && (typeof option === 'undefined' ? 'undefined' : _typeof(option)) == 'object' && option.attrs) for (var i in option.attrs) {
-	      styleDom.setAttribute(i, option.attrs[i]);
-	    }
-	    return stylize(styleDom, sheet.css);
-	  };
-	}
-
-	module.exports = addStyleToHead;
 
 /***/ }
 /******/ ]);

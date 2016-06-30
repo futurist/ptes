@@ -69,7 +69,7 @@ if (commander.init) {
       console.log('have to provide url to init')
       process.exit(1)
     }
-    Config = [{url:cmdArgs.shift(), name:cmdArgs.shift(), folder:DATA_DIR}]
+    Config = [{url:cmdArgs.shift(), name:cmdArgs.shift()||'', folder:DATA_DIR}]
     fs.writeFileSync(loc, JSON.stringify(Config), 'utf8')
     mkdirp(path.join(TEST_FOLDER, DATA_DIR), function (err) {
       if (err) return console.log(err)

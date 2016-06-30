@@ -354,7 +354,7 @@ if(testList)
 else
   if(ptest)
     ptest.forEach(function (p) {
-      describe('ptest for ' + p.name, function () {
+      describe('ptest for ' + (p.name||p.url), function () {
         var folder = p.folder
         var iter = function (obj) {
           if (typeof obj != 'object' || !obj) return

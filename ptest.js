@@ -247,8 +247,8 @@ page.onError = function (msg, stack) {
 page.onConsoleMessage = function (msg) {
   var e = msg.split(':')
   if (e.length > 1 && e[0] == 'PageEvent') {
-    console.log(e[0], e[1])
-    if (e[1] == 'DOMContentLoaded') createCursor()
+    debug(e[0], e[1])
+    // if (e[1] == 'DOMContentLoaded') createCursor()
   } else {
     ws._send({type: 'client_console', data: msg})
   }
@@ -375,7 +375,8 @@ page.onLoadFinished = function (status) { // success
 
   // At first blank page event order: (no DOMContentloaded)
   // onLoadFinished->onInitialized (other url inversed)
-  if (page.url === '') createCursor()
+  // if (page.url === '') createCursor()
+  createCursor()
 
   // set background to white to prevent transparent
   page.evaluate(addPageBG)

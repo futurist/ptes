@@ -45,16 +45,41 @@ commander
   .option('-p, --play [playTest]', 'play test profile when start', '')
   .option('-d, --dir [testDir]', 'save test data to dir, can be relative', '')
   .option('-l, --list', 'check test folder and list available tests', '')
+  .option('--init', 'url [name]', '')
   .parse(process.argv)
 
 var cmdArgs = (commander.args)
+
 if (!commander.list && !cmdArgs.length) {
   // console.log('Usage:\n  ptest-server -l\n  ptest-server url -d [testDir] -p [playTest]\n    [testDir] default value: %s', path.join(TEST_FOLDER, '..'))
   // process.exit()
 }
 if (cmdArgs[0] !== 'debug') DEFAULT_URL = cmdArgs[0]
 if (commander.list) { }
-if (commander.dir) TEST_FOLDER = commander.dir
+if (commander.dir) DATA_DIR = commander.dir
+
+if (commander.init) {
+  var loc = path.join(TEST_FOLDER, 'ptest.json')
+  try{
+    fs.statSync(loc)
+    console.log('ptest.json already exists, now exit.')
+    process.exit(1)
+  }catch(e){
+    if(cmdArgs.length<1){
+      console.log('have to provide url to init')
+      process.exit(1)
+    }
+    Config = [{url:cmdArgs.shift(), name:cmdArgs.shift(), folder:DATA_DIR}]
+    fs.writeFileSync(loc, JSON.stringify(Config), 'utf8')
+    mkdirp(path.join(TEST_FOLDER, DATA_DIR), function (err) {
+      if (err) return console.log(err)
+      // copyFileSync(path.join(__dirname, 'js/ptest-runner.js'), path.join(TEST_FOLDER, '../ptest-runner.js'))
+      copyFileSync(path.join(__dirname, './phantom.config'), path.join(TEST_FOLDER, DATA_DIR, 'phantom.config'))
+      // copyFileSync(path.join(__dirname, 'js/ptest-phantom.js'), path.join(TEST_FOLDER, 'ptest-phantom.js'))
+    })
+  }
+}
+
 if (commander.play) {
   TEST_FILE = commander.play
   // TEST_FILE = path.join(TEST_FOLDER, TEST_FILE)
@@ -64,13 +89,6 @@ if (commander.play) {
 
 // convert to absolute path
 // TEST_FOLDER = path.isAbsolute(TEST_FOLDER) ? TEST_FOLDER : path.join(process.cwd(), TEST_FOLDER)
-
-mkdirp(TEST_FOLDER, function (err) {
-  if (err) return console.log(err)
-  // copyFileSync(path.join(__dirname, 'js/ptest-runner.js'), path.join(TEST_FOLDER, '../ptest-runner.js'))
-  copyFileSync(path.join(__dirname, './phantom.config'), path.join(TEST_FOLDER, 'phantom.config'))
-  // copyFileSync(path.join(__dirname, 'js/ptest-phantom.js'), path.join(TEST_FOLDER, 'ptest-phantom.js'))
-})
 
 var ROUTE = {
   '/': '/client.html',
@@ -241,7 +259,7 @@ function readPtestConfig (toJSON) {
     if (e.code !== 'ENOENT') {
       console.log(e, 'error parse ptest.json...')
     } else {
-      console.log('please run ptest-server from folder contains file: ptest.json')
+      console.log('please run\n\n  ptest-server --init url\n\nto create ptest.json first.')
     }
     return process.exit()
   }
@@ -578,7 +596,7 @@ var phantom
 
 function startPhantom (url) {
   console.log(url)
-  var args = ['--config', path.join(__dirname, 'phantom.config'), path.join(__dirname, 'ptest.js')]
+  var args = ['--config', path.join(TEST_FOLDER, DATA_DIR, 'phantom.config'), path.join(__dirname, 'ptest.js')]
   if (url) args.concat(url)
   phantom = spawn('phantomjs', args, {cwd: process.cwd(), stdio: 'pipe' })
 

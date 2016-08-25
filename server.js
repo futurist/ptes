@@ -275,7 +275,8 @@ function stopRec () {
   } catch(e) {
     throw e
   }
-  snapKeyFrame(name)
+  // > v1.0.1 will not snap at last
+  // snapKeyFrame(name)
 
   var testPath = Config.unsaved.path
   var url = Config.unsaved.url
@@ -402,6 +403,9 @@ wss.on('connection', function connection (ws) {
 
       // get callback from ws._call
     case 'command_result':
+      if(stage===RECORDING && msg.__id && msg.assert) {
+        EventCache.push({ time: Date.now(), msg: _util._extend({}, msg) })
+      }
       if (msg.__id && (msg.meta == 'server' || msg.role == 'server')) {
         var cb = WS_CALLBACK[msg.__id]
         delete WS_CALLBACK[msg.__id]

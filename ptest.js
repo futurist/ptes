@@ -237,10 +237,6 @@ function connectWS () {
 }
 connectWS()
 
-page.onResourceError = function (resourceError) {
-  ws._send({type: 'client_error', data: {msg: resourceError}})
-  // console.log('Unable to load resource (#' + resourceError.id + 'URL:' + resourceError.url + ')')
-}
 page.onError = function (msg, stack) {
   ws._send({type: 'client_error', data: {msg: msg, stack: stack}})
 }
@@ -321,10 +317,18 @@ function applyRandom () {
     var __old_math_random = Math.random
     Math.random = function () {
       var val = __old_math_random()
-      if (store.length) console.log(store[0])
+      // if (store.length) console.log(store[0]) //log Math.random() value
       return store.shift() || val
     }
   }, StoreRandom)
+}
+
+function clientLog(msg) {
+  var args = [].slice.call(arguments)
+  ws._send({type: 'client_console', data: args.join(' ')})
+}
+function clientErr(e) {
+  ws._send({type: 'client_error', data: {msg:e}})
 }
 
 function hookRandom () {
@@ -353,8 +357,12 @@ page.onInitialized = function () {
   })
 }
 
+page.onResourceError = function (resourceError) {
+  clientErr(resourceError)
+  // console.log('Unable to load resource (#' + resourceError.id + 'URL:' + resourceError.url + ')')
+}
 page.onResourceReceived = function (res) {
-  debug('onResourceReceived', res.url, res.stage)
+  clientLog('onResourceReceived', res.url, res.stage)
 }
 page.onResourceRequested = function (res) {
   debug('onResourceRequested', res.url)

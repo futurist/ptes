@@ -3,6 +3,7 @@
 var process = require('process')
 var util = require('util')
 var assert = require('assert')
+var chai = require('chai')
 var os = require('os')
 var fs = require('fs')
 var path = require('path')
@@ -199,7 +200,7 @@ function it (testPath, file, func) {
       _report()
       if(!_earlyAbort) return
       clearTest()
-      if(isTTY) assert(false, err)
+      if(isTTY) chai.assert(false, err)
       else{
         console.error(err)
         process.exit(1)
@@ -310,12 +311,24 @@ function runTestFile (fileName) {
           try {
             var msg = JSON.parse(line.substr(1))
             switch (msg.type) {
+            case 'done':
+              done()
+              break
+            case 'assert':
+              try{
+                chai.assert[msg.data.assert.type].apply(null, [msg.data.result].concat(msg.data.assert.args))
+              } catch(err) {
+                debug(11111111,err)
+                if(!isTTY) self.error(err)
+                if (err) return done(isTTY? err.message : JSON.stringify(err))
+              }
+              break
             case 'compareImage':
               compareImage(fileName, testFolder, msg.data, function (err) {
                 self.submsg(util.format('(%s / %s)', msg.cur, msg.total))
                 if(!isTTY) self.error(err)
                 if (err) return done(isTTY? err : JSON.stringify(err))
-                if (msg.meta == 'last') return done()
+                // if (msg.meta == 'last') return done()
               })
               break
             } } catch(e) {}

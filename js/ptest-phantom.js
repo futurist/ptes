@@ -142,6 +142,8 @@ function testStep (diff) {
 }
 
 function processMsg (msg, isLast) {
+  if(isLast) return sendCommand('done')
+
   if (typeof msg != 'object' || !msg) {
     logError('bad msg', ImageName, msg, p, JSON.stringify(EventCache[p]))
     phantom.exit(1)
@@ -151,6 +153,9 @@ function processMsg (msg, isLast) {
   case 'page_clip':
     PageClip = msg.data
 
+    break
+  case 'command_result':
+    if(msg.assert) sendCommand('assert', msg)
     break
   case 'snapshot':
     var prevPos = page.scrollPosition

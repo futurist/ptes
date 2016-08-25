@@ -188,6 +188,15 @@ function cc (str, isPhantom, cb) {
   }
   ws._send({type: 'command', meta: isPhantom ? 'phantom' : 'client', data: str}, cb)
 }
+function assert(str, type) {
+  var args = [].slice.call(arguments, 2)
+  var cb = function (msg) {
+    chai.assert[type].apply(null, [msg.result].concat(args))
+  }
+  ws._send({type: 'command', meta: 'client', data: str, assert:{type:type, args:args}}, cb)
+}
+
+window.assert = assert
 window.sc=sc
 window.cc=cc
 
@@ -353,8 +362,11 @@ function registerEvent () {
     $(document).on(v, function (evt) {
       if (stage !== RECORDING && stage!==null) return
       const e = evt.originalEvent
+      if (e.defaultPrevented) {
+        return // Should do nothing if the key event was already consumed.
+      }
       const isKey = /key/.test(e.type)
-      if (isKey) e.preventDefault()
+      if (isKey && ['F12'].indexOf(e.key)<0 ) e.preventDefault()
       // if (!isKey && e.target.id!=='phantom') return
       let modifier = 0
       if (e.shiftKey) modifier |= MODIFIER.shift

@@ -391,7 +391,7 @@ wss.on('connection', function connection (ws) {
         } catch(e) {
           msg.result = e.stack
         }
-        delete msg.data
+        // delete msg.data
         msg.type = 'command_result'
         ws._send(msg)
         return

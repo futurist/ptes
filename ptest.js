@@ -137,7 +137,7 @@ function connectWS () {
         var cmd = msg.data.trim().match(/([.\w]+)\s*\((.*)\)/)
         var cb = function (result) {
           if (arguments.length) msg.result = result
-          delete msg.data
+          // delete msg.data
           msg.type = 'command_result'
           ws._send(msg)
         }

@@ -180,8 +180,9 @@ function it (testPath, file, func) {
     _stat.status = val
     _report()
   }
-  func.prototype.error = function (val) {
+  func.prototype.error = function (val, type) {
     _stat.error = val
+    _stat.type = type
   }
   func.prototype.submsg = function (val) {
     this._submsg = val
@@ -308,30 +309,29 @@ function runTestFile (fileName) {
         debug('stdout', line)
         if (line[0] === '>') {
           // >{id:12345, type:'type', data:data, cur:1, total:5} format is special!!
-          try {
-            var msg = JSON.parse(line.substr(1))
-            switch (msg.type) {
-            case 'done':
-              done()
-              break
-            case 'assert':
-              try{
-                chai.assert[msg.data.assert.type].apply(null, [msg.data.result].concat(msg.data.assert.args))
-              } catch(err) {
-                debug(11111111,err)
-                if(!isTTY) self.error(err)
-                if (err) return done(isTTY? err.message : JSON.stringify(err))
-              }
-              break
-            case 'compareImage':
-              compareImage(fileName, testFolder, msg.data, function (err) {
-                self.submsg(util.format('(%s / %s)', msg.cur, msg.total))
-                if(!isTTY) self.error(err)
-                if (err) return done(isTTY? err : JSON.stringify(err))
-                // if (msg.meta == 'last') return done()
-              })
-              break
-            } } catch(e) {}
+          var msg = JSON.parse(line.substr(1))
+          switch (msg.type) {
+          case 'done':
+            done()
+            break
+          case 'assert':
+            try{
+              chai.assert[msg.data.assert.type].apply(null, [msg.data.result].concat(msg.data.assert.args))
+            } catch(err) {
+              var errMsg = msg.data.data+' : '+err.message
+              if(!isTTY) self.error(errMsg, msg.type)
+              done(isTTY? errMsg : JSON.stringify(err))
+            }
+            break
+          case 'compareImage':
+            compareImage(fileName, testFolder, msg.data, function (err) {
+              self.submsg(util.format('(%s / %s)', msg.cur, msg.total))
+              if(!isTTY) self.error(err, msg.type)
+              if (err) return done(isTTY? err : JSON.stringify(err))
+              // if (msg.meta == 'last') return done()
+            })
+            break
+          }
         }
       })
       phantom.stderr.on('data', function (data) {

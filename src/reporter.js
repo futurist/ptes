@@ -6,11 +6,11 @@
  * @license MIT
  */
 
-import cssobj from 'cssobj-mithril'
-import cssobjHead from 'cssobj-plugin-post-stylize'
+import cssobj from 'cssobj'
+import cssobj_mithril from 'cssobj-mithril'
 import util from 'util'
 
-const mc = cssobj(m, {
+const style = {
   '.runner-result':{
     text_align:'left'
   },
@@ -50,8 +50,12 @@ const mc = cssobj(m, {
     'span, a':{
       margin_left:'10px'
     }
-  },
-}, {post:[cssobjHead()]})
+  }
+}
+
+const result = cssobj(style, {local:true})
+
+const m = cssobj_mithril(result)
 
 const footer = {
   controller: function(arg) {
@@ -63,25 +67,25 @@ const footer = {
     }
   },
   view: function (ctrl, arg) {
-    return mc('.footerContent',{class:ctrl.getClass()},
+    return m('.footerContent',{class:ctrl.getClass()},
               [util.format(
                 'total:%s, success:%s, fail:%s',
                 ctrl.total,
                 ctrl.success,
                 ctrl.fail,
               ),
-               arg.result ? mc('a.button[href=#]',{onclick:e=>arg.onclose&&arg.onclose()}, 'close')  : [],
+               arg.result ? m('a.button[href=#]',{onclick:e=>arg.onclose&&arg.onclose()}, 'close')  : [],
               ])
   }
 }
 
 const testItem = {
   view: function(ctrl, arg) {
-    return mc('.testItem', [
-      mc('span', arg.test.msg),
-      mc('span', arg.test.submsg||''),
-      mc('span', arg.test.status||'?'),
-      arg.test.error? mc('a[href=#]', {onclick:function() {
+    return m('.testItem', [
+      m('span', arg.test.msg),
+      m('span', arg.test.submsg||''),
+      m('span', arg.test.status||'?'),
+      arg.test.error? m('a[href=#]', {onclick:function() {
         arg.onmsg && arg.onmsg(arg.test)
       }} ,'detail') : []
     ])
@@ -94,26 +98,26 @@ const reporter = {
     this.result = this.data.length && this.data[0].result
   },
   view: function (ctrl, arg) {
-    return mc('.runner-result', [
-      ctrl.result ? mc('menu.top', [ mc('a[href=#]',{onclick:e=>arg.onclose&&arg.onclose()}, 'close') ]) : [],
-      mc('h3', {style: {margin: '1em 0 0 1em'}}, 'Result for ptest-runner'),
-      mc('.reporter',
+    return m('.runner-result', [
+      ctrl.result ? m('menu.top', [ m('a[href=#]',{onclick:e=>arg.onclose&&arg.onclose()}, 'close') ]) : [],
+      m('h3', {style: {margin: '1em 0 0 1em'}}, 'Result for ptest-runner'),
+      m('.reporter',
          ctrl.data.map( (v,i) => {
-           return mc(
+           return m(
              '.item',
              {
-               class: mc.css().map[v.status],
+               class: result.mapClass(v.status),
                style: {
                  marginLeft: v.level * 1 + 'em'
                }
              },
              v.test
                ? m(testItem, Object.assign({},arg, {test:v}))
-             : mc('strong', v.msg + (v.result? ' '+v.result:''))
+             : m('strong', v.msg + (v.result? ' '+v.result:''))
            )
          })
         ),
-      mc('.footer', m(footer, Object.assign({},arg,{
+      m('.footer', m(footer, Object.assign({},arg,{
         result: ctrl.data[0].result,
         total: ctrl.data.filter(v => v.test),
         success: ctrl.data.filter(v => v.status == 'success'),

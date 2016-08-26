@@ -6,20 +6,20 @@
  * @license MIT
  */
 
-import cssobj from 'cssobj-mithril'
-import cssobjHead from 'cssobj-plugin-post-stylize'
+import cssobj from 'cssobj'
+import cssobj_mithril from 'cssobj-mithril'
 import util from 'util'
 
 var PTEST_PATH = '/ptestfolder/'
 
 const style = {
   '.test-image-con': {
-    text_align: 'left'
+    textAlign: 'left'
   },
   'menu.top': {
     background: '#ccc',
     'a, span': {
-      margin_left: '10px'
+      marginLeft: '10px'
     },
     'span.current': {
       color: 'red'
@@ -31,7 +31,7 @@ const style = {
       position: 'absolute',
       right: '10px',
       top: '10px',
-      z_index: 999
+      zIndex: 999
     },
     '.image': {
       position: 'absolute'
@@ -41,7 +41,9 @@ const style = {
     display: 'none'
   }
 }
-const mc = cssobj(m, style, {post:[cssobjHead()]})
+
+const result = cssobj(style, {local:true})
+const m = cssobj_mithril(result)
 
 const gallary = {
   controller: function (arg) {
@@ -69,7 +71,7 @@ const gallary = {
     }
 
     ctrl.getImageList = () => {
-      return images().map((v, i) => mc('span', {class: group == i ? 'current' : '',onclick: e => group = i}, v.a))
+      return images().map((v, i) => m('span', {class: group == i ? 'current' : '',onclick: e => group = i}, v.a))
     }
 
     ctrl.getInfoTag = (keys, index) => {
@@ -87,9 +89,9 @@ const gallary = {
       var obj = images()[group]
       var keys = Object.keys(obj)
       return [
-        mc('.info', ctrl.getInfoTag(keys, index)),
+        m('.info', ctrl.getInfoTag(keys, index)),
         keys.map((v, i) => {
-          return mc('.image', {class: index !== i ? '  :global(hide)   hide  ' : ''}, mc('img', {src: PTEST_PATH + folder + '/' + obj[v]}))
+          return m('.image', {class: index !== i ? '  :global(hide)   hide  ' : ''}, m('img', {src: PTEST_PATH + folder + '/' + obj[v]}))
         })
       ]
     }
@@ -111,12 +113,12 @@ const gallary = {
     })
   },
   view: function (ctrl, arg) {
-    return mc('.test-image-con', [
-      mc('menu.top', [
-        mc('a[href=#]', {onclick: e => arg.onclose && arg.onclose()}, 'close'),
+    return m('.test-image-con', [
+      m('menu.top', [
+        m('a[href=#]', {onclick: e => arg.onclose && arg.onclose()}, 'close'),
         ctrl.getImageList()
       ]),
-      mc('.imageBox', {onmousedown: e => ctrl.cycleVisible(detectRightButton() ? -1 : 1)}, ctrl.getImageTag())
+      m('.imageBox', {onmousedown: e => ctrl.cycleVisible(detectRightButton() ? -1 : 1)}, ctrl.getImageTag())
     ])
   }
 }

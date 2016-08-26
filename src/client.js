@@ -6,6 +6,7 @@
 import mTree from './mtree'
 import reporter from './reporter'
 import testImage from './test-image'
+import testAssert from './test-assert.js'
 import mOverlay from './overlay'
 
 import pointer from 'json-pointer'
@@ -114,7 +115,7 @@ ws.onopen = function (e) {
         data:msg.data,
         onmsg:function(msg) {
           stage = IMAGEVIEW
-          mOverlay.show('#testimage', {com: m.component(testImage, {data: msg.error, onclose:function() {
+          mOverlay.show('#testimage', {com: m.component(msg.type=='assert' ? testAssert : testImage, {data: msg.error, onclose:function() {
             stage = REPORTER
             mOverlay.hide('#testimage')
           }})})

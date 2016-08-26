@@ -21,7 +21,7 @@ var commander = require('commander')
 var debug = require('debug')('ptest:server')
 var debugHttp = require('debug')('ptest:http')
 var imageDiff = require('image-diff')
-var _util = require('extend_exclude')
+var objutil = require('objutil')
 var spawn = require('child_process').spawn
 var pointer = require('json-pointer')
 var pkg = require('./package.json')
@@ -327,7 +327,7 @@ function snapKeyFrame (testName) {
   console.log('------snapshot:', name)
   snapShot(name)
   var prevMsg = EventCache[EventCache.length-1]||{}
-  EventCache.push({ time: Date.now(), msg: _util._extend({}, { type: 'snapshot', data: name }), prevMsg:prevMsg.msg })
+  EventCache.push({ time: Date.now(), msg: objutil.merge({}, { type: 'snapshot', data: name }), prevMsg:prevMsg.msg })
 }
 
 // create WS Server
@@ -364,7 +364,7 @@ wss.on('connection', function connection (ws) {
 
     var relay = function () {
       if (ws.name === 'client') {
-        stage === RECORDING && EventCache.push({ time: Date.now(), msg: _util._extend({}, msg) }) // , viewport: arrayLast(ViewportCache)
+        stage === RECORDING && EventCache.push({ time: Date.now(), msg: objutil.merge({}, msg) }) // , viewport: arrayLast(ViewportCache)
         toPhantom(msg)
       } else {
         toClient(msg)
@@ -404,7 +404,7 @@ wss.on('connection', function connection (ws) {
       // get callback from ws._call
     case 'command_result':
       if(stage===RECORDING && msg.__id && msg.assert) {
-        EventCache.push({ time: Date.now(), msg: _util._extend({}, msg) })
+        EventCache.push({ time: Date.now(), msg: objutil.merge({}, msg) })
       }
       if (msg.__id && (msg.meta == 'server' || msg.role == 'server')) {
         var cb = WS_CALLBACK[msg.__id]

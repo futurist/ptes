@@ -423,6 +423,10 @@ wss.on('connection', function connection (ws) {
       relay()
       break
 
+    case 'xpath':
+      stage === RECORDING && EventCache.push({ time: Date.now(), msg: msg })
+      break
+
     case 'page_clip':
       PageClip = msg.data
       relay()

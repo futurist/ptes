@@ -208,11 +208,14 @@ function connectWS () {
           }
         }
 
+        var viewPortX = e.pageX - (page.scrollPosition.left || 0)
+        var viewPortY = e.pageY - (page.scrollPosition.top || 0)
+
         // console.log(e.type, e.pageX, e.pageY, e.which, WHICH_MOUSE_BUTTON[e.which], e.modifier)
 
         // if (/click|down|up/.test(e.type)) page.sendEvent('mousemove', e.pageX, e.pageY, '')
 
-        page.sendEvent(e.type, e.pageX - (page.scrollPosition.left || 0), e.pageY - (page.scrollPosition.top || 0), WHICH_MOUSE_BUTTON[e.which], e.modifier)
+        page.sendEvent(e.type, viewPortX, viewPortY, WHICH_MOUSE_BUTTON[e.which], e.modifier)
         setCursorPos(e.pageX, e.pageY)
 
         break
@@ -239,6 +242,16 @@ connectWS()
 
 page.onError = function (msg, stack) {
   ws._send({type: 'client_error', data: {msg: msg, stack: stack}})
+}
+page.onCallback = function (data) {
+  if(typeof data!=='object') return
+  switch(data.command) {
+  case 'wsMessage':
+    ws._send(data.data)
+    break
+  default:
+    break
+  }
 }
 page.onConsoleMessage = function (msg) {
   var e = msg.split(':')
@@ -398,15 +411,38 @@ page.onLoadFinished = function (status) { // success
   renderLoop()
 
   page.evaluate(function () {
+    _phantom.MODIFIER = {
+      shift: 0x02000000,
+      ctrl: 0x04000000,
+      alt: 0x08000000,
+      meta: 0x10000000,
+      keypad: 0x20000000
+    }
+
+    _phantom._mouseEvent = function (evt) {
+      // get XPath of clicked element
+      var XPath = _phantom.getXPath(evt.target)
+      console.log(XPath)
+      var modifier = 0
+      if (evt.shiftKey) modifier |= _phantom.MODIFIER.shift
+      if (evt.altKey) modifier |= _phantom.MODIFIER.alt
+      if (evt.ctrlKey) modifier |= _phantom.MODIFIER.ctrl
+      if (evt.metaKey) modifier |= _phantom.MODIFIER.meta
+      var evtData = { type: evt.type, which: evt.which, modifier: modifier, pageX:evt.pageX, pageY:evt.pageY }
+      var msg = {type:'xpath', data:evtData, xpath:XPath}
+      window.callPhantom({command:'wsMessage', data: msg})
+      // ws._send(msg)
+      // console.log(evt.type, Date.now())
+      // _phantom.setDot(evt.pageX,evt.pageY)
+    }
     window.addEventListener('mousemove', function (evt) {
       // _phantom.setDot(evt.pageX,evt.pageY)
     })
-    window.addEventListener('mouseup', function (evt) {})
-    window.addEventListener('mousedown', function (evt) {
-      // console.log(evt.type, Date.now())
-      // _phantom.setDot(evt.pageX,evt.pageY)
-    })
+    window.addEventListener('mouseup', _phantom._mouseEvent)
+    window.addEventListener('mousedown', _phantom._mouseEvent)
   })
+
+  console.log('inject client-helper.js', page.injectJs('client-helper.js') ? 'success' : 'failed')
 }
 
 function openPage (url) {

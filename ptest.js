@@ -32,6 +32,8 @@ var ASYNC_COMMAND = {
   'page.open': null,
   'openPage': null
 }
+var INPUT_MODE = 'mouse'        // mouse|xpath
+
 var asyncCB = function (cmd) {
   var args = [].slice.call(arguments, 1)
   if (typeof ASYNC_COMMAND[cmd] === 'function') {
@@ -419,7 +421,7 @@ page.onLoadFinished = function (status) { // success
       keypad: 0x20000000
     }
 
-    _phantom._mouseEvent = function (evt) {
+    _phantom._mouseToXPath = function (evt) {
       // get XPath of clicked element
       var XPath = _phantom.getXPath(evt.target)
       console.log(XPath)
@@ -438,8 +440,10 @@ page.onLoadFinished = function (status) { // success
     window.addEventListener('mousemove', function (evt) {
       // _phantom.setDot(evt.pageX,evt.pageY)
     })
-    window.addEventListener('mouseup', _phantom._mouseEvent)
-    window.addEventListener('mousedown', _phantom._mouseEvent)
+    if(INPUT_MODE=='xpath') {
+      window.addEventListener('mouseup', _phantom._mouseToXPath)
+      window.addEventListener('mousedown', _phantom._mouseToXPath)
+    }
   })
 
   console.log('inject client-helper.js', page.injectJs('client-helper.js') ? 'success' : 'failed')

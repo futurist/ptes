@@ -1,6 +1,8 @@
 //
 /**************** CASPER JS FUNCTIONS ********************************/
 
+var fs = require('fs')
+
 var clientUtils = require('./clientutils.js').create({})
 
 
@@ -13,8 +15,14 @@ function initClientUtils(options) {
   }.toString().replace('__options', JSON.stringify(options)))
 }
 
-function download(url, method, data) {
-  return clientUtils.decode(callUtils("getBase64", url, method, data))
+function download(url, targetPath, method, data) {
+  try {
+    fs.write(targetPath, clientUtils.decode(callUtils("getBase64", url, method, data)), 'wb')
+    console.log(format("Downloaded and saved resource in %s", targetPath))
+  } catch (e) {
+    console.log(format("Error while downloading %s to %s: %s", url, targetPath, e), "error")
+  }
+
 }
 
 function callUtils (method) {

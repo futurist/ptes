@@ -458,7 +458,7 @@ page.onLoadFinished = function (status) { // success
     './helpers/xpath.js': ''
   })
 
-  // console.log(helper.download('http://docs.casperjs.org/en/latest/modules/casper.html#page'))
+  // helper.download('http://docs.casperjs.org/en/latest/modules/casper.html#page', 'download/file1.html')
 }
 
 

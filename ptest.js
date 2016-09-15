@@ -5,6 +5,7 @@
 
 // phantomjs module
 var sys = require('system')
+var helper = require('./helpers/helper.js')
 var page = require('webpage').create()
 
 var DEBUG = sys.env['DEBUG']
@@ -446,7 +447,30 @@ page.onLoadFinished = function (status) { // success
     }
   })
 
-  console.log('inject client-helper.js', page.injectJs('client-helper.js') ? 'success' : 'failed')
+  var casperOptions = {verbose: true}
+
+  injectClientJS({
+    // changed only last line of casper clientutils.js
+    // from casper utils, but injected into window._phantom space
+    './helpers/clientutils.js': function(result) {
+      helper.initClientUtils(casperOptions)
+    },
+    './helpers/xpath.js': ''
+  })
+
+  // console.log(helper.download('http://docs.casperjs.org/en/latest/modules/casper.html#page'))
+}
+
+
+// inject JS files from Object
+function injectClientJS(obj) {
+  Object.keys(obj).forEach(function(v) {
+    var isInjected = page.injectJs(v)
+    console.log('inject client js '+v, isInjected ? 'success' : 'failed')
+
+    var callback = obj[v] || function() {}
+    callback(isInjected)
+  })
 }
 
 function openPage (url) {

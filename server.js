@@ -230,7 +230,7 @@ function startRec (arg, name) {
   // return console.log(arg, folder, title, name, Config)
 
   stage = RECORDING
-  toPhantom({ type: 'stage', data: {stage: stage}})
+  toPhantom({ type: 'stage', data: {stage: stage, storeFolder: path.join(TEST_FOLDER, DATA_DIR, name)}})
   toPhantom({ type: 'command', meta: 'server', data: 'openPage("' + url + '")' }, function (msg) {
     if (msg.result === 'success') {
       name = name || 'test' + (+new Date())
@@ -300,7 +300,7 @@ function stopRec () {
   toPhantom({type: 'command', meta: 'client', role: 'server', data: '_phantom.__storeRandom'}, function (msg) {
     var storeRandom = msg.result
 
-    fs.writeFileSync(path.join(TEST_FOLDER, DATA_DIR, name + '.json'), JSON.stringify({url: url, testPath: testPath, storeRandom: storeRandom, clip: PageClip, event: EventCache }))
+    fs.writeFileSync(path.join(TEST_FOLDER, DATA_DIR, name + '.json'), JSON.stringify({url: url, testPath: testPath, storeRandom: storeRandom, clip: PageClip, event: EventCache }, null, 2))
     // reloadPhantom()
   })
 }

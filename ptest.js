@@ -4,6 +4,7 @@
 */
 
 // phantomjs module
+var fs = require('fs')
 var sys = require('system')
 var helper = require('./helpers/helper.js')
 var page = require('webpage').create()
@@ -22,6 +23,7 @@ function assertError (msg, stack) {
   phantom.exit(1)
 }
 
+var StoreFolder = ''
 var StoreRandom = []
 var STOPPED = 0, STOPPING = 1, PAUSING = 2, PAUSED = 4, RUNNING = 8, PLAYING = 16, RECORDING = 32
 var ARG_URL = (sys.args.length > 1 && sys.args[1]) || 'about:blank'
@@ -85,6 +87,10 @@ function connectWS () {
       case 'stage':
         stage = msg.data.stage
         StoreRandom = msg.data.storeRandom || []
+        if (stage === RECORDING) {
+          StoreFolder = msg.data.storeFolder
+        }
+        console.log(JSON.stringify(msg.data), pathJoin(StoreFolder))
         break
 
       case 'broadcast':
@@ -114,7 +120,7 @@ function connectWS () {
           }
         }
 
-        console.log('data path:', msg.data)
+        console.log('snapshot path:', msg.data)
         page.render(msg.data)
 
         page.clipRect = {}
@@ -378,10 +384,11 @@ page.onResourceError = function (resourceError) {
   // console.log('Unable to load resource (#' + resourceError.id + 'URL:' + resourceError.url + ')')
 }
 page.onResourceReceived = function (res) {
-  clientLog('onResourceReceived', res.url, res.stage)
+  clientLog('onResourceReceived', res.url, res.stage, res.bodySize)
 }
-page.onResourceRequested = function (res) {
-  debug('onResourceRequested', res.url)
+page.onResourceRequested = function (res, req) {
+  clientLog('onResourceRequested', res.url)
+  if(res.url.match(/jquery.js$/)) req.changeUrl(fileUrl(pathJoin('js/jquery.js'))), console.log(pathJoin('js/jquery.js'))
 }
 page.onNavigationRequested = function (url, type, willNavigate, main) {
   debug('onNavigationrequested')
@@ -441,7 +448,7 @@ page.onLoadFinished = function (status) { // success
     window.addEventListener('mousemove', function (evt) {
       // _phantom.setDot(evt.pageX,evt.pageY)
     })
-    if(INPUT_MODE=='xpath') {
+    if(_phantom.INPUT_MODE=='xpath') {
       window.addEventListener('mouseup', _phantom._mouseToXPath)
       window.addEventListener('mousedown', _phantom._mouseToXPath)
     }
@@ -458,9 +465,30 @@ page.onLoadFinished = function (status) { // success
     './helpers/xpath.js': ''
   })
 
-  // helper.download('http://docs.casperjs.org/en/latest/modules/casper.html#page', 'download/file1.html')
+  var url = 'http://docs.casperjs.org/en/latest/modules/casper.html#page'.split('#').shift()
+  if(StoreFolder) helper.download(url, pathJoin(StoreFolder, 'cache', btoa(url)))
 }
 
+// from https://github.com/sindresorhus/file-url/blob/master/index.js
+function fileUrl (pathName) {
+  pathName = pathName.replace(/\\/g, '/')
+
+  // Windows drive letter must be prefixed with a slash
+  if (pathName[0] !== '/') {
+    pathName = '/' + pathName
+  }
+
+  return encodeURI('file://' + pathName)
+}
+
+function pathJoin() {
+  var args = [].slice.call(arguments)
+  if(!args.length) return
+  if(!fs.isAbsolute(args[0])) args[0]=fs.absolute(args[0])
+  return args.map(function(v) {
+    return v.replace(/[\\\/]+$/, '')  // remove trailing slash first
+  }).join(fs.separator)
+}
 
 // inject JS files from Object
 function injectClientJS(obj) {

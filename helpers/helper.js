@@ -16,6 +16,11 @@ function initClientUtils(options) {
 }
 
 function download(url, targetPath, method, data) {
+  page.evaluate(function() {
+
+  }, url, method, data)
+}
+function download(url, targetPath, method, data) {
   try {
     fs.write(targetPath, clientUtils.decode(callUtils("getBase64", url, method, data)), 'wb')
     console.log(format("Downloaded and saved resource in %s", targetPath))

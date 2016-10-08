@@ -25,6 +25,7 @@ function assertError (msg, stack) {
 
 var StoreFolder = ''
 var StoreRandom = []
+var DownloadStore = {}
 var STOPPED = 0, STOPPING = 1, PAUSING = 2, PAUSED = 4, RUNNING = 8, PLAYING = 16, RECORDING = 32
 var ARG_URL = (sys.args.length > 1 && sys.args[1]) || 'about:blank'
 var PageClip = {}
@@ -250,6 +251,7 @@ function connectWS () {
 connectWS()
 
 page.onError = function (msg, stack) {
+  console.log(msg, stack)
   ws._send({type: 'client_error', data: {msg: msg, stack: stack}})
 }
 page.onCallback = function (data) {
@@ -257,6 +259,9 @@ page.onCallback = function (data) {
   switch(data.command) {
   case 'wsMessage':
     ws._send(data.data)
+    break
+  case 'download':
+    fs.write(data.savePath, atob(data.data.split(',')[1]), 'wb')
     break
   default:
     break
@@ -326,6 +331,8 @@ function createCursor () {
 
 function addPageBG () {
   var head = document.querySelector('head')
+  // single page of /abc.png don't have head
+  if(!head) return
   style = document.createElement('style')
   text = document.createTextNode('body { background: #fff }')
   style.setAttribute('type', 'text/css')
@@ -388,8 +395,43 @@ page.onResourceReceived = function (res) {
 }
 page.onResourceRequested = function (res, req) {
   clientLog('onResourceRequested', res.url)
-  if(res.url.match(/jquery.js$/)) req.changeUrl(fileUrl(pathJoin('js/jquery.js'))), console.log(pathJoin('js/jquery.js'))
+
+  if(StoreFolder && !DownloadStore[res.url]) {
+    DownloadStore[res.url] = {status: 'pending', count:0}
+    // checkDownload()
+  }
+  // if(res.url.match(/jquery.js$/)) req.changeUrl(fileUrl(pathJoin('js/jquery.js'))), console.log(pathJoin('js/jquery.js'))
 }
+
+// var interDown = setInterval(checkDownload, 1000)
+
+function checkDownload() {
+  // don't download when there's one
+  var urls = Object.keys(DownloadStore)
+  if(urls.filter(function(v) {
+    return DownloadStore[v].status=='downloading'
+  }).length) return
+
+  // find first non-sucess url
+  var url = urls.filter(function(url) {
+    var obj = DownloadStore[url]
+    return obj.status!=='success' && obj.count<3
+  }).shift()
+
+  // download queue is empty
+  if(!url) return
+
+  var obj = DownloadStore[url]
+  var fileName = btoa(url)
+  var filePath = pathJoin(StoreFolder, 'cache', fileName)
+  obj.count++
+  obj.status = 'downloading'
+  console.log(+new Date, 111)
+  helper.download(url, filePath)
+  obj.status = 'success'
+  console.log(+new Date, 222)
+}
+
 page.onNavigationRequested = function (url, type, willNavigate, main) {
   debug('onNavigationrequested')
 }
@@ -402,7 +444,9 @@ page.onLoadStarted = function () {
 
 page.onLoadFinished = function (status) { // success
   page.status = status
-  console.log('onLoadFinished', page.url, page.url == '', page.status)
+
+  // for first blank page, page.url == ''
+  console.log('onLoadFinished', page.url, page.status)
 
   // At first blank page event order: (no DOMContentloaded)
   // onLoadFinished->onInitialized (other url inversed)
@@ -462,12 +506,43 @@ page.onLoadFinished = function (status) { // success
     './helpers/clientutils.js': function(result) {
       helper.initClientUtils(casperOptions)
     },
-    './helpers/xpath.js': ''
+    './helpers/utils.js': ''
   })
 
-  var url = 'http://docs.casperjs.org/en/latest/modules/casper.html#page'.split('#').shift()
-  if(StoreFolder) helper.download(url, pathJoin(StoreFolder, 'cache', btoa(url)))
+  var url = 'http://1111hui.com/texman/js/jquery.js'.split('#').shift()
+  // if(StoreFolder) helper.download(url, pathJoin(StoreFolder, 'cache', btoa(url)))
+
+
+
+  downloadFile('http://1111hui.com/texman/formlist.html')
+  downloadFile('http://1111hui.com/texman/js/jquery.js')
+  downloadFile('http://1111hui.com/texman/formlist.js')
+  downloadFile('http://1111hui.com/json-api/formtype?fields[formtype]=name,title,createAt,template')
+  downloadFile('http://phantomjs.org/img/phantomjs-logo.png')
 }
+
+function downloadFile (url) {
+  // if(!StoreFolder) return
+
+  var savePath = pathJoin(StoreFolder, 'cache', btoa(url))
+
+  var body = page.evaluate(function (url, savePath) {
+    _phantom.downloadFile(url, savePath)
+    return
+
+    // old way: the sync xhr method with btoa
+    try{
+      var xhr = new XMLHttpRequest()
+      xhr.open('GET', url, false)
+      xhr.overrideMimeType = 'text/plain; charset=x-user-defined'
+      xhr.send(null)
+      return btoa(xhr.responseText)
+    }catch(e){
+      return 'error'+ JSON.stringify(e)
+    }
+  }, url, savePath)
+}
+
 
 // from https://github.com/sindresorhus/file-url/blob/master/index.js
 function fileUrl (pathName) {

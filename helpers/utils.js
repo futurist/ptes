@@ -14,3 +14,18 @@ window._phantom.getXPath = function (element) {
     if (sibling.nodeType === 1 && sibling.tagName === element.tagName) ix++
   }
 }
+
+window._phantom.downloadFile = function (url, savePath) {
+  var xhr = new XMLHttpRequest()
+  xhr.responseType = 'blob'
+  xhr.onload = function () {
+    var reader = new FileReader()
+    reader.onloadend = function () {
+      // emmit msg to phatom.onCallback function
+      window.callPhantom({command: 'download', url: url, savePath:savePath, data: reader.result})
+    }
+    reader.readAsDataURL(xhr.response)
+  }
+  xhr.open('GET', url, true) //async load
+  xhr.send()
+}

@@ -23,6 +23,7 @@ function assertError (msg, stack) {
   phantom.exit(1)
 }
 
+var clientUtilsInjected = false
 var StoreFolder = ''
 var StoreRandom = []
 var DownloadStore = {}
@@ -261,7 +262,10 @@ page.onCallback = function (data) {
     ws._send(data.data)
     break
   case 'download':
-    fs.write(data.savePath, atob(data.data.split(',')[1]), 'wb')
+    var obj = DownloadStore[data.url]
+    obj.status = 'success'
+    fs.write(obj.filePath, atob(data.data.split(',')[1]), 'wb')
+    console.log(data.url, JSON.stringify(DownloadStore))
     break
   default:
     break
@@ -397,49 +401,34 @@ page.onResourceRequested = function (res, req) {
   clientLog('onResourceRequested', res.url)
 
   if(StoreFolder && !DownloadStore[res.url]) {
-    DownloadStore[res.url] = {status: 'pending', count:0}
-    // checkDownload()
+    DownloadStore[res.url] = {status: 'pending'}
+    checkDownload() // another check is after page loaded!
   }
   // if(res.url.match(/jquery.js$/)) req.changeUrl(fileUrl(pathJoin('js/jquery.js'))), console.log(pathJoin('js/jquery.js'))
 }
 
-// var interDown = setInterval(checkDownload, 1000)
-
-function checkDownload() {
-  // don't download when there's one
-  var urls = Object.keys(DownloadStore)
-  if(urls.filter(function(v) {
-    return DownloadStore[v].status=='downloading'
-  }).length) return
-
-  // find first non-sucess url
-  var url = urls.filter(function(url) {
-    var obj = DownloadStore[url]
-    return obj.status!=='success' && obj.count<3
-  }).shift()
-
-  // download queue is empty
-  if(!url) return
-
-  var obj = DownloadStore[url]
-  var fileName = btoa(url)
-  var filePath = pathJoin(StoreFolder, 'cache', fileName)
-  obj.count++
-  obj.status = 'downloading'
-  console.log(+new Date, 111)
-  helper.download(url, filePath)
-  obj.status = 'success'
-  console.log(+new Date, 222)
+page.onUrlChanged = function(targetUrl) {
+  debug('onUrlChanged to New URL: ' + targetUrl)
 }
 
 page.onNavigationRequested = function (url, type, willNavigate, main) {
-  debug('onNavigationrequested')
+  console.log('onNavigationrequested')
+  if(main) onNewPage()
 }
 page.onPageCreated = function (newPage) {
   debug('onPageCreated')
 }
 page.onLoadStarted = function () {
-  debug('onLoadStarted')
+  console.log('onLoadStarted')
+}
+
+// reinit vars when main page change URL
+function onNewPage() {
+  clientUtilsInjected = false
+  // StoreFolder = ''
+  // StoreRandom = []
+  DownloadStore = {}
+  PageClip = {}
 }
 
 page.onLoadFinished = function (status) { // success
@@ -503,46 +492,52 @@ page.onLoadFinished = function (status) { // success
   injectClientJS({
     // changed only last line of casper clientutils.js
     // from casper utils, but injected into window._phantom space
-    './helpers/clientutils.js': function(result) {
+    './helpers/clientutils.js': function(success) {
+      if(!success) return
       helper.initClientUtils(casperOptions)
     },
-    './helpers/utils.js': ''
+    './helpers/utils.js': function(success) {
+      clientUtilsInjected = true
+      checkDownload()
+    }
   })
 
-  var url = 'http://1111hui.com/texman/js/jquery.js'.split('#').shift()
-  // if(StoreFolder) helper.download(url, pathJoin(StoreFolder, 'cache', btoa(url)))
+  // downloadFile('http://1111hui.com/texman/formlist.html')
+  // downloadFile('http://1111hui.com/texman/js/jquery.js')
+  // downloadFile('http://1111hui.com/texman/formlist.js')
+  // downloadFile('http://1111hui.com/json-api/formtype?fields[formtype]=name,title,createAt,template')
+  // downloadFile('http://phantomjs.org/img/phantomjs-logo.png')
+
+}
+
+function checkDownload() {
+  if(!clientUtilsInjected) return
 
 
+  var urls = Object.keys(DownloadStore)
+  console.log(StoreFolder, JSON.stringify(DownloadStore), urls)
 
-  downloadFile('http://1111hui.com/texman/formlist.html')
-  downloadFile('http://1111hui.com/texman/js/jquery.js')
-  downloadFile('http://1111hui.com/texman/formlist.js')
-  downloadFile('http://1111hui.com/json-api/formtype?fields[formtype]=name,title,createAt,template')
-  downloadFile('http://phantomjs.org/img/phantomjs-logo.png')
+  urls
+    .filter(function(v) {
+      return v.status !== 'success'
+    })
+    .forEach(downloadFile)
 }
 
 function downloadFile (url) {
-  // if(!StoreFolder) return
+  if(!StoreFolder) return
 
-  var savePath = pathJoin(StoreFolder, 'cache', btoa(url))
+  DownloadStore[url] = {
+    status: 'downloading',
+    filePath: pathJoin(StoreFolder, 'cache', btoa(url))
+  }
 
-  var body = page.evaluate(function (url, savePath) {
-    _phantom.downloadFile(url, savePath)
-    return
+  console.log('start downloading', url)
+  page.evaluate(function (url) {
+    _phantom.downloadFile(url)
+  }, url)
 
-    // old way: the sync xhr method with btoa
-    try{
-      var xhr = new XMLHttpRequest()
-      xhr.open('GET', url, false)
-      xhr.overrideMimeType = 'text/plain; charset=x-user-defined'
-      xhr.send(null)
-      return btoa(xhr.responseText)
-    }catch(e){
-      return 'error'+ JSON.stringify(e)
-    }
-  }, url, savePath)
 }
-
 
 // from https://github.com/sindresorhus/file-url/blob/master/index.js
 function fileUrl (pathName) {

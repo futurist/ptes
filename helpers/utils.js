@@ -15,14 +15,14 @@ window._phantom.getXPath = function (element) {
   }
 }
 
-window._phantom.downloadFile = function (url, savePath) {
+window._phantom.downloadFile = function (url) {
   var xhr = new XMLHttpRequest()
   xhr.responseType = 'blob'
   xhr.onload = function () {
     var reader = new FileReader()
     reader.onloadend = function () {
       // emmit msg to phatom.onCallback function
-      window.callPhantom({command: 'download', url: url, savePath:savePath, data: reader.result})
+      window.callPhantom({command: 'download', url: url, data: reader.result})
     }
     reader.readAsDataURL(xhr.response)
   }

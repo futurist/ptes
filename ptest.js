@@ -263,9 +263,17 @@ page.onCallback = function (data) {
     break
   case 'download':
     var obj = DownloadStore[data.url]
-    obj.status = 'success'
-    fs.write(obj.filePath, atob(data.data.split(',')[1]), 'wb')
-    console.log(data.url, JSON.stringify(DownloadStore))
+    var status = data.status
+    obj.status = status
+    if(status=='success') {
+      console.log('success downloaded', data.url)
+      fs.write(obj.filePath, atob(data.data.split(',')[1]), 'wb')
+    } else {
+      obj.errorMsg = data.errorMsg
+      obj.errorCode = data.errorCode
+      console.log('failed download', data.url, data.errorCode, data.errorMsg)
+    }
+    fs.write(pathJoin(StoreFolder, 'cache.json'), JSON.stringify(DownloadStore, null, 2), 'w')
     break
   default:
     break
@@ -525,7 +533,7 @@ function checkDownload() {
 }
 
 function downloadFile (url) {
-  if(!StoreFolder) return
+  // if(!StoreFolder) return
 
   DownloadStore[url] = {
     status: 'downloading',

@@ -88,11 +88,11 @@ function connectWS () {
 
       case 'stage':
         stage = msg.data.stage
-        StoreRandom = msg.data.storeRandom || []
-        if (stage === RECORDING) {
+        if(msg.data.storeRandom) StoreRandom = msg.data.storeRandom || []
+        if(msg.data.downloadStore) DownloadStore = msg.data.downloadStore || {}
+        if (msg.data && msg.data.storeFolder) {  //stage === RECORDING
           StoreFolder = msg.data.storeFolder
         }
-        console.log(JSON.stringify(msg.data), pathJoin(StoreFolder))
         break
 
       case 'broadcast':
@@ -387,8 +387,12 @@ function hookRandom () {
 page.onInitialized = function () {
   debug('onInitialized')
   debug('stage', stage, StoreRandom)
-  if (stage === RECORDING) hookRandom()
-  else applyRandom()
+  if (stage === RECORDING) {
+    hookRandom()
+  } else {
+    applyRandom()
+    console.log(JSON.stringify(DownloadStore))
+  }
 
   // below will create dot ASAP
   page.evaluate(function () {
@@ -408,11 +412,16 @@ page.onResourceReceived = function (res) {
 page.onResourceRequested = function (res, req) {
   clientLog('onResourceRequested', res.url)
 
-  if(StoreFolder && !DownloadStore[res.url]) {
-    DownloadStore[res.url] = {status: 'pending'}
-    checkDownload() // another check is after page loaded!
+  if(stage === RECORDING) {
+    if(!DownloadStore[res.url]) {
+      DownloadStore[res.url] = {status: 'pending'}
+      checkDownload() // another check is after page loaded!
+    }
+  } else {
+    var urlObj = DownloadStore[res.url]
+    console.log(res.url, 'replace with cache: ', urlObj.filePath)
+    if(urlObj) req.changeUrl(fileUrl(urlObj.filePath))
   }
-  // if(res.url.match(/jquery.js$/)) req.changeUrl(fileUrl(pathJoin('js/jquery.js'))), console.log(pathJoin('js/jquery.js'))
 }
 
 page.onUrlChanged = function(targetUrl) {
@@ -435,7 +444,7 @@ function onNewPage() {
   clientUtilsInjected = false
   // StoreFolder = ''
   // StoreRandom = []
-  DownloadStore = {}
+  // DownloadStore = {}
   PageClip = {}
 }
 
@@ -506,7 +515,7 @@ page.onLoadFinished = function (status) { // success
     },
     './helpers/utils.js': function(success) {
       clientUtilsInjected = true
-      checkDownload()
+      if(stage === RECORDING) checkDownload()
     }
   })
 
@@ -523,7 +532,7 @@ function checkDownload() {
 
 
   var urls = Object.keys(DownloadStore)
-  console.log(StoreFolder, JSON.stringify(DownloadStore), urls)
+  debug(StoreFolder, JSON.stringify(DownloadStore), urls)
 
   urls
     .filter(function(v) {

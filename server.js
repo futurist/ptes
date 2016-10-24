@@ -184,6 +184,7 @@ console.log('server started at %s:%s', HTTP_HOST, HTTP_PORT)
 var stage = null
 var EventCache = []
 var StoreRandom = []
+var DownloadStore = {}
 var ViewportCache = []
 var PageClip = {}
 var Config = {url: DEFAULT_URL}
@@ -460,7 +461,7 @@ class EventPlayBack {
     }
   }
 
-  play () {
+  play (testName) {
     var self = this
     if (stage === RECORDING) return client_console('cannot play when recording')
     if (self.status === RUNNING) return
@@ -468,12 +469,12 @@ class EventPlayBack {
     if (EventCache.length < 3) return
     let prev = EventCache[0]
     let last = arrayLast(EventCache)
-    client_console('begin playback, total time:', last.time - prev.time, '(ms)')
+    client_console('begin playback, total time:', last.time - prev.time, '(ms)', JSON.stringify(DownloadStore))
     self.status = RUNNING
     co(function * () {
       // refresh phantom page before play
       yield new Promise(function (ok, error) {
-        toPhantom({type: 'stage', data: {stage: stage, storeRandom: StoreRandom}})
+        toPhantom({type: 'stage', data: {stage: stage, storeRandom: StoreRandom, downloadStore: DownloadStore}})
         toPhantom({ type: 'command', meta: 'server', data: 'openPage("' + DEFAULT_URL + '")' }, function (msg) {
           if (msg.result == 'success') ok()
           else error()
@@ -642,6 +643,8 @@ function playTestFile (filename, url) {
   var root = getTestRoot(filename)
   if (!root) return
   DATA_DIR = root.folder
+  var testName = path.parse(filename).name
+  var testFolder = path.join(TEST_FOLDER, DATA_DIR, testName)
   if (!path.extname(filename)) filename += '.json'
   fs.readFile(path.join(TEST_FOLDER, DATA_DIR, filename), 'utf8', (err, data) => {
     if (err) {
@@ -653,6 +656,11 @@ function playTestFile (filename, url) {
       if (typeof data != 'object' || !data) throw Error()
       DEFAULT_URL = root.url
       EventCache = data.event
+      if(testName) {
+        try{
+          DownloadStore = JSON.parse(fs.readFileSync(path.join(testFolder, 'cache.json'), 'utf8'))
+        }catch(e){}
+      }
       StoreRandom = data.storeRandom
       ViewportCache = [EventCache[0].msg]
       PageClip = data.clip
@@ -661,7 +669,7 @@ function playTestFile (filename, url) {
       if (!phantom) {
         startPhantom(url)
       } else {
-        playBack.play()
+        playBack.play(testName)
       }
     } catch(e) {
       client_console('userdata parse error')

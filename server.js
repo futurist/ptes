@@ -235,13 +235,21 @@ var Options = {
 //
 /** function begin **/
 
-function replacePathInCSS(css, base) {
-  css = css.replace(/(@import\s+)'(.+?)'/gi, (all, g1, g2)=>g1+'\'http'+g2+'\'')
-  css = css.replace(/(@import\s+)"(.+?)"/gi, (all, g1, g2)=>g1+'"http' +g2+ '"')
-  css = css.replace(/(url\s*\()\s*'(.+?)'/gi, (all, g1, g2)=>g1+'\'http' +g2+ '\'')
-  css = css.replace(/(url\s*\()\s*"(.+?)"/gi, (all, g1, g2)=>g1+'"http' +g2+ '"')
-  return css
+function replacePathInCSS (css, base) {
+  base = base || ''
+  return [
+      /(@import\s+)(')(.+?)'/gi,
+      /(@import\s+)(")(.+?)"/gi,
+      /(url\s*\()(\s*)([^'"].+?\))/gi,
+      /(url\s*\()\s*(')(.+?)(')/gi,
+      /(url\s*\()\s*(")(.+?)(")/gi,
+  ].reduce(function (css, reg) {
+    return css.replace(reg, function (all, lead, quote, uri) {
+      return lead + quote + url.resolve(base, uri) + quote
+    })
+  }, css)
 }
+
 
 function snapShot (name) {
   toPhantom({ type: 'snapshot', data: path.join(TEST_FOLDER, DATA_DIR, name) })

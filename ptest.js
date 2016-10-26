@@ -459,7 +459,6 @@ page.onInitialized = function () {
     hookRandom()
   } else {
     applyRandom()
-    console.log(JSON.stringify(DownloadStore))
   }
 
   // below will create dot ASAP

@@ -173,16 +173,21 @@ var HttpServer = http.createServer(function (req, res) {
   if(urlObj.pathname==='/cache') {
     var testFolder = urlObj.query.folder
     var cache = readTestConfig(path.join(testFolder, 'cache.json'))[urlObj.query.url]
+    var headers = [].concat(cache.response && cache.response.headers).reduce(function(prev, v) {
+      if(v && typeof v=='object') prev[v.name] = v.value
+      return prev
+    }, {})
     fs.readFile(path.join(testFolder, cache.filePath), function (err, content) {
       if (err) {
         console.log('error reading cache file', testFolder, cache.filePath)
         res.statusCode = 404
         return res.end()
       }
-      res.writeHeader(cache.response.status, [].concat(cache.response.headers).reduce(function(prev, v) {
-        prev[v.name] = v.value
-        return prev
-      }, {}))
+
+      // replace all url(),@import path to cache path
+
+
+      res.writeHeader(cache.response.status, headers)
       res.end(content, 'utf8')
     })
     return
@@ -228,7 +233,16 @@ var Options = {
 }
 
 //
-// function begin
+/** function begin **/
+
+function replacePathInCSS(css, base) {
+  css = css.replace(/(@import\s+)'(.+?)'/gi, (all, g1, g2)=>g1+'\'http'+g2+'\'')
+  css = css.replace(/(@import\s+)"(.+?)"/gi, (all, g1, g2)=>g1+'"http' +g2+ '"')
+  css = css.replace(/(url\s*\()\s*'(.+?)'/gi, (all, g1, g2)=>g1+'\'http' +g2+ '\'')
+  css = css.replace(/(url\s*\()\s*"(.+?)"/gi, (all, g1, g2)=>g1+'"http' +g2+ '"')
+  return css
+}
+
 function snapShot (name) {
   toPhantom({ type: 'snapshot', data: path.join(TEST_FOLDER, DATA_DIR, name) })
 }

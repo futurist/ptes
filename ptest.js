@@ -15,6 +15,74 @@ var debug = function (arg) {
   if (DEBUG) console.log.apply(console, args)
 }
 
+a= [
+  {
+    a:1
+    ,
+    b:2
+  }
+  ,
+  [
+    2
+    ,
+    3
+  ],
+  //sdf
+  4,
+  5
+]
+
+b=[
+  1,
+  //sdf
+  2,
+  3
+]
+
+!{
+  "contentType":"text/css",
+  "headers":[
+    {
+    "name":"Content-Type",
+    "value":"text/css"
+    },
+    {
+    "name":"server",
+    "value":"node-static/0.7.7"
+    },
+    {
+    "name":"cache-control",
+    "value":"max-age=3600"
+    },
+    {
+    "name":"Etag",
+    "value":"\"1201360-49-1477293879000\""
+    },
+    {
+    "name":"Date",
+    "value":"Tue, 25 Oct 2016 00:40:48 GMT"
+    },
+    {
+    "name":"Last-Modified",
+    "value":"Mon, 24 Oct 2016 07:24:39 GMT"
+    },
+    {
+    "name":"Content-Length",
+    "value":"49"
+    },
+    {
+    "name":"Connection",
+    "value":"keep-alive"
+    }
+  ],
+  "id":8,
+  "redirectURL":null,
+  "stage":"end",
+  "status":200,
+  "statusText":"OK",
+  "time":"2016-10-25T00:40:48.733Z",
+  "url":"http://1111hui.com/texman/css/test.css"
+}
 phantom.onError = assertError
 function assertError (msg, stack) {
   console.log('phantom onerror:', msg)
@@ -267,7 +335,7 @@ page.onCallback = function (data) {
     obj.status = status
     if(status=='success') {
       console.log('success downloaded', data.url)
-      fs.write(obj.filePath, atob(data.data.split(',')[1]), 'wb')
+      fs.write(pathJoin(StoreFolder, obj.filePath), atob(data.data.split(',')[1]), 'wb')
     } else {
       obj.errorMsg = data.errorMsg
       obj.errorCode = data.errorCode
@@ -406,9 +474,16 @@ page.onResourceError = function (resourceError) {
   clientErr(resourceError)
   // console.log('Unable to load resource (#' + resourceError.id + 'URL:' + resourceError.url + ')')
 }
+
 page.onResourceReceived = function (res) {
   clientLog('onResourceReceived', res.url, res.stage, res.bodySize)
+  if(stage === RECORDING && res.stage=='start') {
+    // the 'start' stage have [body,bodySize] key as extra
+    // and the time updated for 'end' stage
+    DownloadStore[res.url].response = res
+  }
 }
+
 page.onResourceRequested = function (res, req) {
   clientLog('onResourceRequested', res.url)
 
@@ -420,7 +495,11 @@ page.onResourceRequested = function (res, req) {
   } else {
     var urlObj = DownloadStore[res.url]
     console.log(res.url, 'replace with cache: ', urlObj.filePath)
-    if(urlObj) req.changeUrl(fileUrl(urlObj.filePath))
+    if(urlObj) req.changeUrl(helper.format(
+      'http://localhost:8080/cache?url=%s&folder=%s',
+      encodeURIComponent(res.url),
+      encodeURIComponent(StoreFolder)
+    ))
   }
 }
 
@@ -543,10 +622,11 @@ function checkDownload() {
 
 function downloadFile (url) {
   // if(!StoreFolder) return
+  console.log(pathJoin('cache', btoa(url)))
 
   DownloadStore[url] = {
     status: 'downloading',
-    filePath: pathJoin(StoreFolder, 'cache', btoa(url))
+    filePath: 'cache/' + btoa(url)
   }
 
   console.log('start downloading', url)
@@ -571,7 +651,8 @@ function fileUrl (pathName) {
 function pathJoin() {
   var args = [].slice.call(arguments)
   if(!args.length) return
-  if(!fs.isAbsolute(args[0])) args[0]=fs.absolute(args[0])
+  var absolute = typeof args[0]==='boolean' ? args.shift() : false
+  if(absolute && !fs.isAbsolute(args[0])) args[0]=fs.absolute(args[0])
   return args.map(function(v) {
     return v.replace(/[\\\/]+$/, '')  // remove trailing slash first
   }).join(fs.separator)

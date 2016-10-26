@@ -116,11 +116,13 @@ var PTEST_PATH = '/ptestfolder/'
 var HttpServer = http.createServer(function (req, res) {
   debugHttp((new Date()).toLocaleString(), req.method, req.url)
 
+  // read ptest config
   if (req.url === '/config' && req.method == 'GET') {
     res.writeHeader(200, {'Content-Type': 'application/json'})
-    return res.end(readPtestConfig())
+    return res.end(readTestConfig('ptest.json', true))
   }
 
+  // save ptest config
   if (req.url === '/config' && req.method == 'POST') {
     res.writeHead(200, 'OK', {'Content-Type': 'application/json'})
     var body = ''
@@ -139,18 +141,23 @@ var HttpServer = http.createServer(function (req, res) {
     return
   }
 
+  // reload phantom
   if (req.url === '/reload') {
     if (Options.syncReload) reloadPhantom()
     return res.end()
   }
 
   var ROOT = __dirname
+
+  // check whether the request is for ptestfolder
   if (req.url.indexOf(PTEST_PATH) === 0) {
     ROOT = './'
     req.url = req.url.replace(PTEST_PATH, '/')
   }
 
   var urlObj = url.parse(req.url, true)
+
+  // want ptest images
   if (urlObj.pathname === '/testimage' && req.method == 'GET') {
     var folder = urlObj.query.folder
     var test = urlObj.query.test
@@ -162,20 +169,44 @@ var HttpServer = http.createServer(function (req, res) {
     return
   }
 
+  /* cache server for replay cached resources */
+  if(urlObj.pathname==='/cache') {
+    var testFolder = urlObj.query.folder
+    var cache = readTestConfig(path.join(testFolder, 'cache.json'))[urlObj.query.url]
+    fs.readFile(path.join(testFolder, cache.filePath), function (err, content) {
+      if (err) {
+        console.log('error reading cache file', testFolder, cache.filePath)
+        res.statusCode = 404
+        return res.end()
+      }
+      res.writeHeader(cache.response.status, [].concat(cache.response.headers).reduce(function(prev, v) {
+        prev[v.name] = v.value
+        return prev
+      }, {}))
+      res.end(content, 'utf8')
+    })
+    return
+  }
+
+  /* static server part based from ptest itself */
+
+  // route index, etc.
   var filePath = req.url
   filePath = (ROUTE[filePath] || filePath)
 
+  // get MIME-type from ext
   var ext = path.extname(filePath)
   var contentType = MIME[ext] || 'text/html'
 
-  fs.readFile(path.join(ROOT, filePath), function (err, data) {
+  fs.readFile(path.join(ROOT, filePath), function (err, content) {
     if (err) {
       res.statusCode = 404
       return res.end()
     }
     res.writeHeader(200, {'Content-Type': contentType})
-    res.end(data, 'utf8')
+    res.end(content, 'utf8')
   })
+
 })
 HttpServer.listen(HTTP_PORT, HTTP_HOST)
 
@@ -226,7 +257,7 @@ function startRec (arg, name) {
   var folder = arg.folder
   var url = arg.url
 
-  Config = readPtestConfig(true)
+  Config = readTestConfig('ptest.json')
 
   // return console.log(arg, folder, title, name, Config)
 
@@ -250,21 +281,22 @@ function writePtestConfig (Config) {
   fs.writeFileSync(path.join(TEST_FOLDER , 'ptest.json'), JSON.stringify(Config, null, 2))
 }
 
-function readPtestConfig (toJSON) {
+function readTestConfig (file, textOnly) {
   var content = ''
   var json = null
   try {
-    content = fs.readFileSync(path.join(TEST_FOLDER, 'ptest.json'), 'utf8')
+    content = fs.readFileSync(path.join(TEST_FOLDER, file), 'utf8')
     json = JSON.parse(content)
   } catch(e) {
     if (e.code !== 'ENOENT') {
-      console.log(e, 'error parse ptest.json...')
+      console.log(e, 'error parse', file)
     } else {
-      console.log('please run\n\n  ptest-server --init url\n\nto create ptest.json first.')
+      if(file=='ptest.json') console.log('please run\n\n  ptest-server --init url\n\nto create ptest.json first.')
+      else console.log('invalid json file', file)
     }
     return process.exit()
   }
-  return toJSON ? json : content
+  return textOnly ? content : json
 }
 
 function stopRec () {
@@ -678,7 +710,7 @@ function playTestFile (filename, url) {
 }
 
 function init () {
-  Config = readPtestConfig(true)
+  Config = readTestConfig('ptest.json')
   if (commander.list) {
     console.log(JSON.stringify(Config))
     return process.exit()

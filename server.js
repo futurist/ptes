@@ -27,6 +27,7 @@ var pointer = require('json-pointer')
 var pkg = require('./package.json')
 var treeHelper = require('./src/tree-helper')
 var getImageArray = require('./getImageArray.js')
+var replaceCssUrl = require('replace-css-url')
 
 var DEFAULT_URL = [
   'http://1111hui.com/nlp/tree.html',
@@ -172,22 +173,28 @@ var HttpServer = http.createServer(function (req, res) {
   /* cache server for replay cached resources */
   if(urlObj.pathname==='/cache') {
     var testFolder = urlObj.query.folder
-    var cache = readTestConfig(path.join(testFolder, 'cache.json'))[urlObj.query.url]
-    var headers = [].concat(cache.response && cache.response.headers).reduce(function(prev, v) {
+    var originalUrl = urlObj.query.url
+    var cacheConfig = readTestConfig(path.join(testFolder, 'cache.json'))[originalUrl]
+    var headers = [].concat(cacheConfig.response && cacheConfig.response.headers).reduce(function(prev, v) {
       if(v && typeof v=='object') prev[v.name] = v.value
       return prev
     }, {})
-    fs.readFile(path.join(testFolder, cache.filePath), function (err, content) {
+    fs.readFile(path.join(testFolder, cacheConfig.filePath), function (err, content) {
       if (err) {
-        console.log('error reading cache file', testFolder, cache.filePath)
+        console.log('error reading cache file', testFolder, cacheConfig.filePath)
         res.statusCode = 404
         return res.end()
       }
 
       // replace all url(),@import path to cache path
-
-
-      res.writeHeader(cache.response.status, headers)
+      if(headers['Content-Type'] == 'text/css') {
+        var cssString = replaceCssUrl(content.toString('utf-8'), function(uri) {
+          return url.resolve(originalUrl, uri)
+        })
+        console.log(cssString)
+        content = new Buffer(cssString, "utf-8")
+      }
+      res.writeHeader(cacheConfig.response.status, headers)
       res.end(content, 'utf8')
     })
     return
@@ -234,22 +241,6 @@ var Options = {
 
 //
 /** function begin **/
-
-function replacePathInCSS (css, base) {
-  base = base || ''
-  return [
-      /(@import\s+)(')(.+?)'/gi,
-      /(@import\s+)(")(.+?)"/gi,
-      /(url\s*\()(\s*)([^'"].+?\))/gi,
-      /(url\s*\()\s*(')(.+?)(')/gi,
-      /(url\s*\()\s*(")(.+?)(")/gi,
-  ].reduce(function (css, reg) {
-    return css.replace(reg, function (all, lead, quote, uri) {
-      return lead + quote + url.resolve(base, uri) + quote
-    })
-  }, css)
-}
-
 
 function snapShot (name) {
   toPhantom({ type: 'snapshot', data: path.join(TEST_FOLDER, DATA_DIR, name) })
@@ -528,7 +519,7 @@ class EventPlayBack {
     co(function * () {
       // refresh phantom page before play
       yield new Promise(function (ok, error) {
-        toPhantom({type: 'stage', data: {stage: stage, storeRandom: StoreRandom, downloadStore: DownloadStore}})
+        toPhantom({type: 'stage', data: {stage: stage, storeRandom: StoreRandom, downloadStore: DownloadStore, storeFolder: path.join(TEST_FOLDER, DATA_DIR, testName)}})
         toPhantom({ type: 'command', meta: 'server', data: 'openPage("' + DEFAULT_URL + '")' }, function (msg) {
           if (msg.result == 'success') ok()
           else error()

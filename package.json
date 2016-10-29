@@ -26,6 +26,7 @@
     "mkdirp": "^0.5.1",
     "node-ansi": "^1.1.0",
     "objutil": "^1.0.15",
+    "replace-css-url": "^1.0.3",
     "split2": "^2.0.1",
     "undo-manager": "^1.0.5",
     "util_debounce_throttle": "^1.0.0",

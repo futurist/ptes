@@ -176,27 +176,24 @@ var HttpServer = http.createServer(function (req, res) {
     var originalUrl = urlObj.query.url
     var cacheConfig = readTestConfig(path.join(testFolder, 'cache.json'))[originalUrl]
     var headers = [].concat(cacheConfig.response && cacheConfig.response.headers).reduce(function(prev, v) {
-      if(v && typeof v=='object') prev[v.name] = v.value
+      // 'Content-Length' should decide by node
+      if(v && typeof v=='object' && v.name != 'Content-Length') prev[v.name] = v.value
       return prev
     }, {})
-    fs.readFile(path.join(testFolder, cacheConfig.filePath), function (err, content) {
-      if (err) {
-        console.log('error reading cache file', testFolder, cacheConfig.filePath)
-        res.statusCode = 404
-        return res.end()
-      }
 
-      // replace all url(),@import path to cache path
-      if(headers['Content-Type'] == 'text/css') {
-        var cssString = replaceCssUrl(content.toString('utf-8'), function(uri) {
-          return url.resolve(originalUrl, uri)
-        })
-        console.log(cssString)
-        content = new Buffer(cssString, "utf-8")
-      }
-      res.writeHeader(cacheConfig.response.status, headers)
-      res.end(content, 'utf8')
-    })
+    res.writeHead(cacheConfig.response.status, headers);
+    fs.createReadStream(path.join(testFolder, cacheConfig.filePath))
+      .pipe(res)
+
+    // fs.readFile(path.join(testFolder, cacheConfig.filePath), function (err, content) {
+    //   if (err) {
+    //     console.log('error reading cache file', testFolder, cacheConfig.filePath)
+    //     res.statusCode = 404
+    //     return res.end()
+    //   }
+    //   res.writeHeader(cacheConfig.response.status, headers)
+    //   res.end(content, 'utf8')
+    // })
     return
   }
 

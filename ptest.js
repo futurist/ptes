@@ -7,6 +7,8 @@
 var fs = require('fs')
 var sys = require('system')
 var helper = require('./helpers/helper.js')
+var replaceCSSUrl = require('./node_modules/replace-css-url')
+var url = require('url')
 var page = require('webpage').create()
 
 var DEBUG = sys.env['DEBUG']
@@ -335,7 +337,14 @@ page.onCallback = function (data) {
     obj.status = status
     if(status=='success') {
       console.log('success downloaded', data.url)
-      fs.write(pathJoin(StoreFolder, obj.filePath), atob(data.data.split(',')[1]), 'wb')
+      var content = atob(data.data.split(',')[1])
+      // css: replace all url(),@import path to cache path
+      if(obj.response.contentType == 'text/css') {
+        content = replaceCSSUrl(content, function(uri) {
+          return url.resolve(data.url, uri)
+        })
+      }
+      fs.write(pathJoin(StoreFolder, obj.filePath), content, 'wb')
     } else {
       obj.errorMsg = data.errorMsg
       obj.errorCode = data.errorCode

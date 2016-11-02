@@ -23,7 +23,7 @@
 let css = {}
 
 import UndoManager from './undo-manager.js'
-import * as treeHelper from './tree-helper.js'
+import treeHelper from './tree-helper.js'
 
 const INVALID_NAME = '<>:"\\|?*\/' // '<>:"/\\|?*'
 const INVALID_NAME_REGEXP = new RegExp('[' + INVALID_NAME.replace('\\', '\\\\') + ']', 'g')
@@ -134,7 +134,7 @@ var com = {
           //   return v
           // })
 
-          data = result
+          window.data = data = result
           console.log(data)
           m.redraw()
         })
@@ -220,13 +220,13 @@ var com = {
       if (!v._leaf) {
         node.push(
           {action: 'add', text: 'Add', _path:v._path, path: path, folder: folder, save:true, url:url},
-          {action: 'test', text: 'Test', _path:v._path, path: path, file:getLeaf(v).map(x=>x.item.name), folder: folder, retain:true, url:url},
+          {action: 'test', text: 'Test', _path:v._path, path: path, file:getLeaf(v).map(x=>x.item.name), folder: folder, retain:true, url:url}
         )
       } else {
         node.push(
           {action: 'play', text: 'Play', _path:v._path, path: path, file: v.name, folder: folder, url: url},
           {action: 'test', text: 'Test', _path:v._path, path: path, file: [v.name], folder: folder, url: url, retain:true},
-          {action: 'view', text: 'View', _path:v._path, path: path, file: v.name, folder: folder, retain:true},
+          {action: 'view', text: 'View', _path:v._path, path: path, file: v.name, folder: folder, retain:true}
         )
       }
       return node.map(oneAction)

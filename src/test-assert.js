@@ -26,4 +26,5 @@ const assertPopup = {
   }
 }
 
-module.exports = assertPopup
+// module.exports = assertPopup
+export default assertPopup

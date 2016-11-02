@@ -8,7 +8,7 @@
 
 import cssobj from 'cssobj'
 import cssobj_mithril from 'cssobj-mithril'
-import util from 'util'
+import format from './format.js'
 
 const style = {
   '.runner-result':{
@@ -68,11 +68,11 @@ const footer = {
   },
   view: function (ctrl, arg) {
     return m('.footerContent',{class:ctrl.getClass()},
-              [util.format(
+              [format(
                 'total:%s, success:%s, fail:%s',
                 ctrl.total,
                 ctrl.success,
-                ctrl.fail,
+                ctrl.fail
               ),
                arg.result ? m('a.button[href=#]',{onclick:e=>arg.onclose&&arg.onclose()}, 'close')  : [],
               ])
@@ -129,8 +129,9 @@ const reporter = {
 
 var testdata = [{'msg': 'ptest for custom test files','submsg': '','level': 0}, {'msg': '[test1465218312129]','submsg': '(1 / 1)','test': 'test1465218312129','level': 1,'status': 'success'}, {'msg': '[test1465218335247]','submsg': '(1 / 1)','test': 'test1465218335247','level': 1,"error":{"test":"test1465218335247","folder":"ptest_data","a":"test1465218335247/1465218058523.png","b":"test1465218335247/1465218058523.png_test.png","diff":"test1465218335247/1465218058523.png_diff.png"},'status': 'fail'}, {'msg': '[test1465218335247]','submsg': '(1 / 1)','test': 'test1465218335247','level': 1}]
 
-module.exports = reporter
+// module.exports = reporter
 
+export default reporter
 
 //
 // helper functions

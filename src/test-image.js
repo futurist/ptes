@@ -8,7 +8,6 @@
 
 import cssobj from 'cssobj'
 import cssobj_mithril from 'cssobj-mithril'
-import util from 'util'
 
 var PTEST_PATH = '/ptestfolder/'
 
@@ -123,7 +122,8 @@ const gallary = {
   }
 }
 
-module.exports = gallary
+// module.exports = gallary
+export default gallary
 
 var testdata = {'test': 'test1465218335247','folder': 'ptest_data','a': 'test1465218335247/1465218058523.png','b': 'test1465218335247/1465218058523.png_test.png','diff': 'test1465218335247/1465218058523.png_diff.png'}
 

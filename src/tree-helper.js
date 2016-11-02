@@ -1,12 +1,3 @@
-;(function (root, factory) {
-  if (typeof define === 'function' && define.amd) {
-    define([], factory) // define(['jquery'], factory)
-  } else if (typeof exports === 'object') {
-    module.exports = factory() // factory(require('jquery'))
-  } else {
-    root.treeHelper = factory() // should return obj in factory
-  }
-}(this, function () {
 /**
  * @fileOverview
  * @name tree-helper.js
@@ -29,20 +20,19 @@ var ARRAY = '[object Array]'
  * @param {} val
  * @returns {}
  */
-  function deepFindKV (data, f, howMany, path, found) {
-    var i = 0, path = path || [], found=found||[], howMany=howMany|0
-    for (; i < data.length; i++) {
-      if (f(data[i])) {
-        found.push({path: path.concat(i), item: data[i]})
-        if(howMany--<1) break
-      }
-      if (data[i].children) {
-        deepFindKV(data[i].children, f, howMany, path.concat(i), found)
-      }
+function deepFindKV (data, f, howMany, path, found) {
+  var i = 0, path = path || [], found = found || [], howMany = howMany | 0
+  for (; i < data.length; i++) {
+    if (f(data[i])) {
+      found.push({path: path.concat(i), item: data[i]})
+      if (howMany-- < 1) break
     }
-    return found
+    if (data[i].children) {
+      deepFindKV(data[i].children, f, howMany, path.concat(i), found)
+    }
   }
-
+  return found
+}
 
 /**
  * getArraypath - get object using path array, from data object
@@ -61,8 +51,6 @@ function getArrayPath (data, path) {
   }
   return {obj, texts}
 }
-
-
 
 /**
  * convert simple Object into tree data
@@ -107,10 +95,10 @@ function convertSimpleData (d, prop, path) {
   return []
 }
 
-  // module exports
-  return {
-    fromSimple: convertSimpleData,
-    getArrayPath: getArrayPath,
-    deepFindKV: deepFindKV
-  }
-}))
+// module exports
+module.exports = {
+  fromSimple: convertSimpleData,
+  getArrayPath: getArrayPath,
+  deepFindKV: deepFindKV
+}
+

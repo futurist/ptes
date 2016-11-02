@@ -7,7 +7,7 @@ import mTree from './mtree'
 import reporter from './reporter'
 import testImage from './test-image'
 import testAssert from './test-assert.js'
-import mOverlay from './overlay'
+import mOverlay from 'moverlay/bare'
 
 import pointer from 'json-pointer'
 window.pointer = pointer

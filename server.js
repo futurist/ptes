@@ -174,7 +174,8 @@ var HttpServer = http.createServer(function (req, res) {
   if(urlObj.pathname==='/cache') {
     var testFolder = urlObj.query.folder
     var originalUrl = urlObj.query.url
-    var cacheConfig = readTestConfig(path.join(testFolder, 'cache.json'))[originalUrl]
+    var cacheConfig = readTestConfig(path.join(testFolder, 'cache.json'))
+    cacheConfig = getDownload(cacheConfig, v => v.url == originalUrl, true)
     var headers = [].concat(cacheConfig.response && cacheConfig.response.headers).reduce(function(prev, v) {
       // 'Content-Length' should decide by node
       if(v && typeof v=='object' && v.name != 'Content-Length') prev[v.name] = v.value
@@ -218,6 +219,18 @@ var HttpServer = http.createServer(function (req, res) {
 
 })
 HttpServer.listen(HTTP_PORT, HTTP_HOST)
+
+function getDownload (storeArr, id, remove) {
+  var idx
+  var found = storeArr.some(function (v, i) {
+    idx = i
+    return typeof id !== 'function' ? v.id === id : id(v)
+  })
+  if(!found) return
+  return remove
+    ? storeArr.splice(idx, 1).shift()
+    : storeArr[idx]
+}
 
 console.log('server started at %s:%s', HTTP_HOST, HTTP_PORT)
 

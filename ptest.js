@@ -19,14 +19,11 @@ var debug = function (arg) {
 
 a= [
   {
-    a:1
-    ,
-    b:2
-  }
-  ,
+    a: 1,
+    b: 2
+  },
   [
-    2
-    ,
+    2,
     3
   ],
   //sdf
@@ -42,49 +39,51 @@ b=[
 ]
 
 !{
-  "contentType":"text/css",
-  "headers":[
+  "contentType": "text/css",
+  "headers": [
     {
-    "name":"Content-Type",
-    "value":"text/css"
+      "name": "Content-Type",
+      "value": "text/css"
     },
     {
-    "name":"server",
-    "value":"node-static/0.7.7"
+      "name": "server",
+      "value": "node-static/0.7.7"
     },
     {
-    "name":"cache-control",
-    "value":"max-age=3600"
+      "name": "cache-control",
+      "value": "max-age=3600"
     },
     {
-    "name":"Etag",
-    "value":"\"1201360-49-1477293879000\""
+      "name": "Etag",
+      "value": "\"1201360-49-1477293879000\""
     },
     {
-    "name":"Date",
-    "value":"Tue, 25 Oct 2016 00:40:48 GMT"
+      "name": "Date",
+      "value": "Tue, 25 Oct 2016 00:40:48 GMT"
     },
     {
-    "name":"Last-Modified",
-    "value":"Mon, 24 Oct 2016 07:24:39 GMT"
+      "name": "Last-Modified",
+      "value": "Mon, 24 Oct 2016 07:24:39 GMT"
     },
     {
-    "name":"Content-Length",
-    "value":"49"
+      "name": "Content-Length",
+      "value": "49"
     },
     {
-    "name":"Connection",
-    "value":"keep-alive"
+      "name": "Connection",
+      "value": "keep-alive"
     }
   ],
-  "id":8,
-  "redirectURL":null,
-  "stage":"end",
-  "status":200,
-  "statusText":"OK",
-  "time":"2016-10-25T00:40:48.733Z",
-  "url":"http://1111hui.com/texman/css/test.css"
+  "id": 8,
+  "redirectURL": null,
+  "stage": "end",
+  "status": 200,
+  "statusText": "OK",
+  "time": "2016-10-25T00:40:48.733Z",
+  "url": "http://1111hui.com/texman/css/test.css"
 }
+
+
 phantom.onError = assertError
 function assertError (msg, stack) {
   console.log('phantom onerror:', msg)
@@ -96,7 +95,7 @@ function assertError (msg, stack) {
 var clientUtilsInjected = false
 var StoreFolder = ''
 var StoreRandom = []
-var DownloadStore = {}
+var DownloadStore = []
 var STOPPED = 0, STOPPING = 1, PAUSING = 2, PAUSED = 4, RUNNING = 8, PLAYING = 16, RECORDING = 32
 var ARG_URL = (sys.args.length > 1 && sys.args[1]) || 'about:blank'
 var PageClip = {}
@@ -159,7 +158,7 @@ function connectWS () {
       case 'stage':
         stage = msg.data.stage
         if(msg.data.storeRandom) StoreRandom = msg.data.storeRandom || []
-        if(msg.data.downloadStore) DownloadStore = msg.data.downloadStore || {}
+        if(msg.data.downloadStore) DownloadStore = msg.data.downloadStore || []
         if (msg.data && msg.data.storeFolder) {  //stage === RECORDING
           StoreFolder = msg.data.storeFolder
         }
@@ -332,7 +331,7 @@ page.onCallback = function (data) {
     ws._send(data.data)
     break
   case 'download':
-    var obj = DownloadStore[data.url]
+    var obj = getDownload(data.id)
     var status = data.status
     obj.status = status
     if(status=='success') {
@@ -488,26 +487,34 @@ page.onResourceReceived = function (res) {
   if(stage === RECORDING && res.stage=='start') {
     // the 'start' stage have [body,bodySize] key as extra
     // and the time updated for 'end' stage
-    DownloadStore[res.url].response = res
+    getDownload(res.id).response = res
   }
 }
 
 page.onResourceRequested = function (res, req) {
   clientLog('onResourceRequested', res.url)
-
-  if(stage === RECORDING) {
-    if(!DownloadStore[res.url]) {
-      DownloadStore[res.url] = {status: 'pending'}
+  // only cache url with http/https protocol
+  if(/^https?:/.test(res.url)) {
+    if(stage === RECORDING) {
+      DownloadStore.push({
+        id: res.id,
+        status: 'pending',
+        method: res.method,
+        url: res.url,
+        time: res.time
+      })
       checkDownload() // another check is after page loaded!
+    } else {
+      // consume the cache list, remove after retrive
+      var urlObj = getDownload(function(v) { return v.url === res.url }, true)
+      console.log(res.url, 'replace with cache: ', urlObj.filePath)
+      // only change url when it's previous downloaded successfully
+      if(urlObj && urlObj.status == 'success') req.changeUrl(helper.format(
+        'http://localhost:8080/cache?url=%s&folder=%s',
+        encodeURIComponent(res.url),
+        encodeURIComponent(StoreFolder)
+      ))
     }
-  } else {
-    var urlObj = DownloadStore[res.url]
-    console.log(res.url, 'replace with cache: ', urlObj.filePath)
-    if(urlObj) req.changeUrl(helper.format(
-      'http://localhost:8080/cache?url=%s&folder=%s',
-      encodeURIComponent(res.url),
-      encodeURIComponent(StoreFolder)
-    ))
   }
 }
 
@@ -531,7 +538,7 @@ function onNewPage() {
   clientUtilsInjected = false
   // StoreFolder = ''
   // StoreRandom = []
-  // DownloadStore = {}
+  // DownloadStore = []
   PageClip = {}
 }
 
@@ -616,31 +623,40 @@ page.onLoadFinished = function (status) { // success
 
 function checkDownload() {
   if(!clientUtilsInjected) return
-
-
-  var urls = Object.keys(DownloadStore)
-  debug(StoreFolder, JSON.stringify(DownloadStore), urls)
-
-  urls
-    .filter(function(v) {
-      return v.status !== 'success'
-    })
-    .forEach(downloadFile)
+  DownloadStore.filter(function(v) {
+    return v.status !== 'success'
+  }).forEach(downloadFile)
 }
 
-function downloadFile (url) {
-  // if(!StoreFolder) return
-  console.log(pathJoin('cache', btoa(url)))
+function rand() {
+  return +new Date + '_' + Math.random().toString(36).slice(2,10)
+}
 
-  DownloadStore[url] = {
-    status: 'downloading',
-    filePath: 'cache/' + btoa(url)
-  }
+function getDownload (id, remove) {
+  var idx
+  var found = DownloadStore.some(function (v, i) {
+    idx = i
+    return typeof id !== 'function' ? v.id === id : id(v)
+  })
+  if(!found) return
+  return remove
+    ? DownloadStore.splice(idx, 1).shift()
+    : DownloadStore[idx]
+}
+
+function downloadFile (obj) {
+  var url = obj.url
+  // if(!StoreFolder) return
+  var cacheName = rand()
+  console.log(pathJoin('cache', cacheName))
+
+  obj.status = 'downloading'
+  obj.filePath = 'cache/' + cacheName
 
   console.log('start downloading', url)
-  page.evaluate(function (url) {
-    _phantom.downloadFile(url)
-  }, url)
+  page.evaluate(function (obj) {
+    _phantom.downloadFile(obj)
+  }, obj)
 
 }
 

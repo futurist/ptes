@@ -15,14 +15,21 @@ window._phantom.getXPath = function (element) {
   }
 }
 
-window._phantom.downloadFile = function (url) {
+window._phantom.downloadFile = function (obj) {
+  var url = obj.url
   xhrRequest(url, 'GET', null, {
     responseType: 'blob'
   }, function(xhr) {
     var reader = new FileReader()
     reader.onloadend = function () {
       // emmit msg to phatom.onCallback function
-      window.callPhantom({command: 'download', url: url, status:'success', data: reader.result})
+      window.callPhantom({
+        command: 'download',
+        id: obj.id,
+        url: url,
+        status: 'success',
+        data: reader.result
+      })
     }
     reader.readAsDataURL(xhr.response)
   }, function (xhr, status) {
@@ -40,7 +47,14 @@ window._phantom.downloadFile = function (url) {
     default:
       msg += ('Unknown error')
     }
-    window.callPhantom({command: 'download', url: url, status:'fail', errorMsg: msg, errorCode: status})
+    window.callPhantom({
+      command: 'download',
+      id: obj.id,
+      url: url,
+      status: 'fail',
+      errorMsg: msg,
+      errorCode: status
+    })
   })
 }
 

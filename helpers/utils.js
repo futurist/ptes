@@ -28,20 +28,25 @@ window._phantom.downloadFile = function (obj) {
         id: obj.id,
         url: url,
         status: 'success',
+        response: {
+          status: status,
+          statusText: xhr.statusText,
+          headers: getHeaders(xhr)
+        },
         data: reader.result
       })
     }
     reader.readAsDataURL(xhr.response)
   }, function (xhr, status) {
     var msg = ''
-    switch(status) {
-    case 404:
+    switch(true) {
+    case (status>=400 && status<500):
       msg += ('File not found')
       break
-    case 500:
+    case (status>=500 && status<600):
       msg += ('Server error')
       break
-    case 0:
+    case (status === 0):
       msg += ('Request aborted: ' + xhr.statusText)
       break
     default:
@@ -52,12 +57,28 @@ window._phantom.downloadFile = function (obj) {
       id: obj.id,
       url: url,
       status: 'fail',
+      response: {
+        status: status,
+        statusText: xhr.statusText,
+        headers: getHeaders(xhr)
+      },
       errorMsg: msg,
       errorCode: status
     })
   })
 }
 
+function getHeaders(xhr) {
+  var arr = xhr.getAllResponseHeaders().split('\r\n')
+  return arr.map(function(v) {
+    var name = v.split(':', 1).shift()
+    var value = v.slice(name.length+1).trim()
+    return {
+      name: name,
+      value: value
+    }
+  })
+}
 
 function xhrRequest (url, method, params, props, success, error) {
   error = error || function () {}
@@ -71,7 +92,7 @@ function xhrRequest (url, method, params, props, success, error) {
   xhr.setRequestHeader('PH-IsDownload', 'true')
   xhr.onreadystatechange = function () {
     if (xhr.readyState == 4) {
-      if (xhr.status == 200) {
+      if (xhr.status < 400) {
         success(xhr)
       } else {
         error(xhr, xhr.status)

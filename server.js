@@ -176,17 +176,21 @@ var HttpServer = http.createServer(function (req, res) {
     var originalUrl = urlObj.query.url
     var cacheConfig = readTestConfig(path.join(testFolder, 'cache.json'))
     cacheConfig = getDownload(cacheConfig, v => v.url == originalUrl, true)
-    if (cacheConfig.status !== 'success') {
-      // ptest.js filtered only success cache, so this should be 'success' also
-      console.log('cache is mis-matched with phantom', testFolder, cacheConfig, originalUrl)
-      res.statusCode = 404
-      return res.end()
-    }
+
+    // if (cacheConfig.status !== 'success') {
+    //   // ptest.js filtered only success cache, so this should be 'success' also
+    //   console.log('cache is mis-matched with phantom', testFolder, cacheConfig, originalUrl)
+    //   res.statusCode = 404
+    //   return res.end()
+    // }
+
     cacheConfig.response = cacheConfig.response || {}
     // some cache don't have response at all
     var status  = cacheConfig.response.status
     var headers = [].concat(cacheConfig.response && cacheConfig.response.headers).reduce(getHeaders, {})
     if(status) res.writeHead(status, headers)
+
+    if(cacheConfig.errorCode || !cacheConfig.filePath) return res.end()
 
     // fs.createReadStream(path.join(testFolder, cacheConfig.filePath))
     //   .pipe(res)

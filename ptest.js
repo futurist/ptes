@@ -332,16 +332,24 @@ page.onCallback = function (data) {
     var status = data.status
     obj.status = status
     if(status=='success') {
-      obj.filePath = 'cache/' + obj.id + '_' + rand()
-      console.log('success downloaded', data.url)
-      var content = atob(data.data.split(',')[1])
-      // css: replace all url(),@import path to cache path
-      if(obj.response.contentType == 'text/css') {
-        content = replaceCSSUrl(content, function(uri) {
-          return url.resolve(data.url, uri)
-        })
+      try{
+        var content = atob(data.data.split(',')[1])
+        console.log('success downloaded', data.url)
+        // when there's no response data, here is the last chance
+        if(!obj.response) {
+          obj.response = data.response
+        }
+        // css: replace all url(),@import path to cache path
+        if(obj.response.contentType == 'text/css') {
+          content = replaceCSSUrl(content, function(uri) {
+            return url.resolve(data.url, uri)
+          })
+        }
+        obj.filePath = 'cache/' + obj.id + '_' + rand()
+        fs.write(pathJoin(StoreFolder, obj.filePath), content, 'wb')
+      }catch(e){
+        console.log('error get content', data.id, data.url, status, content)
       }
-      fs.write(pathJoin(StoreFolder, obj.filePath), content, 'wb')
     } else {
       obj.errorMsg = data.errorMsg
       obj.errorCode = data.errorCode
@@ -484,14 +492,14 @@ page.onResourceReceived = function (res) {
   if (res.url.indexOf('http') == 0) clientLog('onResourceReceived', res.id, res.url, res.stage, res.bodySize)
   var obj = getDownload(res.id)
   if(stage === RECORDING && obj) {
+    obj.response = res
     if(res.stage=='start') {
-      // the 'start' stage have [body,bodySize] key as extra
-      // and the time updated for 'end' stage
       // --- some response DON'T have start stage, like redirect
+      // the 'start' stage have [body,bodySize] key as extra
+      // the time field updated for 'end' stage
     }
     if(res.stage=='end') {
       // after res end, begin download
-      obj.response = res
       checkDownload() // another check is after page loaded!
     }
   }
@@ -518,7 +526,7 @@ page.onResourceRequested = function (reqData, req) {
       // consume the cache list, remove after retrive
       var urlObj = getDownload(function(v) { return v.url === url }, true)
       // only change url when it's previous downloaded successfully
-      if(urlObj && urlObj.status == 'success') {
+      if(urlObj) {
         // console.log(url, 'replace with cache: ', urlObj.filePath)
         req.changeUrl(helper.format(
           'http://localhost:8080/cache?url=%s&folder=%s',

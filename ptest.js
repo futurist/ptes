@@ -31,12 +31,9 @@ a= [
   5
 ]
 
-b=[
-  1,
-  //sdf
-  2,
-  3
-]
+b=[ 1,
+    //sdf
+    2, 3 ]
 
 !{
   "contentType": "text/css",
@@ -491,27 +488,31 @@ page.onResourceReceived = function (res) {
   }
 }
 
-page.onResourceRequested = function (res, req) {
-  clientLog('onResourceRequested', res.url)
+page.onResourceRequested = function (reqData, req) {
+  var url = reqData.url
+  clientLog('onResourceRequested', url)
+  var isDownload = reqData.headers.filter(function(v) {
+    return v.name === 'isDownload' && v.value === 'true'
+  }).length
   // only cache url with http/https protocol
-  if(/^https?:/.test(res.url)) {
+  if(/^https?:/.test(url) && !isDownload) {
     if(stage === RECORDING) {
       DownloadStore.push({
-        id: res.id,
+        id: reqData.id,
         status: 'pending',
-        method: res.method,
-        url: res.url,
-        time: res.time
+        method: reqData.method,
+        url: url,
+        time: reqData.time
       })
       checkDownload() // another check is after page loaded!
     } else {
       // consume the cache list, remove after retrive
-      var urlObj = getDownload(function(v) { return v.url === res.url }, true)
-      console.log(res.url, 'replace with cache: ', urlObj.filePath)
+      var urlObj = getDownload(function(v) { return v.url === url }, true)
+      console.log(url, 'replace with cache: ', urlObj.filePath)
       // only change url when it's previous downloaded successfully
       if(urlObj && urlObj.status == 'success') req.changeUrl(helper.format(
         'http://localhost:8080/cache?url=%s&folder=%s',
-        encodeURIComponent(res.url),
+        encodeURIComponent(url),
         encodeURIComponent(StoreFolder)
       ))
     }
@@ -624,7 +625,7 @@ page.onLoadFinished = function (status) { // success
 function checkDownload() {
   if(!clientUtilsInjected) return
   DownloadStore.filter(function(v) {
-    return v.status !== 'success'
+    return v.status === 'pending'
   }).forEach(downloadFile)
 }
 
@@ -648,12 +649,11 @@ function downloadFile (obj) {
   var url = obj.url
   // if(!StoreFolder) return
   var cacheName = rand()
-  console.log(pathJoin('cache', cacheName))
 
   obj.status = 'downloading'
   obj.filePath = 'cache/' + cacheName
 
-  console.log('start downloading', url)
+  console.log('start downloading', url, cacheName)
   page.evaluate(function (obj) {
     _phantom.downloadFile(obj)
   }, obj)

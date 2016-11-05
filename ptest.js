@@ -332,6 +332,7 @@ page.onCallback = function (data) {
     var status = data.status
     obj.status = status
     if(status=='success') {
+      obj.filePath = 'cache/' + obj.id + '_' + rand()
       console.log('success downloaded', data.url)
       var content = atob(data.data.split(',')[1])
       // css: replace all url(),@import path to cache path
@@ -480,23 +481,32 @@ page.onResourceError = function (resourceError) {
 }
 
 page.onResourceReceived = function (res) {
-  clientLog('onResourceReceived', res.url, res.stage, res.bodySize)
-  if(stage === RECORDING && res.stage=='start') {
-    // the 'start' stage have [body,bodySize] key as extra
-    // and the time updated for 'end' stage
-    getDownload(res.id).response = res
+  if (res.url.indexOf('http') == 0) clientLog('onResourceReceived', res.id, res.url, res.stage, res.bodySize)
+  var obj = getDownload(res.id)
+  if(stage === RECORDING && obj) {
+    if(res.stage=='start') {
+      // the 'start' stage have [body,bodySize] key as extra
+      // and the time updated for 'end' stage
+      // --- some response DON'T have start stage, like redirect
+    }
+    if(res.stage=='end') {
+      // after res end, begin download
+      obj.response = res
+      checkDownload() // another check is after page loaded!
+    }
   }
 }
 
 page.onResourceRequested = function (reqData, req) {
   var url = reqData.url
-  clientLog('onResourceRequested', url)
+  if (url.indexOf('http') == 0) clientLog('onResourceRequested', reqData.id, url)
   var isDownload = reqData.headers.filter(function(v) {
-    return v.name === 'isDownload' && v.value === 'true'
+    return v.name === 'PH-IsDownload' && v.value === 'true'
   }).length
   // only cache url with http/https protocol
   if(/^https?:/.test(url) && !isDownload) {
     if(stage === RECORDING) {
+      // schedule a download
       DownloadStore.push({
         id: reqData.id,
         status: 'pending',
@@ -504,17 +514,20 @@ page.onResourceRequested = function (reqData, req) {
         url: url,
         time: reqData.time
       })
-      checkDownload() // another check is after page loaded!
     } else {
       // consume the cache list, remove after retrive
       var urlObj = getDownload(function(v) { return v.url === url }, true)
-      console.log(url, 'replace with cache: ', urlObj.filePath)
       // only change url when it's previous downloaded successfully
-      if(urlObj && urlObj.status == 'success') req.changeUrl(helper.format(
-        'http://localhost:8080/cache?url=%s&folder=%s',
-        encodeURIComponent(url),
-        encodeURIComponent(StoreFolder)
-      ))
+      if(urlObj && urlObj.status == 'success') {
+        // console.log(url, 'replace with cache: ', urlObj.filePath)
+        req.changeUrl(helper.format(
+          'http://localhost:8080/cache?url=%s&folder=%s',
+          encodeURIComponent(url),
+          encodeURIComponent(StoreFolder)
+        ))
+      } else {
+        console.log('!! missing cache', url)
+      }
     }
   }
 }
@@ -648,12 +661,9 @@ function getDownload (id, remove) {
 function downloadFile (obj) {
   var url = obj.url
   // if(!StoreFolder) return
-  var cacheName = rand()
 
   obj.status = 'downloading'
-  obj.filePath = 'cache/' + cacheName
-
-  console.log('start downloading', url, cacheName)
+  console.log('start downloading', url)
   page.evaluate(function (obj) {
     _phantom.downloadFile(obj)
   }, obj)
@@ -686,7 +696,7 @@ function pathJoin() {
 function injectClientJS(obj) {
   Object.keys(obj).forEach(function(v) {
     var isInjected = page.injectJs(v)
-    console.log('inject client js '+v, isInjected ? 'success' : 'failed')
+    console.log('inject client js '+v, isInjected ? 'success' : 'failed', page.frameUrl)
 
     var callback = obj[v] || function() {}
     callback(isInjected)

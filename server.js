@@ -176,25 +176,32 @@ var HttpServer = http.createServer(function (req, res) {
     var originalUrl = urlObj.query.url
     var cacheConfig = readTestConfig(path.join(testFolder, 'cache.json'))
     cacheConfig = getDownload(cacheConfig, v => v.url == originalUrl, true)
-    var headers = [].concat(cacheConfig.response && cacheConfig.response.headers).reduce(function(prev, v) {
-      // 'Content-Length' should decide by node
-      if(v && typeof v=='object' && v.name != 'Content-Length') prev[v.name] = v.value
-      return prev
-    }, {})
+    if (cacheConfig.status !== 'success') {
+      // ptest.js filtered only success cache, so this should be 'success' also
+      console.log('cache is mis-matched with phantom', testFolder, cacheConfig, originalUrl)
+      res.statusCode = 404
+      return res.end()
+    }
+    cacheConfig.response = cacheConfig.response || {}
+    // some cache don't have response at all
+    var status  = cacheConfig.response.status
+    var headers = [].concat(cacheConfig.response && cacheConfig.response.headers).reduce(getHeaders, {})
+    if(status) res.writeHead(status, headers)
 
-    res.writeHead(cacheConfig.response.status, headers);
-    fs.createReadStream(path.join(testFolder, cacheConfig.filePath))
-      .pipe(res)
+    // fs.createReadStream(path.join(testFolder, cacheConfig.filePath))
+    //   .pipe(res)
 
-    // fs.readFile(path.join(testFolder, cacheConfig.filePath), function (err, content) {
-    //   if (err) {
-    //     console.log('error reading cache file', testFolder, cacheConfig.filePath)
-    //     res.statusCode = 404
-    //     return res.end()
-    //   }
-    //   res.writeHeader(cacheConfig.response.status, headers)
-    //   res.end(content, 'utf8')
-    // })
+    // if(status>=300) return res.end()
+
+    fs.readFile(path.join(testFolder, cacheConfig.filePath), function (err, content) {
+      if (err) {
+        console.log('error reading cache file', testFolder, cacheConfig.filePath)
+        res.statusCode = 404
+        return res.end()
+      }
+      res.writeHeader(cacheConfig.response.status, headers)
+      res.end(content, 'utf8')
+    })
     return
   }
 
@@ -219,6 +226,23 @@ var HttpServer = http.createServer(function (req, res) {
 
 })
 HttpServer.listen(HTTP_PORT, HTTP_HOST)
+
+// header names is case-insensitive
+var blackListHeaders = [
+  // 'set-cookie',
+  'content-length',
+  'content-encoding',
+  'vary'
+]
+
+function getHeaders (headers, v) {
+  // 'Content-Length' should decide by node
+  if(!v || typeof v!=='object') return headers
+  var name = v.name.toLowerCase()
+  if( ! blackListHeaders.some( n => n===name ) ) headers[v.name] = v.value
+  if(name == 'set-cookie') headers[v.name] = v.value.split('\n')
+  return headers
+}
 
 function getDownload (storeArr, id, remove) {
   var idx

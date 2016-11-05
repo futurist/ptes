@@ -65,8 +65,10 @@ function xhrRequest (url, method, params, props, success, error) {
   for (var prop in props) {
     xhr[prop] = props[prop]
   }
+  // async==false, to let download ordered
+  // but cannot set to blob type...
   xhr.open(method || 'GET', url, true)
-  xhr.setRequestHeader('isDownload', 'true')
+  xhr.setRequestHeader('PH-IsDownload', 'true')
   xhr.onreadystatechange = function () {
     if (xhr.readyState == 4) {
       if (xhr.status == 200) {

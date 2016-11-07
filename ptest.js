@@ -270,7 +270,7 @@ page.onCallback = function (data) {
     if(status=='success') {
       try{
         var content = atob(data.data.split(',')[1])
-        console.log('success downloaded', data.url)
+        // console.log('success downloaded', data.url)
         // when there's no response data, here is the last chance
         if(!obj.response) {
           obj.response = data.response
@@ -392,6 +392,7 @@ function applyRandom () {
 }
 
 function hookRandom () {
+  page.injectJs('./helpers/hook.js')
   page.evaluate(function () {
     window._phantom.__storeRandom = []
     var __old_math_random = Math.random
@@ -400,6 +401,8 @@ function hookRandom () {
       window._phantom.__storeRandom.push(val)
       return val
     }
+    // hook Date object
+    window._phantom.hookdate.hook()
   })
 }
 
@@ -572,6 +575,7 @@ page.onLoadFinished = function (status) { // success
     }
   })
 
+
   // downloadFile('http://1111hui.com/texman/formlist.html')
   // downloadFile('http://1111hui.com/texman/js/jquery.js')
   // downloadFile('http://1111hui.com/texman/formlist.js')
@@ -608,7 +612,7 @@ function downloadFile (obj) {
   // if(!StoreFolder) return
 
   obj.status = 'downloading'
-  console.log('start downloading', url)
+  // console.log('start downloading', url)
   page.evaluate(function (obj) {
     _phantom.downloadFile(obj)
   }, obj)

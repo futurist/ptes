@@ -9,6 +9,7 @@ var sys = require('system')
 var helper = require('./helpers/helper.js')
 var replaceCSSUrl = require('./node_modules/replace-css-url')
 var url = require('url')
+var hookdate = require('hookdate')
 var page = require('webpage').create()
 
 var DEBUG = sys.env['DEBUG']
@@ -17,72 +18,7 @@ var debug = function (arg) {
   if (DEBUG) console.log.apply(console, args)
 }
 
-a= [
-  {
-    a: 1,
-    b: 2
-  },
-  [
-    2,
-    3
-  ],
-  //sdf
-  4,
-  5
-]
-
-b=[ 1,
-    //sdf
-    2, 3 ]
-
-!{
-  "contentType": "text/css",
-  "headers": [
-    {
-      "name": "Content-Type",
-      "value": "text/css"
-    },
-    {
-      "name": "server",
-      "value": "node-static/0.7.7"
-    },
-    {
-      "name": "cache-control",
-      "value": "max-age=3600"
-    },
-    {
-      "name": "Etag",
-      "value": "\"1201360-49-1477293879000\""
-    },
-    {
-      "name": "Date",
-      "value": "Tue, 25 Oct 2016 00:40:48 GMT"
-    },
-    {
-      "name": "Last-Modified",
-      "value": "Mon, 24 Oct 2016 07:24:39 GMT"
-    },
-    {
-      "name": "Content-Length",
-      "value": "49"
-    },
-    {
-      "name": "Connection",
-      "value": "keep-alive"
-    }
-  ],
-  "id": 8,
-  "redirectURL": null,
-  "stage": "end",
-  "status": 200,
-  "statusText": "OK",
-  "time": "2016-10-25T00:40:48.733Z",
-  "url": "http://1111hui.com/texman/css/test.css"
-}
-
-
-phantom.onError = assertError
-function assertError (msg, stack) {
+phantom.onError = function (msg, stack) {
   console.log('phantom onerror:', msg)
   if (!/AssertionError/.test(msg)) return
   console.log(msg, '\n' + stack.map(function (v) { return 'Line ' + v.line + ' ' + (v.function ? '[' + v.function + '] ' : '') + v.file }).join('\n'))
@@ -345,9 +281,10 @@ page.onCallback = function (data) {
             return url.resolve(data.url, uri)
           })
         }
-        obj.filePath = 'cache/' + obj.id + '_' + rand()
+        var pathname = url.parse(data.url).pathname.split('/')
+        obj.filePath = 'cache/' + obj.id + '_' + rand() + '_' + (pathname.pop() || 'default')
         fs.write(pathJoin(StoreFolder, obj.filePath), content, 'wb')
-      }catch(e){
+      }catch(e) {
         console.log('error get content', data.id, data.url, status, content)
       }
     } else {
@@ -434,6 +371,14 @@ function addPageBG () {
   head.insertBefore(style, head.firstChild)
 }
 
+function clientLog(msg) {
+  var args = [].slice.call(arguments)
+  ws._send({type: 'client_console', data: args.join(' ')})
+}
+function clientErr(e) {
+  ws._send({type: 'client_error', data: {msg:e}})
+}
+
 function applyRandom () {
   StoreRandom = StoreRandom || []
   page.evaluate(function (store) {
@@ -444,14 +389,6 @@ function applyRandom () {
       return store.shift() || val
     }
   }, StoreRandom)
-}
-
-function clientLog(msg) {
-  var args = [].slice.call(arguments)
-  ws._send({type: 'client_console', data: args.join(' ')})
-}
-function clientErr(e) {
-  ws._send({type: 'client_error', data: {msg:e}})
 }
 
 function hookRandom () {

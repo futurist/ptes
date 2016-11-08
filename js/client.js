@@ -4596,6 +4596,7 @@ var overlay = {
     var ctrl = this;
     root.classList.add('overlay-root');
     root.style.position = 'fixed';
+    root.style.display = 'block';
     root.style.left = 0;
     root.style.top = 0;
     root.style.zIndex = 99999;
@@ -4613,7 +4614,6 @@ var overlay = {
     var popup = arg.popup;
     popup = popup || {};
     popup.style = popup.style || {};
-
     /* below line for debug purpose */
     // popup.style.border = '1px solid red'
 

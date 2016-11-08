@@ -265,6 +265,7 @@ console.log('server started at %s:%s', HTTP_HOST, HTTP_PORT)
 var stage = null
 var EventCache = []
 var StoreRandom = []
+var StoreDate = []
 var DownloadStore = {}
 var ViewportCache = []
 var PageClip = {}
@@ -381,10 +382,18 @@ function stopRec () {
 
   writePtestConfig(Config)
 
-  toPhantom({type: 'command', meta: 'client', role: 'server', data: '_phantom.__storeRandom'}, function (msg) {
-    var storeRandom = msg.result
+  toPhantom({type: 'command', meta: 'client', role: 'server', data: '_phantom.getHookStore()'}, function (msg) {
+    var storeRandom = msg.result.random
+    var storeDate = msg.result.date
 
-    fs.writeFileSync(path.join(TEST_FOLDER, DATA_DIR, name + '.json'), JSON.stringify({url: url, testPath: testPath, storeRandom: storeRandom, clip: PageClip, event: EventCache }, null, 2))
+    fs.writeFileSync(path.join(TEST_FOLDER, DATA_DIR, name + '.json'), JSON.stringify({
+      url: url,
+      testPath: testPath,
+      storeRandom: storeRandom,
+      storeDate: storeDate,
+      clip: PageClip,
+      event: EventCache
+    }, null, 2))
     // reloadPhantom()
   })
 }
@@ -557,7 +566,13 @@ class EventPlayBack {
     co(function * () {
       // refresh phantom page before play
       yield new Promise(function (ok, error) {
-        toPhantom({type: 'stage', data: {stage: stage, storeRandom: StoreRandom, downloadStore: DownloadStore, storeFolder: path.join(TEST_FOLDER, DATA_DIR, testName)}})
+        toPhantom({type: 'stage', data: {
+          stage: stage,
+          storeRandom: StoreRandom,
+          storeDate: StoreDate,
+          downloadStore: DownloadStore,
+          storeFolder: path.join(TEST_FOLDER, DATA_DIR, testName)
+        }})
         toPhantom({ type: 'command', meta: 'server', data: 'openPage("' + DEFAULT_URL + '")' }, function (msg) {
           if (msg.result == 'success') ok()
           else error()
@@ -745,6 +760,7 @@ function playTestFile (filename, url) {
         }catch(e){}
       }
       StoreRandom = data.storeRandom
+      StoreDate = data.storeDate
       ViewportCache = [EventCache[0].msg]
       PageClip = data.clip
       ImageName = data.image

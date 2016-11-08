@@ -28,6 +28,7 @@ phantom.onError = function (msg, stack) {
 var clientUtilsInjected = false
 var StoreFolder = ''
 var StoreRandom = []
+var StoreDate = []
 var DownloadStore = []
 var STOPPED = 0, STOPPING = 1, PAUSING = 2, PAUSED = 4, RUNNING = 8, PLAYING = 16, RECORDING = 32
 var ARG_URL = (sys.args.length > 1 && sys.args[1]) || 'about:blank'
@@ -91,6 +92,7 @@ function connectWS () {
       case 'stage':
         stage = msg.data.stage
         if(msg.data.storeRandom) StoreRandom = msg.data.storeRandom || []
+        if(msg.data.storeDate) StoreDate = msg.data.storeDate || []
         if(msg.data.downloadStore) DownloadStore = msg.data.downloadStore || []
         if (msg.data && msg.data.storeFolder) {  //stage === RECORDING
           StoreFolder = msg.data.storeFolder
@@ -379,20 +381,22 @@ function clientErr(e) {
   ws._send({type: 'client_error', data: {msg:e}})
 }
 
-function applyRandom () {
-  StoreRandom = StoreRandom || []
+function applyHook () {
   page.evaluate(function (store) {
     var __old_math_random = Math.random
     Math.random = function () {
       var val = __old_math_random()
       // if (store.length) console.log(store[0]) //log Math.random() value
-      return store.shift() || val
+      return store.random.shift() || val
     }
-  }, StoreRandom)
+    // playback Date
+    _phantom.hookdate.hook(store.date, true, function(p, v) {
+      console.log('hookdate:', p, v)
+    })
+  }, {random: StoreRandom, date: StoreDate})
 }
 
-function hookRandom () {
-  page.injectJs('./helpers/hook.js')
+function startHook () {
   page.evaluate(function () {
     window._phantom.__storeRandom = []
     var __old_math_random = Math.random
@@ -409,10 +413,19 @@ function hookRandom () {
 page.onInitialized = function () {
   debug('onInitialized')
   debug('stage', stage, StoreRandom)
+  page.injectJs('./helpers/hook.js')
+  page.evaluate(function() {
+    return _phantom.getHookStore = function() {
+      return {
+        random: _phantom.__storeRandom,
+        date: _phantom.hookdate.dateStore
+      }
+    }
+  })
   if (stage === RECORDING) {
-    hookRandom()
+    startHook()
   } else {
-    applyRandom()
+    applyHook()
   }
 
   // below will create dot ASAP

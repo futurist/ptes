@@ -175,7 +175,11 @@ var HttpServer = http.createServer(function (req, res) {
     var testFolder = urlObj.query.folder
     var originalUrl = urlObj.query.url
     var cacheConfig = readTestConfig(path.join(testFolder, 'cache.json'))
-    cacheConfig = getDownload(cacheConfig, v => v.url == originalUrl, true)
+
+    // if NO url, then read first url instead (homepage)
+    cacheConfig = originalUrl
+      ? getDownload(cacheConfig, v => v.url == originalUrl, true)
+      : cacheConfig[0]
 
     // if (cacheConfig.status !== 'success') {
     //   // ptest.js filtered only success cache, so this should be 'success' also
@@ -189,7 +193,6 @@ var HttpServer = http.createServer(function (req, res) {
     var status  = cacheConfig.response.status
     var headers = [].concat(cacheConfig.response && cacheConfig.response.headers).reduce(getHeaders, {})
     if(status) res.writeHead(status, headers)
-
     if(cacheConfig.errorCode || !cacheConfig.filePath) return res.end()
 
     // fs.createReadStream(path.join(testFolder, cacheConfig.filePath))

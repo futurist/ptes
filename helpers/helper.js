@@ -77,8 +77,41 @@ function format(f) {
 /************************ CASPER JS END *********************/
 
 
+/**
+ * Convert from blob, to regexp
+ * repo: brianloveswords/urlglob
+ * @param {string} blob pattern
+ * @returns {regexp}
+ */
+function blob2regex (blob) {
+
+  const safeLimitedGlob = '%LIMITED%' + Date.now() + '%'
+  const safeGlob = '%GLOB%' + Date.now() + '%'
+  const catchAll = '.*?'
+
+
+  const regexp = '^' + blob
+
+  // we want to store all "limited globs" so we don't escape
+  // them with the rest of the regexp characters
+        .replace(/\*\?/g, safeLimitedGlob)
+
+  // excape all of the rest of the regexp chars
+        .replace(/([()[{+.$^\\|?])/g, '\\$1')
+
+    .replace(/\\[*]/g, safeGlob)
+    .replace(/\*/, catchAll)
+    .replace(RegExp(safeGlob, 'g'), '*')
+    .replace(RegExp(safeLimitedGlob, 'g'), '[^/]+')
+    + '\\/?$'
+
+  return new RegExp(regexp)
+}
+
 exports.initClientUtils = initClientUtils
 exports.clientUtils = clientUtils
 exports.format = format
 exports.download = download
 exports.callUtils = callUtils
+exports.blob2regex = blob2regex
+

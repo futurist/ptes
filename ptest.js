@@ -668,6 +668,7 @@ function injectClientJS(obj) {
 function openPage (url) {
   // if (sys.args.length === 1) return
   url = url || ARG_URL
+  console.log('openPage', url)
   // URL = 'http://bing.com'
   if (page.clearMemoryCache) page.clearMemoryCache()
   page.open(url)

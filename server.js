@@ -59,27 +59,7 @@ if (cmdArgs[0] !== 'debug') DEFAULT_URL = cmdArgs[0]
 if (commander.list) { }
 if (commander.dir) DATA_DIR = commander.dir
 
-if (commander.init) {
-  var loc = path.join(TEST_FOLDER, 'ptest.json')
-  try{
-    fs.statSync(loc)
-    console.log('ptest.json already exists, now exit.')
-    process.exit(1)
-  }catch(e){
-    if(cmdArgs.length<1){
-      console.log('have to provide url to init')
-      process.exit(1)
-    }
-    Config = [{url:cmdArgs.shift(), name:cmdArgs.shift()||'', folder:DATA_DIR}]
-    fs.writeFileSync(loc, JSON.stringify(Config), 'utf8')
-    mkdirp(path.join(TEST_FOLDER, DATA_DIR), function (err) {
-      if (err) return console.log(err)
-      // copyFileSync(path.join(__dirname, 'js/ptest-runner.js'), path.join(TEST_FOLDER, '../ptest-runner.js'))
-      copyFileSync(path.join(__dirname, './phantom.config'), path.join(TEST_FOLDER, DATA_DIR, 'phantom.config'))
-      // copyFileSync(path.join(__dirname, 'js/ptest-phantom.js'), path.join(TEST_FOLDER, 'ptest-phantom.js'))
-    })
-  }
-}
+if (commander.init) initConfig()
 
 if (commander.play) {
   TEST_FILE = commander.play
@@ -90,6 +70,35 @@ if (commander.play) {
 
 // convert to absolute path
 // TEST_FOLDER = path.isAbsolute(TEST_FOLDER) ? TEST_FOLDER : path.join(process.cwd(), TEST_FOLDER)
+
+function initConfig() {
+  var loc = path.join(TEST_FOLDER, 'ptest.json')
+  var dataFolder = path.join(TEST_FOLDER, DATA_DIR)
+  try{
+    fs.statSync(loc)
+    console.log('ptest.json already exists, now exit.')
+    process.exit(1)
+  }catch(e) {
+    if(cmdArgs.length<1){
+      console.log('have to provide url to init')
+      process.exit(1)
+    }
+    Config = [{url:cmdArgs.shift(), name:cmdArgs.shift()||'', folder:DATA_DIR}]
+    fs.writeFileSync(loc, JSON.stringify(Config), 'utf8')
+    try {
+      mkdirp.sync(dataFolder)
+    } catch(e) {
+      console.log('mkdirp error', TEST_FOLDER, DATA_DIR)
+    }
+    var content = fs.readFileSync(path.join(__dirname, './phantom.config'), 'utf8')
+    var json = new Function('return '+content).call()
+    json.cookiesFile = path.relative(process.cwd(), path.join(dataFolder, 'cookies.txt'))
+    json.offlineStoragePath = path.relative(process.cwd(), dataFolder)
+    fs.writeFileSync(path.join(dataFolder, 'phantom.config'), JSON.stringify(json, null, 2), 'utf8')
+    return JSON.stringify(Config)
+  }
+}
+
 
 var ROUTE = {
   '/': '/client.html',
@@ -346,10 +355,16 @@ function readTestConfig (file, textOnly) {
     if (e.code !== 'ENOENT') {
       console.log(e, 'error parse', file)
     } else {
-      if(file=='ptest.json') console.log('please run\n\n  ptest-server --init url\n\nto create ptest.json first.')
-      else console.log('invalid json file', file)
+      if(file=='ptest.json') {
+        content = initConfig()
+        json = JSON.parse(content)
+        // console.log('please run\n\n  ptest-server --init url\n\nto create ptest.json first.')
+      }
+      else {
+        console.log('invalid json file', file)
+        return process.exit()
+      }
     }
-    return process.exit()
   }
   return textOnly ? content : json
 }
@@ -705,9 +720,9 @@ function runTestFile (filenames) {
 var phantom
 
 function startPhantom (url) {
-  console.log(url)
+  console.log('startPhantom', url)
   var args = ['--config', path.join(TEST_FOLDER, DATA_DIR, 'phantom.config'), path.join(__dirname, 'ptest.js')]
-  if (url) args.concat(url)
+  if (url) args.push(url)
   phantom = spawn('phantomjs', args, {cwd: process.cwd(), stdio: 'pipe' })
 
   phantom.stdout.setEncoding('utf8')

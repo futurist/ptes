@@ -7,7 +7,8 @@ import mTree from './mtree'
 import reporter from './reporter'
 import testImage from './test-image'
 import testAssert from './test-assert.js'
-import mOverlay from 'moverlay/bare'
+import mOverlay from './overlay.js'
+import objutil from 'objutil'
 
 import pointer from 'json-pointer'
 window.pointer = pointer
@@ -241,11 +242,64 @@ function saveRec(e, save, slient) {
 }
 
 var oncloseSetup = function (arg) {
-  if (!arg.retain) hideSetup()
   const path =JSON.stringify(arg.path)
   if (arg.action=='add') {
-    if(confirm('Confirm to begin record new test for path:\n\n    ' + path+'\n    '+ arg.folder))
-      startStopRec(null, arg)
+    arg.retain = true
+    mOverlay.show({
+      com: {
+        controller() {
+          console.log(this)
+        },
+        view(ctrl, overlay) {
+          return m(
+            'div',
+            {},
+            [
+              m('', 'will test: ' + path + '@'+arg.folder),
+              m('div.option', [
+                m('span', 'input capture method: '),
+                m('input', {
+                  oninput: function(e) {
+                    ctrl.captureMethod = this.value
+                  }
+                })
+              ]),
+              m('div.option', [
+                m('span', 'cache include blob: '),
+                m('input', {
+                  oninput: function(e) {
+                    ctrl.cacheInclude = this.value
+                  }
+                })
+              ]),
+              m('div.option', [
+                m('span', 'cache exclude blob: '),
+                m('input', {
+                  oninput: function(e) {
+                    ctrl.cacheExclude = this.value
+                  }
+                })
+              ]),
+              m('button', {
+                onclick:e=>{
+                  overlay.hide()
+                  hideSetup()
+                  objutil.assign(arg, ctrl)
+                  startStopRec(null, arg)
+                }
+              }, 'ok'),
+              m('button', {
+                onclick () {
+                  overlay.hide()
+                }
+              }, 'cancel')
+            ]
+          )
+        }
+      }
+    })
+    // if(confirm('Confirm to begin record new test for path:\n\n    ' + path+'\n    '+ arg.folder))
+    //   startStopRec(null, aprg)
   }
   if(arg.action=='play'){
     stage = PLAYING
@@ -276,6 +330,7 @@ var oncloseSetup = function (arg) {
     stage = REPORTER
     sc(' runTestFile(' + JSON.stringify(arg.file) + ') ')
   }
+  if (!arg.retain) hideSetup()
 }
 
 function hideSetup (arg) {

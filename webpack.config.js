@@ -1,10 +1,17 @@
 var webpack = require('webpack')
+var path = require('path')
 
 var loaders = [
-  {test:/\.js$/, loader:'babel', exclude:'node_modules', query:{
-    presets:['es2015'],
-    plugins:['syntax-trailing-function-commas']
-  }}
+  {
+    test: path.join(__dirname, 'src'),
+    loader:'babel',
+    exclude: /(node_modules|bower_components)/,
+    query:{
+      cacheDirectory: true,
+      presets:['es2015'],
+      plugins:['syntax-trailing-function-commas']
+    }
+  }
 ]
 
 var config={

@@ -326,7 +326,12 @@ function startRec (arg, name) {
   // return console.log(arg, folder, title, name, Config)
 
   stage = RECORDING
-  toPhantom({ type: 'stage', data: {stage: stage, storeFolder: path.join(TEST_FOLDER, DATA_DIR, name)}})
+  toPhantom({ type: 'stage', data: {
+    stage: stage,
+    storeFolder: path.join(TEST_FOLDER, DATA_DIR, name),
+    cacheInclude:arg.cacheInclude,
+    cacheExclude:arg.cacheExclude,
+  }})
   toPhantom({ type: 'command', meta: 'server', data: 'openPage("' + url + '")' }, function (msg) {
     if (msg.result === 'success') {
       name = name || 'test' + (+new Date())

@@ -30,6 +30,8 @@ var StoreFolder = ''
 var StoreRandom = []
 var StoreDate = []
 var DownloadStore = []
+var CacheIncludeRe = null
+var CacheExcludeRe = null
 var STOPPED = 0, STOPPING = 1, PAUSING = 2, PAUSED = 4, RUNNING = 8, PLAYING = 16, RECORDING = 32
 var ARG_URL = (sys.args.length > 1 && sys.args[1]) || 'about:blank'
 var PageClip = {}
@@ -94,6 +96,9 @@ function connectWS () {
         if(msg.data.storeRandom) StoreRandom = msg.data.storeRandom || []
         if(msg.data.storeDate) StoreDate = msg.data.storeDate || []
         if(msg.data.downloadStore) DownloadStore = msg.data.downloadStore || []
+        if(msg.data.cacheInclude) CacheIncludeRe = helper.blob2regex(msg.data.cacheInclude || '')
+        if(msg.data.cacheExclude) CacheExcludeRe = helper.blob2regex(msg.data.cacheExclude || '')
+        console.log(22222, msg.data.cacheInclude, helper.blob2regex(msg.data.cacheInclude))
         if (msg.data && msg.data.storeFolder) {  //stage === RECORDING
           StoreFolder = msg.data.storeFolder
         }
@@ -464,9 +469,14 @@ page.onResourceRequested = function (reqData, req) {
   var isDownload = reqData.headers.filter(function(v) {
     return v.name === 'PH-IsDownload' && v.value === 'true'
   }).length
+  if (!/^https?:/.test(url)) return
   // only cache url with http/https protocol
-  if(/^https?:/.test(url) && !isDownload) {
-    if(stage === RECORDING) {
+  if (!isDownload) {
+    console.log(1111111, url, CacheIncludeRe,CacheExcludeRe)
+    if(stage === RECORDING &&
+       (CacheIncludeRe && CacheIncludeRe.test(url)) &&
+       (CacheExcludeRe && !CacheExcludeRe.test(url))
+      ) {
       // schedule a download
       DownloadStore.push({
         id: reqData.id,
@@ -476,6 +486,7 @@ page.onResourceRequested = function (reqData, req) {
         time: reqData.time
       })
     } else {
+      // when PLAY BACK
       // consume the cache list, remove after retrive
       var urlObj = getDownload(function(v) { return v.url === url }, true)
       // only change url when it's previous downloaded successfully

@@ -324,14 +324,16 @@
 	    _overlay2.default.show({
 	      com: {
 	        controller: function controller() {
-	          console.log(this);
+	          this.captureMode = 'mouse';
 	        },
 	        view: function view(ctrl, overlay) {
-	          return m('div', {}, [m('', 'will test: ' + path + '@' + arg.folder), m('div.option', [m('span', 'input capture method: '), m('input', {
+	          return m('div', {}, [m('', 'will test: ' + path + '@' + arg.folder), m('div.option', [m('span', 'input capture method: '), m('select', {
 	            oninput: function oninput(e) {
-	              ctrl.captureMethod = this.value;
+	              ctrl.captureMode = $(this).val();
 	            }
-	          })]), m('div.option', [m('span', 'cache include blob: '), m('input', {
+	          }, ['mouse', 'xpath'].map(function (v) {
+	            return m('option', v);
+	          }))]), m('div.option', [m('span', 'cache include blob: '), m('input', {
 	            oninput: function oninput(e) {
 	              ctrl.cacheInclude = this.value;
 	            }

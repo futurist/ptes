@@ -42,7 +42,7 @@ var ASYNC_COMMAND = {
   'page.open': null,
   'openPage': null
 }
-var INPUT_MODE = 'mouse'        // mouse|xpath
+var INPUT_CAPTURE_MODE = 'mouse'        // mouse|xpath
 
 var asyncCB = function (cmd) {
   var args = [].slice.call(arguments, 1)
@@ -96,8 +96,9 @@ function connectWS () {
         if(msg.data.storeRandom) StoreRandom = msg.data.storeRandom || []
         if(msg.data.storeDate) StoreDate = msg.data.storeDate || []
         if(msg.data.downloadStore) DownloadStore = msg.data.downloadStore || []
-        if(msg.data.cacheInclude) CacheIncludeRe = helper.blob2regex(msg.data.cacheInclude || '')
-        if(msg.data.cacheExclude) CacheExcludeRe = helper.blob2regex(msg.data.cacheExclude || '')
+        if(msg.data.captureMode) INPUT_CAPTURE_MODE = msg.data.captureMode
+        if(msg.data.cacheInclude) CacheIncludeRe = helper.blob2regex(msg.data.cacheInclude)
+        if(msg.data.cacheExclude) CacheExcludeRe = helper.blob2regex(msg.data.cacheExclude)
         if (msg.data && msg.data.storeFolder) {  //stage === RECORDING
           StoreFolder = msg.data.storeFolder
         }
@@ -548,7 +549,8 @@ page.onLoadFinished = function (status) { // success
   renderRun = 0
   renderLoop()
 
-  page.evaluate(function () {
+  // phantom window init
+  page.evaluate(function (config) {
     _phantom.MODIFIER = {
       shift: 0x02000000,
       ctrl: 0x04000000,
@@ -576,10 +578,13 @@ page.onLoadFinished = function (status) { // success
     window.addEventListener('mousemove', function (evt) {
       // _phantom.setDot(evt.pageX,evt.pageY)
     })
-    if(_phantom.INPUT_MODE=='xpath') {
+    _phantom.INPUT_CAPTURE_MODE = config.captureMode
+    if(_phantom.INPUT_CAPTURE_MODE=='xpath') {
       window.addEventListener('mouseup', _phantom._mouseToXPath)
       window.addEventListener('mousedown', _phantom._mouseToXPath)
     }
+  }, {
+    captureMode : INPUT_CAPTURE_MODE
   })
 
   var casperOptions = {verbose: true}

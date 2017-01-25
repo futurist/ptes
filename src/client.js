@@ -248,7 +248,7 @@ var oncloseSetup = function (arg) {
     mOverlay.show({
       com: {
         controller() {
-          console.log(this)
+          this.captureMode = 'mouse'
         },
         view(ctrl, overlay) {
           return m(
@@ -258,11 +258,11 @@ var oncloseSetup = function (arg) {
               m('', 'will test: ' + path + '@'+arg.folder),
               m('div.option', [
                 m('span', 'input capture method: '),
-                m('input', {
+                m('select', {
                   oninput: function(e) {
-                    ctrl.captureMethod = this.value
+                    ctrl.captureMode = $(this).val()
                   }
-                })
+                }, ['mouse', 'xpath'].map( v=> m('option', v)))
               ]),
               m('div.option', [
                 m('span', 'cache include blob: '),

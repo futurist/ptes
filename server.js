@@ -281,6 +281,7 @@ var StoreDate = []
 var DownloadStore = {}
 var ViewportCache = []
 var PageClip = {}
+var TestArg = {}
 var Config = {url: DEFAULT_URL}
 
 var ImageName = ''
@@ -326,11 +327,13 @@ function startRec (arg, name) {
   // return console.log(arg, folder, title, name, Config)
 
   stage = RECORDING
+  TestArg = arg
   toPhantom({ type: 'stage', data: {
     stage: stage,
     storeFolder: path.join(TEST_FOLDER, DATA_DIR, name),
     cacheInclude:arg.cacheInclude,
     cacheExclude:arg.cacheExclude,
+    captureMode:arg.captureMode,
   }})
   toPhantom({ type: 'command', meta: 'server', data: 'openPage("' + url + '")' }, function (msg) {
     if (msg.result === 'success') {
@@ -412,6 +415,9 @@ function stopRec () {
     fs.writeFileSync(path.join(TEST_FOLDER, DATA_DIR, name + '.json'), JSON.stringify({
       url: url,
       testPath: testPath,
+      captureMode: TestArg.captureMode,
+      cacheInclude: TestArg.cacheInclude,
+      cacheExclude: TestArg.cacheExclude,
       storeRandom: storeRandom,
       storeDate: storeDate,
       clip: PageClip,

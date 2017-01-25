@@ -98,7 +98,6 @@ function connectWS () {
         if(msg.data.downloadStore) DownloadStore = msg.data.downloadStore || []
         if(msg.data.cacheInclude) CacheIncludeRe = helper.blob2regex(msg.data.cacheInclude || '')
         if(msg.data.cacheExclude) CacheExcludeRe = helper.blob2regex(msg.data.cacheExclude || '')
-        console.log(22222, msg.data.cacheInclude, helper.blob2regex(msg.data.cacheInclude))
         if (msg.data && msg.data.storeFolder) {  //stage === RECORDING
           StoreFolder = msg.data.storeFolder
         }
@@ -472,9 +471,8 @@ page.onResourceRequested = function (reqData, req) {
   if (!/^https?:/.test(url)) return
   // only cache url with http/https protocol
   if (!isDownload) {
-    console.log(1111111, url, CacheIncludeRe,CacheExcludeRe)
     if(stage === RECORDING &&
-       (CacheIncludeRe && CacheIncludeRe.test(url)) &&
+       CacheIncludeRe && CacheIncludeRe.test(url) &&
        (CacheExcludeRe && !CacheExcludeRe.test(url))
       ) {
       // schedule a download

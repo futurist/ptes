@@ -348,8 +348,8 @@ function runTestFile (fileName) {
     var runPreCommands = function() {
       _phantomQueue.push(self)
       self.status('running')
-      if (obj.preCommands) {
-        var cmd = obj.preCommands.split('\n')
+      if (obj.preCommands && obj.preCommands.trim()) {
+        var cmd = obj.preCommands.trim().split('\n')
         var timeout = 10e3
         if(cmd.length>2 && cmd[2].trim()) timeout = parseFloat(cmd[2].trim())
         var cmdProc = proc.spawn(cmd[0], {
@@ -357,24 +357,24 @@ function runTestFile (fileName) {
           shell: true
         })
         var error = function(err) {
-          if(!isTTY) self.error(err, 'precommand')
-          if (err) return done(isTTY? err : JSON.stringify(err))
+          if(!isTTY) self.error(err.message, err.type||'precommand')
+          if (err) return done(isTTY? err.message : JSON.stringify(err))
         }
         var timeoutHandle = setTimeout(function() {
-          error({type: 'precommand', message: 'timeout'})
+          error({message: 'timeout ' + cmd})
           cmdProc.kill('SIGINT')
-          console.log('command run timeout', cmd)
+          // console.log('command run timeout', cmd)
         }, timeout)
         cmdProc.on('error', (err) => {
           error(err)
           clearTimeout(timeoutHandle)
-          console.log('Failed to start child process.', cmd[0])
+          // console.log('Failed to start child process.', cmd[0])
         })
         cmdProc.on('close', (code) => {
           clearTimeout(timeoutHandle)
           if (code !== 0) {
-            error({type: 'precommand', message: 'exit with '+code})
-            console.log(cmd[0], ' process exited with code ', code)
+            error({message: cmd + ' exit with '+ code})
+            // console.log(cmd[0], ' process exited with code ', code)
           } else {
             runPhantom()
           }
@@ -385,6 +385,8 @@ function runTestFile (fileName) {
             runPhantom()
           }
         })
+      } else {
+        runPhantom()
       }
     }
 

@@ -347,8 +347,8 @@ function startRec (arg, name) {
 
   // return console.log(arg, folder, title, name, Config)
 
-  if (arg.preCommands) {
-    var cmd = arg.preCommands.split('\n')
+  if (arg.preCommands && arg.preCommands.trim()) {
+    var cmd = arg.preCommands.trim().split('\n')
     var timeout = 10e3
     if(cmd.length>2 && cmd[2].trim()) timeout = parseFloat(cmd[2].trim())
     var cmdProc = proc.spawn(cmd[0], {

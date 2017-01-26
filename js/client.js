@@ -327,7 +327,24 @@
 	          this.captureMode = 'mouse';
 	        },
 	        view: function view(ctrl, overlay) {
-	          return m('div', {}, [m('', 'will test: ' + path + '@' + arg.folder), m('div.option', [m('span', 'input capture method: '), m('select', {
+	          return m('div', {}, [m('', 'will test: ' + path + '@' + arg.folder), m('div.option', [m('span', 'test name: '), m('input', {
+	            oninput: function oninput(e) {
+	              ctrl.testName = $(this).val();
+	            }
+	          })]), m('div.option', [m('span', 'description: '), m('textarea', {
+	            oninput: function oninput(e) {
+	              ctrl.testDesc = $(this).val();
+	            }
+	          })]), m('div.option', [m('span', 'order: '), m('input', {
+	            oninput: function oninput(e) {
+	              ctrl.testOrder = parseInt($(this).val()) | 0;
+	            }
+	          })]), m('div.option', [m('span', 'pre commands: '), m('textarea', {
+	            placeholder: 'run commands in server before test',
+	            oninput: function oninput(e) {
+	              ctrl.preCommands = $(this).val();
+	            }
+	          })]), m('div.option', [m('span', 'input capture method: '), m('select', {
 	            oninput: function oninput(e) {
 	              ctrl.captureMode = $(this).val();
 	            }
@@ -699,7 +716,7 @@
 	        // })
 
 	        window.data = data = result;
-	        console.log(data);
+	        // console.log(data)
 	        m.redraw();
 	      });
 	    }
@@ -913,7 +930,7 @@
 	    }
 
 	    function invalidInput(v) {
-	      if (!v.name) return v._invalid = 'name';
+	      // if (!v.name) return v._invalid = 'name'
 	      if ('folder' in v && !v.folder) return v._invalid = 'folder';
 	      if ('url' in v && !v.url) return v._invalid = 'url';
 	      delete v._invalid;

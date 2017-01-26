@@ -22,7 +22,7 @@ var debug = require('debug')('ptest:server')
 var debugHttp = require('debug')('ptest:http')
 var imageDiff = require('image-diff')
 var objutil = require('objutil')
-var spawn = require('child_process').spawn
+var proc = require('child_process')
 var pointer = require('json-pointer')
 var pkg = require('./package.json')
 var treeHelper = require('./src/tree-helper')
@@ -309,13 +309,34 @@ function showDiff (a, b) {
 }
 
 function startRec (arg, name) {
+  // action after preCommands
+  // do actual tests
+  var action = function () {
+    stage = RECORDING
+    TestArg = objutil.merge({
+      stage: stage,
+      storeFolder: path.join(TEST_FOLDER, DATA_DIR, name)
+    }, arg)
+    toPhantom({ type: 'stage', data: TestArg})
+    toPhantom({ type: 'command', meta: 'server', data: 'openPage("' + url + '")' }, function (msg) {
+      if (msg.result === 'success') {
+        name = name || 'test' + (+new Date())
+        ImageName = name
+        Config.unsaved = { url: url, name: name, path: title, span: Date.now() }
+        EventCache = [ { time: Date.now(), msg: arrayLast(ViewportCache) }, { time: Date.now(), msg: {type: 'page_clip', data: PageClip} } ]
+        // ViewportCache = [  ]
+      } else {
+        client_console('error open page, status', msg)
+      }
+    })
+  }
   if (playBack.status != STOPPED) {
     return client_console('cannot record when in playback')
   }
   try {
     // title is base64+JSON-stringify, so decode it
     arg = JSON.parse(querystring.unescape(atob(arg)))
-  } catch(e) { return console.log('startRec: bad argument') }
+  } catch (e) { return console.log('startRec: bad argument') }
 
   DATA_DIR = arg.folder
   var title = arg.path
@@ -326,26 +347,40 @@ function startRec (arg, name) {
 
   // return console.log(arg, folder, title, name, Config)
 
-  stage = RECORDING
-  TestArg = arg
-  toPhantom({ type: 'stage', data: {
-    stage: stage,
-    storeFolder: path.join(TEST_FOLDER, DATA_DIR, name),
-    cacheInclude:arg.cacheInclude,
-    cacheExclude:arg.cacheExclude,
-    captureMode:arg.captureMode,
-  }})
-  toPhantom({ type: 'command', meta: 'server', data: 'openPage("' + url + '")' }, function (msg) {
-    if (msg.result === 'success') {
-      name = name || 'test' + (+new Date())
-      ImageName = name
-      Config.unsaved = { url: url, name: name, path: title, span: Date.now() }
-      EventCache = [ { time: Date.now(), msg: arrayLast(ViewportCache) }, { time: Date.now(), msg: {type: 'page_clip', data: PageClip} } ]
-      // ViewportCache = [  ]
-    } else {
-      client_console('error open page, status', msg)
-    }
-  })
+  if (arg.preCommands) {
+    var cmd = arg.preCommands.split('\n')
+    var timeout = 10e3
+    if(cmd.length>2 && cmd[2].trim()) timeout = parseFloat(cmd[2].trim())
+    var cmdProc = proc.spawn(cmd[0], {
+      // node 6+, allow multiple command chained
+      shell: true
+    })
+    var timeoutHandle = setTimeout(function() {
+      cmdProc.kill('SIGINT')
+      console.log('command run timeout', cmd)
+      client_console('command run timeout', cmd)
+    }, timeout)
+    cmdProc.on('error', (err) => {
+      clearTimeout(timeoutHandle)
+      console.log('Failed to start child process.', cmd[0])
+    })
+    cmdProc.on('close', (code) => {
+      clearTimeout(timeoutHandle)
+      if (code !== 0) {
+        console.log(`${cmd[0]} process exited with code ${code}`)
+      } else {
+        action()
+      }
+    })
+    cmdProc.stdout.pipe(split2()).on('data', function (line) {
+      if(cmd[1] && new RegExp(cmd[1].trim()).test(line)) {
+        clearTimeout(timeoutHandle)
+        action()
+      }
+    })
+  } else {
+    action()
+  }
 }
 
 function writePtestConfig (Config) {
@@ -412,17 +447,14 @@ function stopRec () {
     var storeRandom = msg.result.random
     var storeDate = msg.result.date
 
-    fs.writeFileSync(path.join(TEST_FOLDER, DATA_DIR, name + '.json'), JSON.stringify({
+    fs.writeFileSync(path.join(TEST_FOLDER, DATA_DIR, name + '.json'), JSON.stringify(objutil.merge({
       url: url,
       testPath: testPath,
-      captureMode: TestArg.captureMode,
-      cacheInclude: TestArg.cacheInclude,
-      cacheExclude: TestArg.cacheExclude,
       storeRandom: storeRandom,
       storeDate: storeDate,
       clip: PageClip,
       event: EventCache
-    }, null, 2))
+    }, TestArg), null, 2))
     // reloadPhantom()
   })
 }
@@ -710,7 +742,7 @@ function broadcast (data) {
 var runner
 function runTestFile (filenames) {
   filenames = filenames || []
-  runner = spawn('node', [path.join(__dirname, 'js', 'ptest-runner.js')].concat(filenames), {cwd: process.cwd()})
+  runner = proc.spawn('node', [path.join(__dirname, 'js', 'ptest-runner.js')].concat(filenames), {cwd: process.cwd()})
   console.log(process.cwd(), typeof filenames, filenames)
   runner.stdout.pipe(split2()).on('data', function (line) {
     debug('----' + line + '----')
@@ -734,7 +766,7 @@ function startPhantom (url) {
   console.log('startPhantom', url)
   var args = ['--config', path.join(TEST_FOLDER, DATA_DIR, 'phantom.config'), path.join(__dirname, 'ptest.js')]
   if (url) args.push(url)
-  phantom = spawn('phantomjs', args, {cwd: process.cwd(), stdio: 'pipe' })
+  phantom = proc.spawn('phantomjs', args, {cwd: process.cwd(), stdio: 'pipe' })
 
   phantom.stdout.setEncoding('utf8')
   phantom.stderr.setEncoding('utf8')

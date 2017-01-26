@@ -135,7 +135,7 @@ var com = {
           // })
 
           window.data = data = result
-          console.log(data)
+          // console.log(data)
           m.redraw()
         })
     }
@@ -368,7 +368,7 @@ var com = {
     }
 
     function invalidInput (v) {
-      if (!v.name) return v._invalid = 'name'
+      // if (!v.name) return v._invalid = 'name'
       if ('folder' in v && !v.folder) return v._invalid = 'folder'
       if ('url' in v && !v.url) return v._invalid = 'url'
       delete v._invalid

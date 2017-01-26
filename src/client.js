@@ -257,6 +257,39 @@ var oncloseSetup = function (arg) {
             [
               m('', 'will test: ' + path + '@'+arg.folder),
               m('div.option', [
+                m('span', 'test name: '),
+                m('input', {
+                  oninput: function(e) {
+                    ctrl.testName = $(this).val()
+                  }
+                })
+              ]),
+              m('div.option', [
+                m('span', 'description: '),
+                m('textarea', {
+                  oninput: function(e) {
+                    ctrl.testDesc = $(this).val()
+                  }
+                })
+              ]),
+              m('div.option', [
+                m('span', 'order: '),
+                m('input', {
+                  oninput: function(e) {
+                    ctrl.testOrder = parseInt($(this).val())|0
+                  }
+                })
+              ]),
+              m('div.option', [
+                m('span', 'pre commands: '),
+                m('textarea', {
+                  placeholder: 'run commands in server before test',
+                  oninput: function(e) {
+                    ctrl.preCommands = $(this).val()
+                  }
+                })
+              ]),
+              m('div.option', [
                 m('span', 'input capture method: '),
                 m('select', {
                   oninput: function(e) {

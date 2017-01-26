@@ -8,7 +8,7 @@ var os = require('os')
 var fs = require('fs')
 var path = require('path')
 var split2 = require('split2')
-var spawn = require('child_process').spawn
+var proc = require('child_process')
 var imageDiff = require('image-diff')
 var pointer = require('json-pointer')
 var debug = require('debug')('ptest:runner')
@@ -109,7 +109,7 @@ var _prevOutput = ''
 var _activeTests = []
 var _phantomQueue = []
 
-var _phantomQueueSize = 5
+var _phantomQueueSize = 1  // when order is applied, run one by one
 var _earlyAbort = true
 var _level = 0
 var _beforeEach = null
@@ -292,10 +292,8 @@ function runTestFile (fileName) {
     // var cmd = 'phantomjs --config=phantom.config ptest-phantom.js '+ ptest.url +' '+obj[v].name
     // console.log(__dirname, cmd)
     var runPhantom = function() {
-      _phantomQueue.push(self)
-      self.status('running')
       var phantom
-      phantom = spawn('phantomjs', [
+      phantom = proc.spawn('phantomjs', [
         '--config',
         path.join('.', 'phantom.config'),
         path.join(__dirname, 'ptest-phantom.js'),
@@ -347,10 +345,53 @@ function runTestFile (fileName) {
       self.phantom = phantom
     }
 
+    var runPreCommands = function() {
+      _phantomQueue.push(self)
+      self.status('running')
+      if (obj.preCommands) {
+        var cmd = obj.preCommands.split('\n')
+        var timeout = 10e3
+        if(cmd.length>2 && cmd[2].trim()) timeout = parseFloat(cmd[2].trim())
+        var cmdProc = proc.spawn(cmd[0], {
+          // node 6+, allow multiple command chained
+          shell: true
+        })
+        var error = function(err) {
+          if(!isTTY) self.error(err, 'precommand')
+          if (err) return done(isTTY? err : JSON.stringify(err))
+        }
+        var timeoutHandle = setTimeout(function() {
+          error({type: 'precommand', message: 'timeout'})
+          cmdProc.kill('SIGINT')
+          console.log('command run timeout', cmd)
+        }, timeout)
+        cmdProc.on('error', (err) => {
+          error(err)
+          clearTimeout(timeoutHandle)
+          console.log('Failed to start child process.', cmd[0])
+        })
+        cmdProc.on('close', (code) => {
+          clearTimeout(timeoutHandle)
+          if (code !== 0) {
+            error({type: 'precommand', message: 'exit with '+code})
+            console.log(cmd[0], ' process exited with code ', code)
+          } else {
+            runPhantom()
+          }
+        })
+        cmdProc.stdout.pipe(split2()).on('data', function (line) {
+          if(cmd[1] && new RegExp(cmd[1].trim()).test(line)) {
+            clearTimeout(timeoutHandle)
+            runPhantom()
+          }
+        })
+      }
+    }
+
     var inter1 = setInterval(function(){
       if(_phantomQueue.length<_phantomQueueSize){
         clearInterval(inter1)
-        runPhantom()
+        runPreCommands()
       }
     }, 300)
   })
@@ -360,9 +401,15 @@ function runTestFile (fileName) {
 
 if(testList)
   describe('ptest for custom test files', function(){
-    testList.forEach(function(v) {
-      runTestFile(v)
-    })
+    testList
+      .sort(function (a, b) {
+        var found1 = treeHelper.deepFindKV(ptest, v=>v._leaf && v.name==a).pop()
+        var found2 = treeHelper.deepFindKV(ptest, v=>v._leaf && v.name==b).pop()
+        return (found1.order|0) - (found2.order|0)
+      })
+      .forEach(function(v) {
+        runTestFile(v)
+      })
   })
 else
   if(ptest)
@@ -371,15 +418,19 @@ else
         var folder = p.folder
         var iter = function (obj) {
           if (typeof obj != 'object' || !obj) return
-          obj.forEach(function(v) {
-            if (v._leaf) {
-              runTestFile(v.name)
-            } else {
-              describe(v.name, function () {
-                iter(v.children)
-              })
-            }
-          })
+          obj
+            .sort(function(a,b) {
+              return (a.order|0) - (b.order|0)
+            })
+            .forEach(function(v) {
+              if (v._leaf) {
+                runTestFile(v.name)
+              } else {
+                describe(v.name, function () {
+                  iter(v.children)
+                })
+              }
+            })
         }
         iter(p['children'])
       })

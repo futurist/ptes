@@ -367,7 +367,7 @@ function startRec (arg, name) {
     cmdProc.on('close', (code) => {
       clearTimeout(timeoutHandle)
       if (code !== 0) {
-        console.log(`${cmd[0]} process exited with code ${code}`)
+        console.log(cmd[0], ' process exited with code ', code)
       } else {
         action()
       }
@@ -438,7 +438,7 @@ function stopRec () {
   // else while(p = a.shift()) b[p] = (b[p] || {}), a.length > 1 ? b = b[p] : b = b[p][a.shift()] = Config.unsaved
   // delete Config.unsaved
 
-  pointer.set(Config, objPath, {_leaf: true, name: Config.unsaved.name, desc: ''})
+  pointer.set(Config, objPath, {_leaf: true, name: Config.unsaved.name, desc: '', order: TestArg.testOrder})
   delete Config.unsaved
 
   writePtestConfig(Config)

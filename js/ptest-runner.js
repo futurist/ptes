@@ -250,6 +250,7 @@ function compareImage (testName, testFolder, imageID, done) {
 
 afterEach(function () {
   if (this.phantom) this.phantom.kill(), this.phantom = null
+  if (this.cmdProc) this.cmdProc.kill(), this.cmdProc = null
 })
 
 // helper function
@@ -362,15 +363,20 @@ function runTestFile (fileName) {
         }
         var timeoutHandle = setTimeout(function() {
           error({message: 'timeout ' + cmd})
-          cmdProc.kill('SIGINT')
+          if(self.cmdProc) {
+            self.cmdProc.kill('SIGINT')
+            self.cmdProc = null
+          }
           // console.log('command run timeout', cmd)
         }, timeout)
         cmdProc.on('error', (err) => {
           error(err)
+          self.cmdProc = null
           clearTimeout(timeoutHandle)
           // console.log('Failed to start child process.', cmd[0])
         })
         cmdProc.on('close', (code) => {
+          self.cmdProc = null
           clearTimeout(timeoutHandle)
           if (code !== 0) {
             error({message: cmd + ' exit with '+ code})
@@ -385,6 +391,7 @@ function runTestFile (fileName) {
             runPhantom()
           }
         })
+        self.cmdProc = cmdProc
       } else {
         runPhantom()
       }
@@ -407,7 +414,7 @@ if(testList)
       .sort(function (a, b) {
         var found1 = treeHelper.deepFindKV(ptest, v=>v._leaf && v.name==a).pop()
         var found2 = treeHelper.deepFindKV(ptest, v=>v._leaf && v.name==b).pop()
-        return (found1.order|0) - (found2.order|0)
+        return (found1.order|0) - (found2.order|0) || (a < b ? -1 : 1)
       })
       .forEach(function(v) {
         runTestFile(v)
@@ -422,7 +429,7 @@ else
           if (typeof obj != 'object' || !obj) return
           obj
             .sort(function(a,b) {
-              return (a.order|0) - (b.order|0)
+              return (a.order|0) - (b.order|0) || (a.name < b.name ? -1 : 1)
             })
             .forEach(function(v) {
               if (v._leaf) {

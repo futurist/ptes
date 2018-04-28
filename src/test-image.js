@@ -6,43 +6,14 @@
  * @license MIT
  */
 
-import cssobj from 'cssobj'
-import cssobj_mithril from 'cssobj-mithril'
+import M from './css'
+import style from './css/test-image'
 
 var PTEST_PATH = '/ptestfolder/'
 
-const style = {
-  '.test-image-con': {
-    textAlign: 'left'
-  },
-  'menu.top': {
-    background: '#ccc',
-    'a, span': {
-      marginLeft: '10px'
-    },
-    'span.current': {
-      color: 'red'
-    }
-  },
-  '.imageBox': {
-    position: 'relative',
-    '.info': {
-      position: 'absolute',
-      right: '10px',
-      top: '10px',
-      zIndex: 999
-    },
-    '.image': {
-      position: 'absolute'
-    }
-  },
-  '.hide': {
-    display: 'none'
-  }
-}
-
-const result = cssobj(style, {local:true})
-const m = cssobj_mithril(result)
+const result = M.cssobj(style, {local:true})
+const m = M(result)
+var images = []
 
 const gallary = {
   controller: function (arg) {
@@ -54,15 +25,21 @@ const gallary = {
     var folder = data.folder
     var test = data.test
     var a = data.a
-    var images = m.request({method: 'GET', url: [PTEST_PATH, 'testimage'].join(''), data: {folder, test} })
-        .then(f => {
-          const found = f.findIndex(v => v.a == a)
-          if (found > -1) group = found
-          return f
-        })
+    
+    var getImageList = function(){
+      return m.request({method: 'GET', url: [PTEST_PATH, 'testimage'].join(''), data: {folder, test} })
+          .then(f => {
+            f = f||[]
+            const found = f.findIndex(v => v.a == a)
+            if (found > -1) group = found
+            images = f
+          }, err=>[])
+      }
+    getImageList()
 
     ctrl.cycleVisible = (diff) => {
-      var obj = images()[group]
+      var obj = images[group]
+      if(!obj) return
       var keys = Object.keys(obj)
       index += diff || 1
       index = (index + keys.length) % keys.length
@@ -70,7 +47,7 @@ const gallary = {
     }
 
     ctrl.getImageList = () => {
-      return images().map((v, i) => m('span', {class: group == i ? 'current' : '',onclick: e => group = i}, v.a))
+      return images.map((v, i) => m('span', {class: group == i ? 'current' : '',onclick: e => group = i}, v.a))
     }
 
     ctrl.getInfoTag = (keys, index) => {
@@ -85,7 +62,10 @@ const gallary = {
     }
 
     ctrl.getImageTag = () => {
-      var obj = images()[group]
+      var obj = images[group]
+      if(!obj){
+        return m('.info', {textAlign:'center'}, 'Loading...')
+      }
       var keys = Object.keys(obj)
       return [
         m('.info', ctrl.getInfoTag(keys, index)),

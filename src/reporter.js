@@ -6,8 +6,7 @@
  * @license MIT
  */
 
-import cssobj from 'cssobj'
-import cssobj_mithril from 'cssobj-mithril'
+import M from './css'
 import format from './format.js'
 
 const style = {
@@ -53,9 +52,8 @@ const style = {
   }
 }
 
-const result = cssobj(style, {local:true})
-
-const m = cssobj_mithril(result)
+const result = M.cssobj(style, {local:true})
+const m = M(result)
 
 const footer = {
   controller: function(arg) {

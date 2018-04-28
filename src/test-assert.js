@@ -1,13 +1,11 @@
 // for assert popup detain info
 
-import cssobj from 'cssobj'
-import cssobj_mithril from 'cssobj-mithril'
+import M from './css'
 
-const style = cssobj({
+const style = M.cssobj({
   '.page':{}
 })
-
-const m = cssobj_mithril(style)
+const m = M(style)
 
 const assertPopup = {
   controller: function(arg) {

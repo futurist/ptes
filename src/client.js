@@ -388,7 +388,7 @@ function registerEvent () {
   Mousetrap.bind('ctrl+p', function (e) {
     e.preventDefault()
   })
-  Mousetrap.bind('f4', function (e) {
+  Mousetrap.bind('f1', function (e) {
     e.preventDefault()
     if(stage>SETUP) return
     if (stage === SETUP) {
@@ -407,12 +407,12 @@ function registerEvent () {
     e.preventDefault()
     sc(' reloadPhantom() ')
   })
-  Mousetrap.bind('ctrl+a', function (e) {
+  Mousetrap.bind('f4', function (e) {
     e.preventDefault()
     if (stage !== null) return
     stage = CLIPPING
   })
-  Mousetrap.bind('f8', function (e) {
+  Mousetrap.bind('ctrl+s', function (e) {
     e.preventDefault()
     e.stopPropagation()
     e.stopImmediatePropagation()
@@ -420,7 +420,7 @@ function registerEvent () {
     sc(' snapKeyFrame("' + currentName + '") ')
     keyframeCount++
   })
-  Mousetrap.bind('ctrl+r', function (e) {
+  Mousetrap.bind('ctrl+a', function (e) {
     if (e) e.preventDefault()
     if(stage!==RECORDING) return
     saveRec(e, false)

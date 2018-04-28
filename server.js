@@ -35,7 +35,7 @@ var DEFAULT_URL = [
   'about:blank'
 ].pop()
 var HTTP_HOST = '0.0.0.0'
-var HTTP_PORT = 8080
+var HTTP_PORT = 8888
 var WS_PORT = 1280
 var DATA_DIR = 'ptest_data/'
 var TEST_FOLDER = './'
